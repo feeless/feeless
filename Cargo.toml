@@ -1,0 +1,11 @@
+[package]
+name = "nano-node"
+version = "0.1.0"
+authors = ["gak <gak@gak0.com>"]
+edition = "2018"
+
+[dependencies]
+anyhow = "1.0.38"
+bigdecimal = { versioin = "0.2.0", features = ["serde"] }
+tokio = "1.1.1"
+serde = { version = "*", features = ["derive"] }
