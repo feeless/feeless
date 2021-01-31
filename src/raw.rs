@@ -2,7 +2,6 @@ use bigdecimal::BigDecimal;
 use std::fmt::Display;
 use std::str::FromStr;
 use bigdecimal::ToPrimitive;
-use anyhow::Result;
 use serde::{Serialize, Deserialize};
 
 const RAW_TO_NANO: &str = "1_000_000_000_000_000_000_000_000";
@@ -28,17 +27,17 @@ impl Raw {
         Self(v.into() * BigDecimal::from_str(RAW_TO_MNANO).unwrap())
     }
 
-    pub fn from_raw_str(v: &str) -> Result<Self> {
+    pub fn from_raw_str(v: &str) -> anyhow::Result<Self> {
         Ok(Self(BigDecimal::from_str(v)?))
     }
 
-    pub fn from_nano_str(v: &str) -> Result<Self> {
+    pub fn from_nano_str(v: &str) -> anyhow::Result<Self> {
         Ok(Self(
             BigDecimal::from_str(v)? * BigDecimal::from_str(RAW_TO_NANO).unwrap(),
         ))
     }
 
-    pub fn from_mnano_str(v: &str) -> Result<Self> {
+    pub fn from_mnano_str(v: &str) -> anyhow::Result<Self> {
         Ok(Self(
             BigDecimal::from_str(v)? * BigDecimal::from_str(RAW_TO_MNANO).unwrap(),
         ))
