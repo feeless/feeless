@@ -44,7 +44,7 @@ impl From<&Private> for Public {
 impl std::fmt::UpperHex for Public {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         for byte in self.0.as_bytes() {
-            write!(f, "{:02X}", byte);
+            write!(f, "{:02X}", byte)?;
         }
         Ok(())
     }
@@ -53,8 +53,6 @@ impl std::fmt::UpperHex for Public {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use ed25519_dalek::{SecretKey, PublicKey, ExpandedSecretKey};
-    use blake2::{Blake2b, Digest};
 
     /// Example private -> public conversion:
     /// https://docs.nano.org/protocol-design/signing-hashing-and-key-derivation/#signing-algorithm-ed25519
