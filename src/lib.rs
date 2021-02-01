@@ -12,10 +12,6 @@ pub use private::Private;
 pub use public::Public;
 pub use seed::Seed;
 
-fn main() {
-    println!("Hello, world!");
-}
-
 #[cfg(test)]
 mod tests {
     use std::convert::TryFrom;
