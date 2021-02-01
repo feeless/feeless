@@ -1,9 +1,6 @@
-use std::convert::TryFrom;
 use blake2::{Blake2b, Digest};
 use ed25519_dalek::{ExpandedSecretKey, PublicKey, SecretKey};
-
-const PUBLIC_KEY_LENGTH: usize = 32;
-const PRIVATE_KEY_LENGTH: usize = 32;
+use std::convert::TryFrom;
 
 pub struct Private(SecretKey);
 
@@ -41,7 +38,6 @@ impl Public {
     }
 }
 
-
 impl From<&Private> for Public {
     fn from(private_key: &Private) -> Self {
         // This is modified from ed25519_dalek::PublicKey::from(secret_key: &SecretKey) so that
@@ -73,18 +69,20 @@ impl std::fmt::Display for Public {
     }
 }
 
-
 #[cfg(test)]
 mod tests {
     use super::*;
 
     /// Example private -> public conversion:
-        /// https://docs.nano.org/protocol-design/signing-hashing-and-key-derivation/#signing-algorithm-ed25519
+    /// https://docs.nano.org/protocol-design/signing-hashing-and-key-derivation/#signing-algorithm-ed25519
     #[test]
     fn empty_private_to_public() {
         let private_key_bytes = [0; 32];
         let private = Private::try_from(private_key_bytes.as_ref()).unwrap();
         let public = Public::from(&private);
-        assert_eq!(public.to_string(), "19D3D919475DEED4696B5D13018151D1AF88B2BD3BCFF048B45031C1F36D1858")
+        assert_eq!(
+            public.to_string(),
+            "19D3D919475DEED4696B5D13018151D1AF88B2BD3BCFF048B45031C1F36D1858"
+        )
     }
 }

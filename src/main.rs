@@ -1,14 +1,14 @@
 #![forbid(unsafe_code)]
 
-mod raw;
-mod key;
-mod seed;
 mod address;
+mod key;
+mod raw;
+mod seed;
 
 use address::Address;
-use key::{Public, Private};
-use blake2::{Blake2b, Digest, VarBlake2b};
 use blake2::digest::{Update, VariableOutput};
+use blake2::{Digest, VarBlake2b};
+use key::{Private, Public};
 
 fn main() {
     println!("Hello, world!");

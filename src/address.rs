@@ -1,8 +1,7 @@
-use bitvec::prelude::*;
-use crate::key::Public;
-use std::iter::FromIterator;
-use bitvec::macros::internal::core::fmt::Formatter;
 use crate::blake2b;
+use crate::key::Public;
+use bitvec::prelude::*;
+use std::iter::FromIterator;
 
 const ADDRESS_LENGTH: usize = 65;
 const ALPHABET: &str = "13456789abcdefghijkmnopqrstuwxyz";
@@ -17,7 +16,6 @@ fn encode_nano_base_32(bits: &BitSlice<Msb0, u8>) -> String {
         let chunk: &BitSlice<Msb0, u8> = &bits[idx..idx + 5];
         let value: u8 = chunk.load_be();
         let char = alphabet[value as usize];
-        dbg!(chunk, value);
         s.push(char);
     }
     s
@@ -30,24 +28,25 @@ impl From<&Public> for Address {
         address.push_str("nano_");
 
         // Public key -> nano_base_32
-        let mut bits: BitVec<Msb0, u8> = BitVec::with_capacity(PADDED_BITS + 8 * 32);
+        const PKP_LEN: usize = PADDED_BITS + 8 * 32;
+        const PKP_CAPACITY: usize = PADDED_BITS + 8 * 32 + 4; // Capacity rounded up to 8 bits.
+        let mut bits: BitVec<Msb0, u8> = BitVec::with_capacity(PKP_CAPACITY);
         let pad: BitVec<Msb0, u8> = bitvec![Msb0, u8; 0; PADDED_BITS];
         bits.extend_from_bitslice(&pad);
         bits.extend_from_raw_slice(&public.as_bytes());
+        debug_assert_eq!(bits.capacity(), PKP_CAPACITY);
+        debug_assert_eq!(bits.len(), PKP_LEN);
         let public_key_part = encode_nano_base_32(&bits);
         address.push_str(&public_key_part);
-        dbg!(&public_key_part);
 
         // Public key -> blake2(5) -> nano_base_32
         let result = blake2b(5, &public.as_bytes());
         let bits = BitVec::from_iter(result.iter().rev());
         let checksum_part = encode_nano_base_32(&bits);
-        dbg!(&checksum_part);
         address.push_str(&checksum_part);
 
         debug_assert_eq!(address.len(), ADDRESS_LENGTH);
         debug_assert_eq!(address.capacity(), ADDRESS_LENGTH);
-
         Address(address)
     }
 }
