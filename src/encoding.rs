@@ -93,6 +93,7 @@ mod tests {
 
     #[test]
     fn from_bad_checksum() {
+        // These are the same as above with one character changed in the checksum section.
         let bad_checksums = vec![
             "nano_3uaydiszyup5zwdt93dahp7mri1cwa5ncg9t4657yyn3o4i1pe8sfjbimba1",
             "nano_1qgkdadcbwn65sp95gr144fuc99tm5tn6gx9y8ow9bgaam6r5ixgtx19tw23",

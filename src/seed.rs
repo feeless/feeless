@@ -1,9 +1,7 @@
-use std::convert::TryFrom;
-
-use bytes::{BufMut, BytesMut};
-
 use crate::encoding::blake2b;
 use crate::Private;
+use bytes::{BufMut, BytesMut};
+use std::convert::TryFrom;
 
 const SEED_BYTES: usize = 32;
 
