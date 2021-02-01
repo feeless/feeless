@@ -1,5 +1,8 @@
+use crate::Public;
 use bitvec::macros::internal::core::convert::TryFrom;
 use ed25519_dalek::SecretKey;
+
+pub const PRIVATE_KEY_BYTES: usize = 32;
 
 pub struct Private(SecretKey);
 
@@ -7,12 +10,17 @@ impl Private {
     pub fn as_bytes(&self) -> &[u8] {
         self.0.as_bytes()
     }
+
+    pub fn to_public(&self) -> Public {
+        Public::from(self)
+    }
 }
 
 impl TryFrom<&[u8]> for Private {
     type Error = anyhow::Error;
 
     fn try_from(bytes: &[u8]) -> Result<Self, Self::Error> {
+        // TODO: Check for length
         Ok(Self(SecretKey::from_bytes(bytes)?))
     }
 }

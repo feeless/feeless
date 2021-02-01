@@ -44,6 +44,8 @@ mod tests {
             "nano_3i1aq1cchnmbn9x5rsbap8b15akfh7wj7pwskuzi7ahz8oq6cobd99d4r3b7"
         );
 
+        assert_eq!(address.to_public(), public);
+
         let private: Private = seed.derive(987654321);
         assert_eq!(
             private.to_string(),
@@ -65,9 +67,7 @@ mod tests {
         let seed =
             Seed::try_from("1BC5FB0ECB41B07AE3272FE2CB037864382167ECE9ECEFB31237EE555627B891")
                 .unwrap();
-        let private = seed.derive(0);
-        let public = Public::from(&private);
-        let address = Address::from(&public);
+        let address = seed.derive(0).to_public().to_address();
         assert_eq!(
             address.to_string(),
             "nano_1gaki4rjgawxdx7338dsd81f6rebao5qefaonu61jjks6rm1zdrium1f994m"

@@ -1,18 +1,29 @@
+use anyhow::anyhow;
 use blake2::{Blake2b, Digest};
 use ed25519_dalek::{ExpandedSecretKey, PublicKey};
 
-use crate::Private;
+use crate::{Address, Private};
+use std::convert::TryFrom;
 
+pub const PUBLIC_KEY_BYTES: usize = 32;
+
+#[derive(Debug, PartialEq)]
 pub struct Public(PublicKey);
 
 impl Public {
     pub fn as_bytes(&self) -> &[u8] {
         self.0.as_bytes()
     }
+
+    pub fn to_address(&self) -> Address {
+        Address::from(self)
+    }
 }
 
 impl From<&Private> for Public {
     fn from(private_key: &Private) -> Self {
+        // TODO: Check for length
+
         // This is modified from ed25519_dalek::PublicKey::from(secret_key: &SecretKey) so that
         // it can use Blake2b instead of SHA256.
         let mut h: Blake2b = Blake2b::new();
@@ -30,6 +41,22 @@ impl From<&Private> for Public {
     }
 }
 
+impl TryFrom<&[u8]> for Public {
+    type Error = anyhow::Error;
+
+    fn try_from(value: &[u8]) -> Result<Self, Self::Error> {
+        if value.len() != PUBLIC_KEY_BYTES {
+            return Err(anyhow!(
+                "Invalid length: {}, expecting: {}",
+                value.len(),
+                PUBLIC_KEY_BYTES
+            ));
+        }
+
+        Ok(Self(PublicKey::from_bytes(value)?))
+    }
+}
+
 impl std::fmt::UpperHex for Public {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         crate::encoding::fmt_hex(f, &self.0.as_bytes().as_ref())
@@ -44,6 +71,7 @@ impl std::fmt::Display for Public {
 
 #[cfg(test)]
 mod tests {
+    use crate::private::PRIVATE_KEY_BYTES;
     use crate::{Private, Public};
     use std::convert::TryFrom;
 
@@ -51,7 +79,7 @@ mod tests {
     /// https://docs.nano.org/protocol-design/signing-hashing-and-key-derivation/#signing-algorithm-ed25519
     #[test]
     fn empty_private_to_public() {
-        let private_key_bytes = [0; 32];
+        let private_key_bytes = [0; PRIVATE_KEY_BYTES];
         let private = Private::try_from(private_key_bytes.as_ref()).unwrap();
         let public = Public::from(&private);
         assert_eq!(
