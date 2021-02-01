@@ -32,7 +32,12 @@ impl std::fmt::Display for Private {
 
 pub struct Public(PublicKey);
 
-impl Public {}
+impl Public {
+    pub fn as_bytes(&self) -> &[u8] {
+        self.0.as_bytes()
+    }
+}
+
 
 impl From<&Private> for Public {
     fn from(private_key: &Private) -> Self {

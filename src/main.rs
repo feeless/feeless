@@ -1,6 +1,12 @@
+#![forbid(unsafe_code)]
+
 mod raw;
 mod key;
 mod seed;
+mod address;
+
+use address::Address;
+use key::{Public, Private};
 
 fn main() {
     println!("Hello, world!");
