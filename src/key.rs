@@ -2,6 +2,9 @@ use std::convert::TryFrom;
 use blake2::{Blake2b, Digest};
 use ed25519_dalek::{ExpandedSecretKey, PublicKey, SecretKey};
 
+const PUBLIC_KEY_LENGTH: usize = 32;
+const PRIVATE_KEY_LENGTH: usize = 32;
+
 pub struct Private(SecretKey);
 
 impl Private {
