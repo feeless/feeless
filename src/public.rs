@@ -1,34 +1,7 @@
 use blake2::{Blake2b, Digest};
-use ed25519_dalek::{ExpandedSecretKey, PublicKey, SecretKey};
-use std::convert::TryFrom;
+use ed25519_dalek::{ExpandedSecretKey, PublicKey};
 
-pub struct Private(SecretKey);
-
-impl Private {
-    pub fn as_bytes(&self) -> &[u8] {
-        self.0.as_bytes()
-    }
-}
-
-impl TryFrom<&[u8]> for Private {
-    type Error = anyhow::Error;
-
-    fn try_from(bytes: &[u8]) -> Result<Self, Self::Error> {
-        Ok(Self(SecretKey::from_bytes(bytes)?))
-    }
-}
-
-impl std::fmt::UpperHex for Private {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        crate::fmt_hex(f, &self.0.as_bytes().as_ref())
-    }
-}
-
-impl std::fmt::Display for Private {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{:X}", &self)
-    }
-}
+use crate::Private;
 
 pub struct Public(PublicKey);
 
@@ -59,7 +32,7 @@ impl From<&Private> for Public {
 
 impl std::fmt::UpperHex for Public {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        crate::fmt_hex(f, &self.0.as_bytes().as_ref())
+        crate::encoding::fmt_hex(f, &self.0.as_bytes().as_ref())
     }
 }
 
@@ -71,7 +44,8 @@ impl std::fmt::Display for Public {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
+    use crate::{Private, Public};
+    use std::convert::TryFrom;
 
     /// Example private -> public conversion:
     /// https://docs.nano.org/protocol-design/signing-hashing-and-key-derivation/#signing-algorithm-ed25519

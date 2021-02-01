@@ -1,5 +1,5 @@
-use crate::blake2b;
-use crate::key::Public;
+use crate::encoding::blake2b;
+use crate::public::Public;
 use bitvec::prelude::*;
 use std::iter::FromIterator;
 
