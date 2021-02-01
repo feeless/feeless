@@ -1,0 +1,8 @@
+[package]
+name = "feeless_node"
+version = "0.1.0"
+authors = ["gak <gak@gak0.com>"]
+edition = "2018"
+
+[dependencies]
+feeless = { path = "../core" }

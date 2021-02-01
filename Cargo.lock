@@ -145,6 +145,29 @@ dependencies = [
 ]
 
 [[package]]
+name = "feeless"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "bigdecimal",
+ "bitvec",
+ "blake2",
+ "bytes",
+ "ed25519-dalek",
+ "hex",
+ "regex",
+ "serde",
+ "tokio",
+]
+
+[[package]]
+name = "feeless_node"
+version = "0.1.0"
+dependencies = [
+ "feeless",
+]
+
+[[package]]
 name = "funty"
 version = "1.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -188,22 +211,6 @@ name = "memchr"
 version = "2.3.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "0ee1c47aaa256ecabcaea351eae4a9b01ef39ed810004e298d2511ed284b1525"
-
-[[package]]
-name = "nano-node-core"
-version = "0.1.0"
-dependencies = [
- "anyhow",
- "bigdecimal",
- "bitvec",
- "blake2",
- "bytes",
- "ed25519-dalek",
- "hex",
- "regex",
- "serde",
- "tokio",
-]
 
 [[package]]
 name = "num-bigint"
