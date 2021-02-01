@@ -8,6 +8,7 @@ use bitvec::view::AsBits;
 use crate::encoding;
 use crate::encoding::blake2b;
 use crate::public::{Public, PUBLIC_KEY_BYTES};
+use ed25519_dalek::PUBLIC_KEY_LENGTH;
 
 // nano_3i1aq1cchnmbn9x5rsbap8b15akfh7wj7pwskuzi7ahz8oq6cobd99d4r3b7
 // [   ][encoded public key                                ][chksum]
@@ -37,7 +38,8 @@ impl Address {
         debug_assert_eq!(
             self.0.len(),
             ADDRESS_STRING_LENGTH,
-            "Address length needs to be {}",
+            "Address length is {} and needs to be {}",
+            self.0.len(),
             ADDRESS_STRING_LENGTH
         );
         debug_assert!(
@@ -47,16 +49,28 @@ impl Address {
 
         let public_key_part = &self.0[PREFIX_LEN..(PREFIX_LEN + ENCODED_PUBLIC_KEY_LEN)];
         debug_assert_eq!(public_key_part.len(), ENCODED_PUBLIC_KEY_LEN);
-        let decoded_public_key =
-            encoding::decode_nano_base_32(&public_key_part).expect("could not decode address");
-        dbg!(&decoded_public_key);
-        // Without padding
-        // let decoded_public_key: BitVec<Msb0, u8> = decoded_public_key[ENCODED_PADDED_BITS..];
-        // let decoded_public_key = decoded_public_key.into_vec();
-        //
-        // Ok(Public::try_from(&decoded_public_key)?)
+        let decoded_public_key_with_padding =
+            encoding::decode_nano_base_32(&public_key_part).expect("Could not decode address");
+        debug_assert_eq!(
+            decoded_public_key_with_padding.len(),
+            8 * PUBLIC_KEY_LENGTH + 4
+        );
 
-        todo!()
+        // Without padding
+        let decoded_public_key: &BitVec<Msb0, u8> =
+            &BitVec::from_bitslice(&decoded_public_key_with_padding[ENCODED_PADDED_BITS..]);
+        debug_assert_eq!(decoded_public_key.len(), 8 * PUBLIC_KEY_LENGTH);
+
+        dbg!(&decoded_public_key);
+
+        // let public_key_bytes = decoded_public_key.domain().region().unwrap();
+        let public_key_bytes: &[u8] = decoded_public_key.as_raw_slice();
+        dbg!(&public_key_bytes);
+        debug_assert_eq!(public_key_bytes.len(), PUBLIC_KEY_LENGTH);
+
+        Public::try_from(public_key_bytes).expect("Could not create public key from address")
+
+        // todo!()
     }
 }
 
