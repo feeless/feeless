@@ -1,11 +1,14 @@
+use crate::{encoding, Address, Private};
 use anyhow::anyhow;
+use bitvec::prelude::*;
 use blake2::{Blake2b, Digest};
 use ed25519_dalek::{ExpandedSecretKey, PublicKey};
-
-use crate::{Address, Private};
 use std::convert::TryFrom;
+use std::iter::FromIterator;
 
 pub const PUBLIC_KEY_BYTES: usize = 32;
+
+const ADDRESS_CHECKSUM_LEN: usize = 5;
 
 #[derive(Debug, PartialEq)]
 pub struct Public(PublicKey);
@@ -17,6 +20,13 @@ impl Public {
 
     pub fn to_address(&self) -> Address {
         Address::from(self)
+    }
+
+    // Public key -> blake2(5) -> nano_base_32
+    pub(crate) fn checksum(&self) -> String {
+        let result = encoding::blake2b(ADDRESS_CHECKSUM_LEN, &self.as_bytes());
+        let bits = BitVec::from_iter(result.iter().rev());
+        encoding::encode_nano_base_32(&bits)
     }
 }
 

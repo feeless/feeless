@@ -10,16 +10,13 @@ mod seed;
 pub use address::Address;
 pub use private::Private;
 pub use public::Public;
+pub use raw::Raw;
 pub use seed::Seed;
 
 #[cfg(test)]
 mod tests {
+    use super::*;
     use std::convert::TryFrom;
-
-    use crate::Address;
-    use crate::Private;
-    use crate::Public;
-    use crate::Seed;
 
     #[test]
     fn conversions() {

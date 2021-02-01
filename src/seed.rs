@@ -1,10 +1,9 @@
 use std::convert::TryFrom;
 
 use bytes::{BufMut, BytesMut};
-use hex;
 
 use crate::encoding::blake2b;
-use crate::private::Private;
+use crate::Private;
 
 const SEED_BYTES: usize = 32;
 
@@ -23,9 +22,6 @@ impl Seed {
         buf.put(self.0.as_ref());
         buf.put_u32(index);
 
-        // let mut blake = VarBlake2b::new(SEED_BYTES).expect("output size was zero");
-        // blake.update(&buf);
-        // let result = blake.finalize_boxed();
         let result = blake2b(SEED_BYTES, &buf);
 
         // Expect this to work all the time because it's coming from known correct types.

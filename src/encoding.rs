@@ -1,7 +1,7 @@
 use anyhow::anyhow;
 use bitvec::prelude::*;
 use blake2::digest::{Update, VariableOutput};
-use blake2::{Digest, VarBlake2b};
+use blake2::VarBlake2b;
 
 pub fn fmt_hex(f: &mut std::fmt::Formatter<'_>, bytes: &[u8]) -> std::fmt::Result {
     for byte in bytes {
@@ -53,6 +53,8 @@ pub fn decode_nano_base_32(s: &str) -> anyhow::Result<BitVec<Msb0, u8>> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::Address;
+    use std::convert::TryFrom;
 
     #[test]
     fn encode_decode() {
@@ -72,6 +74,51 @@ mod tests {
             let chunk: &BitSlice<Msb0, u8> = &decoded[idx..(idx + ENCODING_BITS)];
             let value: u8 = chunk.load_be();
             assert_eq!(d as u8, value);
+        }
+    }
+
+    #[test]
+    fn from_good_str() {
+        let good_addresses = vec![
+            "nano_3uaydiszyup5zwdt93dahp7mri1cwa5ncg9t4657yyn3o4i1pe8sfjbimbas",
+            "nano_1qgkdadcbwn65sp95gr144fuc99tm5tn6gx9y8ow9bgaam6r5ixgtx19tw93",
+            "nano_3power3gwb43rs7u9ky3rsjp6fojftejceexfkf845sfczyue4q3r1hfpr3o",
+            "nano_1jtx5p8141zjtukz4msp1x93st7nh475f74odj8673qqm96xczmtcnanos1o",
+            "nano_1ebq356ex7n5efth49o1p31r4fmuuoara5tmwduarg7b9jphyxsatr3ja6g8",
+        ];
+        for s in good_addresses {
+            assert!(Address::try_from(s).is_ok());
+        }
+    }
+
+    #[test]
+    fn from_bad_checksum() {
+        let bad_checksums = vec![
+            "nano_3uaydiszyup5zwdt93dahp7mri1cwa5ncg9t4657yyn3o4i1pe8sfjbimba1",
+            "nano_1qgkdadcbwn65sp95gr144fuc99tm5tn6gx9y8ow9bgaam6r5ixgtx19tw23",
+            "nano_3power3gwb43rs7u9ky3rsjp6fojftejceexfkf845sfczyue4q3r1hfp33o",
+            "nano_1jtx5p8141zjtukz4msp1x93st7nh475f74odj8673qqm96xczmtcnan4s1o",
+            "nano_1ebq356ex7n5efth49o1p31r4fmuuoara5tmwduarg7b9jphyxsatr35a6g8",
+        ];
+        for s in bad_checksums {
+            assert!(Address::try_from(s).is_err());
+        }
+    }
+
+    #[test]
+    fn from_bad_str() {
+        let bad_addresses = vec![
+            "",
+            "ABC",
+            "01234567890123456789012345678901234567890123456789012345678901234",
+            "nano_😊🥺😉😍😘😚😜😂😝😳😊🥺😉😍😘😚😜😂😝😳😊🥺😉😍😘😊🥺😉😍😘😚😜😂😝😳",
+            "nano_012345678901234567890123456789012345678901234567890123456789",
+        ];
+
+        for s in bad_addresses {
+            let result = Address::try_from(s);
+            dbg!(&result);
+            assert!(result.is_err())
         }
     }
 }

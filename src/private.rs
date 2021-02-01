@@ -1,6 +1,7 @@
 use crate::Public;
-use bitvec::macros::internal::core::convert::TryFrom;
+use anyhow::anyhow;
 use ed25519_dalek::SecretKey;
+use std::convert::TryFrom;
 
 pub const PRIVATE_KEY_BYTES: usize = 32;
 
@@ -20,7 +21,14 @@ impl TryFrom<&[u8]> for Private {
     type Error = anyhow::Error;
 
     fn try_from(bytes: &[u8]) -> Result<Self, Self::Error> {
-        // TODO: Check for length
+        if bytes.len() != PRIVATE_KEY_BYTES {
+            return Err(anyhow!(
+                "Private key is the wrong length: {} Expected: {}",
+                bytes.len(),
+                PRIVATE_KEY_BYTES
+            ));
+        }
+
         Ok(Self(SecretKey::from_bytes(bytes)?))
     }
 }
