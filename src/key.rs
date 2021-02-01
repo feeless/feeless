@@ -1,8 +1,8 @@
-use ed25519_dalek::{SecretKey, PublicKey, ExpandedSecretKey};
 use std::convert::TryFrom;
 use blake2::{Blake2b, Digest};
+use ed25519_dalek::{ExpandedSecretKey, PublicKey, SecretKey};
 
-struct Private(SecretKey);
+pub struct Private(SecretKey);
 
 impl Private {
     pub fn as_bytes(&self) -> &[u8] {
@@ -18,7 +18,19 @@ impl TryFrom<&[u8]> for Private {
     }
 }
 
-struct Public(PublicKey);
+impl std::fmt::UpperHex for Private {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        crate::fmt_hex(f, &self.0.as_bytes().as_ref())
+    }
+}
+
+impl std::fmt::Display for Private {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{:X}", &self)
+    }
+}
+
+pub struct Public(PublicKey);
 
 impl Public {}
 
@@ -43,24 +55,28 @@ impl From<&Private> for Public {
 
 impl std::fmt::UpperHex for Public {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        for byte in self.0.as_bytes() {
-            write!(f, "{:02X}", byte)?;
-        }
-        Ok(())
+        crate::fmt_hex(f, &self.0.as_bytes().as_ref())
     }
 }
+
+impl std::fmt::Display for Public {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{:X}", &self)
+    }
+}
+
 
 #[cfg(test)]
 mod tests {
     use super::*;
 
     /// Example private -> public conversion:
-    /// https://docs.nano.org/protocol-design/signing-hashing-and-key-derivation/#signing-algorithm-ed25519
+        /// https://docs.nano.org/protocol-design/signing-hashing-and-key-derivation/#signing-algorithm-ed25519
     #[test]
     fn empty_private_to_public() {
         let private_key_bytes = [0; 32];
         let private = Private::try_from(private_key_bytes.as_ref()).unwrap();
         let public = Public::from(&private);
-        assert_eq!(format!("{:X}", public), "19D3D919475DEED4696B5D13018151D1AF88B2BD3BCFF048B45031C1F36D1858")
+        assert_eq!(public.to_string(), "19D3D919475DEED4696B5D13018151D1AF88B2BD3BCFF048B45031C1F36D1858")
     }
 }
