@@ -1,3 +1,4 @@
+#![feature(result_contains_err)]
 #![forbid(unsafe_code)]
 
 mod header;

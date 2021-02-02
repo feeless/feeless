@@ -9,4 +9,4 @@ feeless = { path = "../core" }
 
 tokio = { version = "*", features = ["full"] }
 bitvec = "0.20.1"
-#bincode = "1.3.1"
+anyhow = "1.0.38"
