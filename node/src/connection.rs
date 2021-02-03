@@ -9,7 +9,6 @@ use crate::state::State;
 
 pub struct Connection {
     state: State,
-    network: Network,
     stream: TcpStream,
 
     /// Storage that can be shared within this task without reallocating.
@@ -17,10 +16,9 @@ pub struct Connection {
 }
 
 impl Connection {
-    pub fn new(state: State, network: Network, stream: TcpStream) -> Self {
+    pub fn new(state: State, stream: TcpStream) -> Self {
         Self {
             state,
-            network,
             stream,
             buffer: Vec::with_capacity(1024),
         }
@@ -49,7 +47,8 @@ impl Connection {
 
         loop {
             // Expecting a header
-            let header = Header::deserialize(self.network, self.recv(Header::LENGTH).await?)?;
+            let header =
+                Header::deserialize(self.state.network(), self.recv(Header::LENGTH).await?)?;
 
             match header.message_type() {
                 MessageType::Keepalive => todo!(),
