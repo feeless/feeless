@@ -1,23 +1,17 @@
 #![forbid(unsafe_code)]
 
-use std::convert::TryFrom;
-use std::time::Duration;
-
-use anyhow::anyhow;
-use tokio::io::{AsyncReadExt, AsyncWriteExt};
-use tokio::net::TcpStream;
-
-use connection::Connection;
-use feeless;
-
-use crate::header::{Flags, Header, MessageType, Network};
-use crate::state::State;
-
 mod connection;
 mod cookie;
 mod header;
 mod message;
 mod state;
+
+use crate::header::{Flags, Header, MessageType, Network};
+use crate::state::State;
+
+use connection::Connection;
+use std::time::Duration;
+use tokio::net::TcpStream;
 
 #[tokio::main]
 async fn main() {

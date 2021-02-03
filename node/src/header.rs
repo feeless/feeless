@@ -1,10 +1,11 @@
 use anyhow::anyhow;
 use bitvec::prelude::*;
+use serde::{Deserialize, Serialize};
 use std::convert::TryFrom;
 use std::fmt::Formatter;
 use std::result::Result;
 
-#[derive(Debug, Clone, Copy, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
 pub struct Header {
     /// Always "R" 0x82
     magic_number: MagicNumber,
@@ -102,7 +103,7 @@ impl Header {
     }
 }
 
-#[derive(Clone, Copy, PartialEq)]
+#[derive(Clone, Copy, PartialEq, Serialize, Deserialize)]
 struct MagicNumber(u8);
 
 impl MagicNumber {
@@ -131,7 +132,7 @@ impl TryFrom<u8> for MagicNumber {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
 #[repr(u8)]
 pub enum Network {
     Test = 0x41,
@@ -153,13 +154,13 @@ impl TryFrom<u8> for Network {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
 #[repr(u8)]
 pub enum Version {
     Current = 18,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
 #[repr(u8)]
 pub enum MessageType {
     Keepalive = 2,
@@ -197,7 +198,7 @@ impl TryFrom<u8> for MessageType {
     }
 }
 
-#[derive(Clone, Copy, PartialEq)]
+#[derive(Clone, Copy, PartialEq, Serialize, Deserialize)]
 pub struct Flags([u8; 2]);
 
 impl Flags {
