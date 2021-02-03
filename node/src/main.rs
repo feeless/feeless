@@ -5,6 +5,7 @@ mod cookie;
 mod header;
 mod message;
 mod state;
+mod wire;
 
 use crate::header::{Flags, Header, MessageType, Network};
 use crate::state::State;

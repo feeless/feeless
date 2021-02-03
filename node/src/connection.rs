@@ -2,10 +2,10 @@ use anyhow::anyhow;
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use tokio::net::TcpStream;
 
-use crate::cookie::Cookie;
 use crate::header::{Flags, Header, MessageType, Network};
 use crate::message::{NodeIdHandshakeQuery, NodeIdHandshakeResponse};
 use crate::state::State;
+use crate::wire::Wire;
 
 pub struct Connection {
     state: State,
@@ -24,22 +24,25 @@ impl Connection {
         }
     }
 
-    async fn recv(&mut self, bytes: usize) -> anyhow::Result<&[u8]> {
-        if bytes > self.buffer.len() {
-            self.buffer.resize(bytes, 0)
+    async fn recv<T: Wire>(&mut self) -> anyhow::Result<T> {
+        let len = T::len();
+
+        if len > self.buffer.len() {
+            self.buffer.resize(len, 0)
         }
 
-        let mut buffer = &mut self.buffer[0..bytes];
+        let mut buffer = &mut self.buffer[0..len];
         let bytes_read = self.stream.read_exact(buffer).await?;
-        if bytes_read < bytes {
+        if bytes_read < len {
             return Err(anyhow!(
-                "Received an incorrect amount of bytes. Expected: {} Got: {}",
-                bytes,
-                bytes_read
+                "Received an incorrect amount of bytes. Got: {} Expected: {}",
+                bytes_read,
+                len,
             ));
         }
 
-        Ok(&self.buffer[0..bytes])
+        let buffer = &self.buffer[0..len];
+        Ok(T::deserialize(&self.state, buffer)?)
     }
 
     pub async fn run(&mut self) -> anyhow::Result<()> {
@@ -47,8 +50,8 @@ impl Connection {
 
         loop {
             // Expecting a header
-            let header =
-                Header::deserialize(self.state.network(), self.recv(Header::LENGTH).await?)?;
+            // let header = Header::deserialize(&self.state, self.recv(Header::LENGTH).await?)?;
+            let header = self.recv::<Header>().await?;
 
             match header.message_type() {
                 MessageType::Keepalive => todo!(),
@@ -87,13 +90,13 @@ impl Connection {
 
     async fn handle_node_id_handshake(&mut self, header: Header) -> anyhow::Result<()> {
         if header.flags().is_query() {
-            let query = self.recv(NodeIdHandshakeQuery::LENGTH).await?;
+            let query = self.recv::<NodeIdHandshakeQuery>().await?;
             dbg!(query);
         }
-        if header.flags().is_response() {
-            let response = self.recv(NodeIdHandshakeResponse::LENGTH).await?;
-            dbg!(response);
-        }
+        // if header.flags().is_response() {
+        //     let response = self.recv::<NodeIdHandshakeResponse>().await?;
+        //     dbg!(response);
+        // }
 
         todo!()
     }

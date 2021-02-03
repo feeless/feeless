@@ -1,13 +1,14 @@
+use crate::state::State;
+use crate::wire::Wire;
 use anyhow::anyhow;
 use bitvec::prelude::*;
-use serde::{Deserialize, Serialize};
 use std::convert::TryFrom;
 use std::fmt::Formatter;
 use std::result::Result;
 
-#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub struct Header {
-    /// Always "R" 0x82
+    /// Always "R" 0x82, probably for RaiBlocks!
     magic_number: MagicNumber,
 
     /// Network: live (C 0x43), beta (B 0x42), test (A 0x41).
@@ -59,8 +60,10 @@ impl Header {
     pub fn flags(&self) -> Flags {
         self.flags
     }
+}
 
-    pub fn serialize(&self) -> Vec<u8> {
+impl Wire for Header {
+    fn serialize(&self) -> Vec<u8> {
         vec![
             self.magic_number.0,
             self.network as u8,
@@ -73,7 +76,7 @@ impl Header {
         ]
     }
 
-    pub fn deserialize(network: Network, data: &[u8]) -> anyhow::Result<Header> {
+    fn deserialize(state: &State, data: &[u8]) -> Result<Self, anyhow::Error> {
         if data.len() != Header::LENGTH {
             return Err(anyhow!(
                 "Incorrect length: Expecting: {}, got: {}",
@@ -86,10 +89,10 @@ impl Header {
         MagicNumber::try_from(data[Self::MAGIC_NUMBER])?;
 
         let their_network = Network::try_from(data[Self::NETWORK])?;
-        if their_network != network {
+        if their_network != state.network() {
             return Err(anyhow!(
                 "Network mismatch: We're on {:?}, they're on {:?}",
-                network,
+                state.network(),
                 their_network
             ));
         }
@@ -99,11 +102,15 @@ impl Header {
         let message_type = MessageType::try_from(data[Self::MESSAGE_TYPE])?;
         let flags = Flags::try_from(&data[Self::FLAGS..Self::FLAGS + Flags::LENGTH])?;
 
-        Ok(Header::new(network, message_type, flags))
+        Ok(Header::new(state.network(), message_type, flags))
+    }
+
+    fn len() -> usize {
+        Header::LENGTH
     }
 }
 
-#[derive(Clone, Copy, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, Copy, PartialEq)]
 struct MagicNumber(u8);
 
 impl MagicNumber {
@@ -132,7 +139,7 @@ impl TryFrom<u8> for MagicNumber {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 #[repr(u8)]
 pub enum Network {
     Test = 0x41,
@@ -154,13 +161,13 @@ impl TryFrom<u8> for Network {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 #[repr(u8)]
 pub enum Version {
     Current = 18,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 #[repr(u8)]
 pub enum MessageType {
     Keepalive = 2,
@@ -198,7 +205,7 @@ impl TryFrom<u8> for MessageType {
     }
 }
 
-#[derive(Clone, Copy, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, Copy, PartialEq)]
 pub struct Flags([u8; 2]);
 
 impl Flags {
@@ -280,16 +287,18 @@ mod tests {
 
     #[test]
     fn serialize() {
+        let state = State::new(Network::Live);
+
         let mut flags = Flags::new();
         flags.set_query(true);
         flags.set_response(true);
 
-        let mut h1 = Header::new(Network::Live, MessageType::Keepalive, flags);
+        let mut h1 = Header::new(state.network(), MessageType::Keepalive, flags);
         let s = h1.serialize();
         assert_eq!(s.len(), Header::LENGTH);
         assert_eq!(s, vec![0x52, 0x43, 18, 18, 18, 2, 3, 0]);
 
-        let h2 = Header::deserialize(Network::Live, &s).unwrap();
+        let h2 = Header::deserialize(&state, &s).unwrap();
         assert_eq!(h1, h2);
     }
 
@@ -300,28 +309,32 @@ mod tests {
 
     #[test]
     fn bad_length() {
+        let state = State::new(Network::Live);
         let err = "Incorrect length";
         let s = vec![];
-        assert_contains_err(Header::deserialize(Network::Live, &s), err);
+        assert_contains_err(Header::deserialize(&state, &s), err);
         let s = vec![0xFF, 0x43, 18, 18, 18, 2, 3, 0, 0xFF];
-        assert_contains_err(Header::deserialize(Network::Live, &s), err);
+        assert_contains_err(Header::deserialize(&state, &s), err);
     }
 
     #[test]
     fn bad_magic() {
+        let state = State::new(Network::Live);
         let s = vec![0xFF, 0x43, 18, 18, 18, 2, 3, 0];
-        assert_contains_err(Header::deserialize(Network::Live, &s), "magic number");
+        assert_contains_err(Header::deserialize(&state, &s), "magic number");
     }
 
     #[test]
     fn bad_network() {
+        let state = State::new(Network::Test);
         let s = vec![0x52, 0x43, 18, 18, 18, 2, 3, 0];
-        assert_contains_err(Header::deserialize(Network::Test, &s), "Network mismatch");
+        assert_contains_err(Header::deserialize(&state, &s), "Network mismatch");
     }
 
     #[test]
     fn bad_message_type() {
+        let state = State::new(Network::Live);
         let s = vec![0x52, 0x43, 18, 18, 18, 100, 3, 0];
-        assert_contains_err(Header::deserialize(Network::Live, &s), "message type");
+        assert_contains_err(Header::deserialize(&state, &s), "message type");
     }
 }
