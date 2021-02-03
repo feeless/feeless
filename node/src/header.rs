@@ -1,6 +1,7 @@
 use anyhow::anyhow;
 use bitvec::prelude::*;
 use std::convert::TryFrom;
+use std::fmt::Formatter;
 use std::result::Result;
 
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -50,6 +51,14 @@ impl Header {
         }
     }
 
+    pub fn message_type(&self) -> MessageType {
+        self.message_type
+    }
+
+    pub fn flags(&self) -> Flags {
+        self.flags
+    }
+
     pub fn serialize(&self) -> Vec<u8> {
         vec![
             self.magic_number.0,
@@ -93,7 +102,7 @@ impl Header {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq)]
+#[derive(Clone, Copy, PartialEq)]
 struct MagicNumber(u8);
 
 impl MagicNumber {
@@ -101,6 +110,13 @@ impl MagicNumber {
 
     pub fn new() -> Self {
         Self(Self::MAGIC)
+    }
+}
+
+impl std::fmt::Debug for MagicNumber {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "0x{:X}", self.0)?;
+        Ok(())
     }
 }
 
@@ -181,7 +197,7 @@ impl TryFrom<u8> for MessageType {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq)]
+#[derive(Clone, Copy, PartialEq)]
 pub struct Flags([u8; 2]);
 
 impl Flags {
@@ -218,6 +234,21 @@ impl Flags {
 
     fn mut_bits(&mut self) -> &mut BitSlice<Lsb0, u8> {
         self.0.view_bits_mut()
+    }
+}
+
+impl std::fmt::Debug for Flags {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let mut s = vec![];
+        if self.is_query() {
+            s.push("Query")
+        }
+        if self.is_response() {
+            s.push("Response")
+        }
+        write!(f, "[{}]", s.join(", "))?;
+
+        Ok(())
     }
 }
 
@@ -264,6 +295,15 @@ mod tests {
     fn assert_contains_err<T: Debug>(result: anyhow::Result<T>, s: &str) {
         let x = result.unwrap_err().to_string();
         assert!(x.contains(s), x);
+    }
+
+    #[test]
+    fn bad_length() {
+        let err = "Incorrect length";
+        let s = vec![];
+        assert_contains_err(Header::deserialize(Network::Live, &s), err);
+        let s = vec![0xFF, 0x43, 18, 18, 18, 2, 3, 0, 0xFF];
+        assert_contains_err(Header::deserialize(Network::Live, &s), err);
     }
 
     #[test]

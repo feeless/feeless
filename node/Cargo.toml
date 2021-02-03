@@ -10,3 +10,4 @@ feeless = { path = "../core" }
 tokio = { version = "*", features = ["full"] }
 bitvec = "0.20.1"
 anyhow = "1.0.38"
+rand = "0.8.3"

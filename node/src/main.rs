@@ -1,73 +1,44 @@
 #![forbid(unsafe_code)]
 
-mod header;
-
-use tokio::io::{AsyncReadExt, AsyncWriteExt};
-use tokio::net::TcpStream;
-
-use crate::header::{Flags, Header, MessageType, Network};
-use feeless;
 use std::convert::TryFrom;
 use std::time::Duration;
 
+use anyhow::anyhow;
+use tokio::io::{AsyncReadExt, AsyncWriteExt};
+use tokio::net::TcpStream;
+
+use connection::Connection;
+use feeless;
+
+use crate::header::{Flags, Header, MessageType, Network};
+use crate::state::State;
+
+mod connection;
+mod cookie;
+mod header;
+mod message;
+mod state;
+
 #[tokio::main]
 async fn main() {
-    let address = "localhost:7075";
-    let stream = TcpStream::connect(&address).await.unwrap();
+    let state = State::new();
 
-    let mut peer_handler = PeerHandler::new(Network::Live, address, stream);
-    peer_handler.handle().await.unwrap();
-}
+    let state_clone = state.clone();
+    tokio::spawn(async {
+        let address = "localhost:7075";
+        let stream = TcpStream::connect(&address).await.unwrap();
+        let mut peer_handler = Connection::new(state_clone, Network::Live, stream);
+        peer_handler.run().await.unwrap();
+    });
 
-struct PeerHandler {
-    network: Network,
-    address: String,
-    stream: TcpStream,
-}
+    let state_clone = state.clone();
+    tokio::spawn(async {
+        let address = "localhost:7075";
+        let stream = TcpStream::connect(&address).await.unwrap();
+        // dbg!(stream.peer_addr().unwrap());
+        let peer_handler = Connection::new(state_clone, Network::Live, stream);
+    });
 
-impl PeerHandler {
-    fn new(network: Network, address: &str, stream: TcpStream) -> Self {
-        Self {
-            network,
-            address: address.into(),
-            stream,
-        }
-    }
-
-    async fn handle(&mut self) -> anyhow::Result<()> {
-        self.query_handshake().await?;
-
-        let mut buffer = [0; 8];
-        let result = self.stream.read_exact(&mut buffer).await.unwrap();
-        dbg!(result);
-        dbg!(buffer);
-
-        let mut buffer = [0; 32];
-        let size = self.stream.read_exact(&mut buffer).await.unwrap();
-        // dbg!(query_hash);
-        dbg!(buffer);
-
-        // Assuming this is a NodeIdHandshake
-
-        // let mut buffer = [0; Header::LENGTH];
-        // let result = r.read_exact(&mut buffer).await.unwrap();
-        // dbg!(&result);
-        // let header = Header::deserialize(Network::Live, &buffer).unwrap();
-        // dbg!(&header);
-        todo!()
-    }
-
-    async fn query_handshake(&mut self) -> anyhow::Result<()> {
-        let header = Header::new(
-            Network::Live,
-            MessageType::NodeIdHandshake,
-            *Flags::new().set_query(true),
-        );
-        self.stream.write_all(&header.serialize()).await?;
-
-        let payload = [0u8; 32];
-        self.stream.write_all(&payload).await?;
-
-        Ok(())
-    }
+    println!("Sleeping hax");
+    tokio::time::sleep(Duration::from_secs(99999999)).await;
 }
