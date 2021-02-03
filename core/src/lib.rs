@@ -6,12 +6,14 @@ mod private;
 mod public;
 mod raw;
 mod seed;
+mod signature;
 
 pub use address::Address;
 pub use private::Private;
 pub use public::Public;
 pub use raw::Raw;
 pub use seed::Seed;
+pub use signature::Signature;
 
 #[cfg(test)]
 mod tests {

@@ -12,7 +12,7 @@ const ADDRESS_CHECKSUM_LEN: usize = 5;
 pub struct Public(PublicKey);
 
 impl Public {
-    pub(crate) const LENGTH: usize = 32;
+    pub const LENGTH: usize = 32;
 
     pub fn as_bytes(&self) -> &[u8] {
         self.0.as_bytes()

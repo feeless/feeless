@@ -2,7 +2,7 @@ use crate::connection::Connection;
 use crate::cookie::Cookie;
 use crate::state::State;
 use crate::wire::Wire;
-use feeless::Public;
+use feeless::{Public, Signature};
 use std::convert::TryFrom;
 use zerocopy::{AsBytes, FromBytes, Unaligned};
 
@@ -38,12 +38,12 @@ impl Wire for NodeIdHandshakeQuery {
 
 #[derive(Debug)]
 pub struct NodeIdHandshakeResponse {
-    pub address: Public,
-    pub signature: [u8; 64], // TODO: Signature type
+    pub public: Public,
+    pub signature: Signature,
 }
 
 impl NodeIdHandshakeResponse {
-    pub const LENGTH: usize = Cookie::LENGTH;
+    pub const LENGTH: usize = Public::LENGTH + Signature::LENGTH;
 }
 
 impl Wire for NodeIdHandshakeResponse {
@@ -55,11 +55,10 @@ impl Wire for NodeIdHandshakeResponse {
     where
         Self: Sized,
     {
-        todo!()
-        // Self {
-        //     address: Public::from(&data[0..Public::LENGTH]),
-        //     signature: [data[Public::LENGTH..]],
-        // }
+        Ok(Self {
+            public: Public::try_from(&data[0..Public::LENGTH])?,
+            signature: Signature::try_from(&data[Public::LENGTH..])?,
+        })
     }
 
     fn len() -> usize {
