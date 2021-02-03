@@ -69,7 +69,7 @@ impl TryFrom<&[u8]> for Public {
 
 impl std::fmt::UpperHex for Public {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        crate::encoding::fmt_hex(f, &self.0.as_bytes().as_ref())
+        crate::encoding::hex_formatter(f, &self.0.as_bytes().as_ref())
     }
 }
 

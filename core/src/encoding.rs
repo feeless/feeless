@@ -3,7 +3,7 @@ use bitvec::prelude::*;
 use blake2::digest::{Update, VariableOutput};
 use blake2::VarBlake2b;
 
-pub fn fmt_hex(f: &mut std::fmt::Formatter<'_>, bytes: &[u8]) -> std::fmt::Result {
+pub fn hex_formatter(f: &mut std::fmt::Formatter<'_>, bytes: &[u8]) -> std::fmt::Result {
     for byte in bytes {
         write!(f, "{:02X}", byte)?;
     }

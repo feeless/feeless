@@ -39,6 +39,6 @@ impl TryFrom<&str> for Seed {
 
 impl std::fmt::Display for Seed {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        crate::encoding::fmt_hex(f, &self.0)
+        crate::encoding::hex_formatter(f, &self.0)
     }
 }
