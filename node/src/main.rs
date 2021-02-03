@@ -3,15 +3,14 @@
 mod connection;
 mod cookie;
 mod header;
-mod message;
+mod messages;
 mod state;
 mod wire;
 
-use crate::header::{Flags, Header, MessageType, Network};
+use crate::header::Network;
 use crate::state::State;
 
 use connection::Connection;
-use std::time::Duration;
 use tokio::net::TcpStream;
 
 #[tokio::main]
@@ -27,6 +26,6 @@ async fn main() {
     });
 
     println!("Waiting...");
-    handle.await;
+    handle.await.unwrap();
     println!("Quitting...");
 }

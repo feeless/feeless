@@ -1,5 +1,8 @@
+use crate::state::State;
+use crate::wire::Wire;
 use anyhow::anyhow;
 use rand::RngCore;
+use serde::Serialize;
 use std::convert::TryFrom;
 
 #[derive(Debug, Clone)]
@@ -12,6 +15,23 @@ impl Cookie {
         let mut cookie = Cookie([0u8; Self::LENGTH]);
         rand::thread_rng().fill_bytes(&mut cookie.0);
         cookie
+    }
+}
+
+impl Wire for Cookie {
+    fn serialize(&self) -> Vec<u8> {
+        Vec::from(self.0)
+    }
+
+    fn deserialize(_: &State, data: &[u8]) -> Result<Self, anyhow::Error>
+    where
+        Self: Sized,
+    {
+        Ok(Cookie::try_from(data)?)
+    }
+
+    fn len() -> usize {
+        Cookie::LENGTH
     }
 }
 

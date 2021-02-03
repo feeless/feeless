@@ -1,6 +1,5 @@
 use crate::cookie::Cookie;
 use crate::header::Network;
-use feeless::Address;
 use std::collections::HashMap;
 use std::net::SocketAddr;
 use std::sync::Arc;

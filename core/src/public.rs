@@ -6,14 +6,14 @@ use ed25519_dalek::{ExpandedSecretKey, PublicKey};
 use std::convert::TryFrom;
 use std::iter::FromIterator;
 
-pub const PUBLIC_KEY_BYTES: usize = 32;
-
 const ADDRESS_CHECKSUM_LEN: usize = 5;
 
 #[derive(Debug, PartialEq)]
 pub struct Public(PublicKey);
 
 impl Public {
+    pub(crate) const LENGTH: usize = 32;
+
     pub fn as_bytes(&self) -> &[u8] {
         self.0.as_bytes()
     }
@@ -55,11 +55,11 @@ impl TryFrom<&[u8]> for Public {
     type Error = anyhow::Error;
 
     fn try_from(value: &[u8]) -> Result<Self, Self::Error> {
-        if value.len() != PUBLIC_KEY_BYTES {
+        if value.len() != Self::LENGTH {
             return Err(anyhow!(
                 "Invalid length: {}, expecting: {}",
                 value.len(),
-                PUBLIC_KEY_BYTES
+                Self::LENGTH
             ));
         }
 

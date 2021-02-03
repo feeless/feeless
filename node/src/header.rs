@@ -3,7 +3,6 @@ use crate::wire::Wire;
 use anyhow::anyhow;
 use bitvec::prelude::*;
 use std::convert::TryFrom;
-use std::fmt::Formatter;
 use std::result::Result;
 
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -51,6 +50,12 @@ impl Header {
             message_type,
             flags,
         }
+    }
+
+    pub fn reset(&mut self, message_type: MessageType, flags: Flags) -> &mut Self {
+        self.message_type = message_type;
+        self.flags = flags;
+        self
     }
 
     pub fn message_type(&self) -> MessageType {
@@ -218,6 +223,11 @@ impl Flags {
         Self([0, 0])
     }
 
+    pub fn reset(&mut self) {
+        self.0[0] = 0;
+        self.0[1] = 0;
+    }
+
     pub fn set_query(&mut self, v: bool) -> &mut Self {
         self.mut_bits().set(Self::QUERY, v);
         self
@@ -293,7 +303,7 @@ mod tests {
         flags.set_query(true);
         flags.set_response(true);
 
-        let mut h1 = Header::new(state.network(), MessageType::Keepalive, flags);
+        let h1 = Header::new(state.network(), MessageType::Keepalive, flags);
         let s = h1.serialize();
         assert_eq!(s.len(), Header::LENGTH);
         assert_eq!(s, vec![0x52, 0x43, 18, 18, 18, 2, 3, 0]);

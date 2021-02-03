@@ -1,6 +1,6 @@
 use crate::encoding;
 
-use crate::public::{Public, PUBLIC_KEY_BYTES};
+use crate::public::Public;
 use anyhow::anyhow;
 use bitvec::prelude::*;
 use ed25519_dalek::PUBLIC_KEY_LENGTH;
@@ -80,8 +80,8 @@ impl From<&Public> for Address {
         s.push_str("nano_");
 
         // Public key -> nano_base_32
-        const PKP_LEN: usize = ENCODED_PADDED_BITS + 8 * PUBLIC_KEY_BYTES;
-        const PKP_CAPACITY: usize = ENCODED_PADDED_BITS + 8 * PUBLIC_KEY_BYTES + 4; // Capacity rounded up to 8 bits.
+        const PKP_LEN: usize = ENCODED_PADDED_BITS + 8 * Public::LENGTH;
+        const PKP_CAPACITY: usize = ENCODED_PADDED_BITS + 8 * Public::LENGTH + 4; // Capacity rounded up to 8 bits.
         let mut bits: BitVec<Msb0, u8> = BitVec::with_capacity(PKP_CAPACITY);
         let pad: BitVec<Msb0, u8> = bitvec![Msb0, u8; 0; ENCODED_PADDED_BITS];
         bits.extend_from_bitslice(&pad);

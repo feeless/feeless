@@ -2,8 +2,9 @@ use anyhow::anyhow;
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use tokio::net::TcpStream;
 
+use crate::cookie::Cookie;
 use crate::header::{Flags, Header, MessageType, Network};
-use crate::message::{NodeIdHandshakeQuery, NodeIdHandshakeResponse};
+use crate::messages::node_id_handshake::{NodeIdHandshakeQuery, NodeIdHandshakeResponse};
 use crate::state::State;
 use crate::wire::Wire;
 
@@ -11,15 +12,20 @@ pub struct Connection {
     state: State,
     stream: TcpStream,
 
+    /// A reusable header to reduce allocations.
+    header: Header,
+
     /// Storage that can be shared within this task without reallocating.
     buffer: Vec<u8>,
 }
 
 impl Connection {
     pub fn new(state: State, stream: TcpStream) -> Self {
+        let network = state.network();
         Self {
             state,
             stream,
+            header: Header::new(network, MessageType::NodeIdHandshake, Flags::new()),
             buffer: Vec::with_capacity(1024),
         }
     }
@@ -31,7 +37,7 @@ impl Connection {
             self.buffer.resize(len, 0)
         }
 
-        let mut buffer = &mut self.buffer[0..len];
+        let buffer = &mut self.buffer[0..len];
         let bytes_read = self.stream.read_exact(buffer).await?;
         if bytes_read < len {
             return Err(anyhow!(
@@ -43,6 +49,11 @@ impl Connection {
 
         let buffer = &self.buffer[0..len];
         Ok(T::deserialize(&self.state, buffer)?)
+    }
+
+    async fn send<T: Wire>(&mut self, message: &T) -> anyhow::Result<()> {
+        self.stream.write_all(&message.serialize()).await?;
+        Ok(())
     }
 
     pub async fn run(&mut self) -> anyhow::Result<()> {
@@ -93,24 +104,22 @@ impl Connection {
             let query = self.recv::<NodeIdHandshakeQuery>().await?;
             dbg!(query);
         }
-        // if header.flags().is_response() {
-        //     let response = self.recv::<NodeIdHandshakeResponse>().await?;
-        //     dbg!(response);
-        // }
+        if header.flags().is_response() {
+            let response = self.recv::<NodeIdHandshakeResponse>().await?;
+            dbg!(response);
+        }
 
         todo!()
     }
 
     async fn query_handshake(&mut self) -> anyhow::Result<()> {
-        let header = Header::new(
-            Network::Live,
-            MessageType::NodeIdHandshake,
-            *Flags::new().set_query(true),
-        );
-        self.stream.write_all(&header.serialize()).await?;
+        let mut header = self.header;
+        header.reset(MessageType::NodeIdHandshake, *Flags::new().set_query(true));
+        self.send(&header).await?;
 
-        let payload = [0u8; 32];
-        self.stream.write_all(&payload).await?;
+        let cookie = Cookie::new();
+        let handshake_query = NodeIdHandshakeQuery::new(cookie);
+        self.send(&handshake_query).await?;
 
         Ok(())
     }
