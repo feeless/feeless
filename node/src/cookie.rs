@@ -4,14 +4,16 @@ use anyhow::anyhow;
 use rand::RngCore;
 use serde::Serialize;
 use std::convert::TryFrom;
+use zerocopy::{AsBytes, FromBytes, LayoutVerified, Unaligned};
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, FromBytes, AsBytes, Unaligned)]
+#[repr(C)]
 pub struct Cookie([u8; Cookie::LENGTH]);
 
 impl Cookie {
     pub const LENGTH: usize = 32;
 
-    pub fn new() -> Self {
+    pub fn random() -> Self {
         let mut cookie = Cookie([0u8; Self::LENGTH]);
         rand::thread_rng().fill_bytes(&mut cookie.0);
         cookie
@@ -20,14 +22,15 @@ impl Cookie {
 
 impl Wire for Cookie {
     fn serialize(&self) -> Vec<u8> {
-        Vec::from(self.0)
+        Vec::from(self.as_bytes())
     }
 
     fn deserialize(_: &State, data: &[u8]) -> Result<Self, anyhow::Error>
     where
         Self: Sized,
     {
-        Ok(Cookie::try_from(data)?)
+        let cookie: &Cookie = LayoutVerified::<_, Cookie>::new(data).unwrap().into_ref();
+        Ok(cookie.clone())
     }
 
     fn len() -> usize {
@@ -47,7 +50,8 @@ impl TryFrom<&[u8]> for Cookie {
             ));
         }
 
-        let mut cookie = Self::new();
+        // TODO: Self::zero()
+        let mut cookie = Self::random();
         cookie.0.copy_from_slice(v);
         Ok(cookie)
     }
@@ -59,7 +63,7 @@ mod tests {
 
     #[test]
     fn sanity() {
-        let mut c1 = Cookie::new();
+        let mut c1 = Cookie::random();
         c1.0[0] = 0xff;
         c1.0[31] = 0x00;
         let c2 = Cookie::try_from(c1.0.as_ref()).unwrap();

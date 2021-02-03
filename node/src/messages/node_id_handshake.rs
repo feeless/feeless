@@ -4,8 +4,10 @@ use crate::state::State;
 use crate::wire::Wire;
 use feeless::Public;
 use std::convert::TryFrom;
+use zerocopy::{AsBytes, FromBytes, Unaligned};
 
-#[derive(Debug)]
+#[derive(Debug, FromBytes, AsBytes, Unaligned)]
+#[repr(C)]
 pub struct NodeIdHandshakeQuery(pub Cookie);
 
 impl<'a> NodeIdHandshakeQuery {

@@ -117,7 +117,7 @@ impl Connection {
         header.reset(MessageType::NodeIdHandshake, *Flags::new().set_query(true));
         self.send(&header).await?;
 
-        let cookie = Cookie::new();
+        let cookie = Cookie::random();
         let handshake_query = NodeIdHandshakeQuery::new(cookie);
         self.send(&handshake_query).await?;
 
