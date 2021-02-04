@@ -1,8 +1,7 @@
 use crate::{encoding, Address, Private, Signature};
 use anyhow::anyhow;
 use bitvec::prelude::*;
-use blake2::{Blake2b, Digest};
-use ed25519_dalek::{ExpandedSecretKey, PublicKey, Verifier};
+use ed25519_dalek::{PublicKey, Verifier};
 use std::convert::TryFrom;
 use std::iter::FromIterator;
 
