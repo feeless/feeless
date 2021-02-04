@@ -8,7 +8,7 @@ use crate::messages::node_id_handshake::{NodeIdHandshakeQuery, NodeIdHandshakeRe
 use crate::state::State;
 use crate::wire::Wire;
 
-pub struct Connection {
+pub struct Peer {
     state: State,
     stream: TcpStream,
 
@@ -21,7 +21,7 @@ pub struct Connection {
     tmp: Option<Cookie>,
 }
 
-impl Connection {
+impl Peer {
     pub fn new(state: State, stream: TcpStream) -> Self {
         let network = state.network();
         Self {
