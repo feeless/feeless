@@ -18,6 +18,10 @@ impl Cookie {
         rand::thread_rng().fill_bytes(&mut cookie.0);
         cookie
     }
+
+    pub fn as_bytes(&self) -> &[u8] {
+        self.0.as_bytes()
+    }
 }
 
 impl Wire for Cookie {

@@ -1,19 +1,14 @@
 use crate::Public;
 use anyhow::anyhow;
-use ed25519_dalek::SecretKey;
 use std::convert::TryFrom;
 
 pub const PRIVATE_KEY_BYTES: usize = 32;
 
-pub struct Private(SecretKey);
+pub struct Private(ed25519_dalek::SecretKey);
 
 impl Private {
-    pub fn as_bytes(&self) -> &[u8] {
-        self.0.as_bytes()
-    }
-
     pub fn to_public(&self) -> Public {
-        Public::from(self)
+        Public::from(ed25519_dalek::PublicKey::from(&self.0))
     }
 }
 
@@ -23,13 +18,13 @@ impl TryFrom<&[u8]> for Private {
     fn try_from(bytes: &[u8]) -> Result<Self, Self::Error> {
         if bytes.len() != PRIVATE_KEY_BYTES {
             return Err(anyhow!(
-                "Private key is the wrong length: {} Expected: {}",
+                "Private key is the wrong length: Got: {} Expected: {}",
                 bytes.len(),
                 PRIVATE_KEY_BYTES
             ));
         }
 
-        Ok(Self(SecretKey::from_bytes(bytes)?))
+        Ok(Self(ed25519_dalek::SecretKey::from_bytes(bytes)?))
     }
 }
 

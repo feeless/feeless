@@ -1,15 +1,15 @@
-use crate::{encoding, Address, Private};
+use crate::{encoding, Address, Private, Signature};
 use anyhow::anyhow;
 use bitvec::prelude::*;
 use blake2::{Blake2b, Digest};
-use ed25519_dalek::{ExpandedSecretKey, PublicKey};
+use ed25519_dalek::{ExpandedSecretKey, PublicKey, Verifier};
 use std::convert::TryFrom;
 use std::iter::FromIterator;
 
 const ADDRESS_CHECKSUM_LEN: usize = 5;
 
 #[derive(Debug, PartialEq)]
-pub struct Public(PublicKey);
+pub struct Public(ed25519_dalek::PublicKey);
 
 impl Public {
     pub const LENGTH: usize = 32;
@@ -23,31 +23,14 @@ impl Public {
     }
 
     // Public key -> blake2(5) -> nano_base_32
-    pub(crate) fn checksum(&self) -> String {
+    pub fn checksum(&self) -> String {
         let result = encoding::blake2b(ADDRESS_CHECKSUM_LEN, &self.as_bytes());
         let bits = BitVec::from_iter(result.iter().rev());
         encoding::encode_nano_base_32(&bits)
     }
-}
 
-impl From<&Private> for Public {
-    fn from(private_key: &Private) -> Self {
-        // TODO: Check for length
-
-        // This is modified from ed25519_dalek::PublicKey::from(secret_key: &SecretKey) so that
-        // it can use Blake2b instead of SHA256.
-        let mut h: Blake2b = Blake2b::new();
-        let mut hash: [u8; 64] = [0u8; 64];
-        let mut digest: [u8; 32] = [0u8; 32];
-
-        h.update(private_key.as_bytes());
-        hash.copy_from_slice(h.finalize().as_slice());
-        digest.copy_from_slice(&hash[..32]);
-
-        // Unwrap here because we expect this to work, given presumably any private key.
-        let expanded = ExpandedSecretKey::from_bytes(&hash).unwrap();
-        let public_key = PublicKey::from(&expanded);
-        Self(public_key)
+    pub fn verify(&self, message: &[u8], signature: &Signature) -> bool {
+        self.0.verify(message, &signature.internal()).is_ok()
     }
 }
 
@@ -63,7 +46,13 @@ impl TryFrom<&[u8]> for Public {
             ));
         }
 
-        Ok(Self(PublicKey::from_bytes(value)?))
+        Ok(Self(ed25519_dalek::PublicKey::from_bytes(value)?))
+    }
+}
+
+impl From<ed25519_dalek::PublicKey> for Public {
+    fn from(v: PublicKey) -> Self {
+        Self(v)
     }
 }
 
@@ -91,7 +80,10 @@ mod tests {
     fn empty_private_to_public() {
         let private_key_bytes = [0; PRIVATE_KEY_BYTES];
         let private = Private::try_from(private_key_bytes.as_ref()).unwrap();
-        let public = Public::from(&private);
+        let public = private.to_public();
+        // If the result is...
+        // 3B6A27BCCEB6A42D62A3A8D02A6F0D73653215771DE243A63AC048A18B59DA29
+        // ...it means we're using sha512 instead of blake2b for the hasher.
         assert_eq!(
             public.to_string(),
             "19D3D919475DEED4696B5D13018151D1AF88B2BD3BCFF048B45031C1F36D1858"

@@ -6,6 +6,10 @@ pub struct Signature([u8; Signature::LENGTH]);
 
 impl Signature {
     pub const LENGTH: usize = 64;
+
+    pub fn internal(&self) -> ed25519_dalek::Signature {
+        ed25519_dalek::Signature::new(self.0)
+    }
 }
 
 impl TryFrom<&[u8]> for Signature {

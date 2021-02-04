@@ -17,6 +17,8 @@ pub struct Connection {
 
     /// Storage that can be shared within this task without reallocating.
     buffer: Vec<u8>,
+
+    tmp: Option<Cookie>,
 }
 
 impl Connection {
@@ -27,6 +29,7 @@ impl Connection {
             stream,
             header: Header::new(network, MessageType::NodeIdHandshake, Flags::new()),
             buffer: Vec::with_capacity(1024),
+            tmp: None,
         }
     }
 
@@ -39,6 +42,7 @@ impl Connection {
 
         let buffer = &mut self.buffer[0..len];
         let bytes_read = self.stream.read_exact(buffer).await?;
+        dbg!(&buffer);
         if bytes_read < len {
             return Err(anyhow!(
                 "Received an incorrect amount of bytes. Got: {} Expected: {}",
@@ -101,12 +105,23 @@ impl Connection {
 
     async fn handle_node_id_handshake(&mut self, header: Header) -> anyhow::Result<()> {
         if header.flags().is_query() {
+            dbg!("recv handshake query");
             let query = self.recv::<NodeIdHandshakeQuery>().await?;
             dbg!(query);
         }
         if header.flags().is_response() {
+            dbg!("recv handshake response");
             let response = self.recv::<NodeIdHandshakeResponse>().await?;
-            dbg!(response);
+            dbg!(&response);
+            let public = response.public;
+            let signature = response.signature;
+
+            let cookie = &self.tmp.as_ref().unwrap();
+
+            if !public.verify(&cookie.as_bytes(), &signature) {
+                return Err(anyhow!("Invalid signature in node_id_handshake response"));
+            }
+            dbg!("omgigod it worked");
         }
 
         todo!()
@@ -118,7 +133,9 @@ impl Connection {
         self.send(&header).await?;
 
         let cookie = Cookie::random();
+        self.tmp = Some(cookie.clone());
         let handshake_query = NodeIdHandshakeQuery::new(cookie);
+        dbg!("sending cookie");
         self.send(&handshake_query).await?;
 
         Ok(())
