@@ -29,7 +29,7 @@ pub struct Header {
 }
 
 impl Header {
-    pub const LENGTH: usize = 8;
+    pub const LEN: usize = 8;
 
     // Header offsets.
     const MAGIC_NUMBER: usize = 0;
@@ -82,10 +82,10 @@ impl Wire for Header {
     }
 
     fn deserialize(state: &State, data: &[u8]) -> Result<Self, anyhow::Error> {
-        if data.len() != Header::LENGTH {
+        if data.len() != Header::LEN {
             return Err(anyhow!(
                 "Incorrect length: Expecting: {}, got: {}",
-                Header::LENGTH,
+                Header::LEN,
                 data.len()
             ));
         }
@@ -105,13 +105,13 @@ impl Wire for Header {
         // TODO: Check versions (work out what each field means exactly)
 
         let message_type = MessageType::try_from(data[Self::MESSAGE_TYPE])?;
-        let flags = Flags::try_from(&data[Self::FLAGS..Self::FLAGS + Flags::LENGTH])?;
+        let flags = Flags::try_from(&data[Self::FLAGS..Self::FLAGS + Flags::LEN])?;
 
         Ok(Header::new(state.network(), message_type, flags))
     }
 
     fn len() -> usize {
-        Header::LENGTH
+        Header::LEN
     }
 }
 
@@ -214,18 +214,13 @@ impl TryFrom<u8> for MessageType {
 pub struct Flags([u8; 2]);
 
 impl Flags {
-    const LENGTH: usize = 2;
+    const LEN: usize = 2;
 
     const QUERY: usize = 0;
     const RESPONSE: usize = 1;
 
     pub fn new() -> Self {
         Self([0, 0])
-    }
-
-    pub fn reset(&mut self) {
-        self.0[0] = 0;
-        self.0[1] = 0;
     }
 
     pub fn set_query(&mut self, v: bool) -> &mut Self {
@@ -274,12 +269,12 @@ impl TryFrom<&[u8]> for Flags {
     type Error = anyhow::Error;
 
     fn try_from(value: &[u8]) -> Result<Self, Self::Error> {
-        if value.len() != Self::LENGTH {
+        if value.len() != Self::LEN {
             // Probably a coding error rather than external input.
             return Err(anyhow!(
                 "Invalid length: Got: {} Expected: {}",
                 value.len(),
-                Self::LENGTH,
+                Self::LEN,
             ));
         }
 
@@ -305,7 +300,7 @@ mod tests {
 
         let h1 = Header::new(state.network(), MessageType::Keepalive, flags);
         let s = h1.serialize();
-        assert_eq!(s.len(), Header::LENGTH);
+        assert_eq!(s.len(), Header::LEN);
         assert_eq!(s, vec![0x52, 0x43, 18, 18, 18, 2, 3, 0]);
 
         let h2 = Header::deserialize(&state, &s).unwrap();

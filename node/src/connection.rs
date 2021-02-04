@@ -3,7 +3,7 @@ use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use tokio::net::TcpStream;
 
 use crate::cookie::Cookie;
-use crate::header::{Flags, Header, MessageType, Network};
+use crate::header::{Flags, Header, MessageType};
 use crate::messages::node_id_handshake::{NodeIdHandshakeQuery, NodeIdHandshakeResponse};
 use crate::state::State;
 use crate::wire::Wire;
@@ -64,8 +64,6 @@ impl Connection {
         self.query_handshake().await?;
 
         loop {
-            // Expecting a header
-            // let header = Header::deserialize(&self.state, self.recv(Header::LENGTH).await?)?;
             let header = self.recv::<Header>().await?;
 
             match header.message_type() {
@@ -82,25 +80,6 @@ impl Connection {
                 MessageType::TelemetryAck => todo!(),
             }
         }
-
-        // let mut buffer = [0; 8];
-        // let result = self.stream.read_exact(&mut buffer).await.unwrap();
-        // dbg!(result);
-        // dbg!(buffer);
-        //
-        // let mut buffer = [0; 32];
-        // let size = self.stream.read_exact(&mut buffer).await.unwrap();
-        // // dbg!(query_hash);
-        // dbg!(buffer);
-
-        // Assuming this is a NodeIdHandshake
-
-        // let mut buffer = [0; Header::LENGTH];
-        // let result = r.read_exact(&mut buffer).await.unwrap();
-        // dbg!(&result);
-        // let header = Header::deserialize(Network::Live, &buffer).unwrap();
-        // dbg!(&header);
-        todo!()
     }
 
     async fn handle_node_id_handshake(&mut self, header: Header) -> anyhow::Result<()> {

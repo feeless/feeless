@@ -1,4 +1,4 @@
-use crate::{encoding, Address, Private, Signature};
+use crate::{encoding, Address, Signature};
 use anyhow::anyhow;
 use bitvec::prelude::*;
 use ed25519_dalek::{PublicKey, Verifier};
@@ -11,7 +11,7 @@ const ADDRESS_CHECKSUM_LEN: usize = 5;
 pub struct Public(ed25519_dalek::PublicKey);
 
 impl Public {
-    pub const LENGTH: usize = 32;
+    pub const LEN: usize = 32;
 
     pub fn as_bytes(&self) -> &[u8] {
         self.0.as_bytes()
@@ -37,11 +37,11 @@ impl TryFrom<&[u8]> for Public {
     type Error = anyhow::Error;
 
     fn try_from(value: &[u8]) -> Result<Self, Self::Error> {
-        if value.len() != Self::LENGTH {
+        if value.len() != Self::LEN {
             return Err(anyhow!(
                 "Invalid length: {}, expecting: {}",
                 value.len(),
-                Self::LENGTH
+                Self::LEN
             ));
         }
 
@@ -70,7 +70,7 @@ impl std::fmt::Display for Public {
 #[cfg(test)]
 mod tests {
     use crate::private::PRIVATE_KEY_BYTES;
-    use crate::{Private, Public};
+    use crate::Private;
     use std::convert::TryFrom;
 
     /// Example private -> public conversion:

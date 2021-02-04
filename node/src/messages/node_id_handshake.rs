@@ -1,4 +1,3 @@
-use crate::connection::Connection;
 use crate::cookie::Cookie;
 use crate::state::State;
 use crate::wire::Wire;
@@ -11,7 +10,7 @@ use zerocopy::{AsBytes, FromBytes, Unaligned};
 pub struct NodeIdHandshakeQuery(pub Cookie);
 
 impl<'a> NodeIdHandshakeQuery {
-    const LENGTH: usize = Cookie::LENGTH;
+    const LEN: usize = Cookie::LEN;
 
     pub fn new(cookie: Cookie) -> Self {
         Self(cookie)
@@ -32,7 +31,7 @@ impl Wire for NodeIdHandshakeQuery {
     }
 
     fn len() -> usize {
-        Self::LENGTH
+        Self::LEN
     }
 }
 
@@ -43,7 +42,7 @@ pub struct NodeIdHandshakeResponse {
 }
 
 impl NodeIdHandshakeResponse {
-    pub const LENGTH: usize = Public::LENGTH + Signature::LENGTH;
+    pub const LEN: usize = Public::LEN + Signature::LEN;
 }
 
 impl Wire for NodeIdHandshakeResponse {
@@ -56,12 +55,12 @@ impl Wire for NodeIdHandshakeResponse {
         Self: Sized,
     {
         Ok(Self {
-            public: Public::try_from(&data[0..Public::LENGTH])?,
-            signature: Signature::try_from(&data[Public::LENGTH..])?,
+            public: Public::try_from(&data[0..Public::LEN])?,
+            signature: Signature::try_from(&data[Public::LEN..])?,
         })
     }
 
     fn len() -> usize {
-        Self::LENGTH
+        Self::LEN
     }
 }

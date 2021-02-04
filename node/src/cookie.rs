@@ -2,19 +2,19 @@ use crate::state::State;
 use crate::wire::Wire;
 use anyhow::anyhow;
 use rand::RngCore;
-use serde::Serialize;
+
 use std::convert::TryFrom;
 use zerocopy::{AsBytes, FromBytes, LayoutVerified, Unaligned};
 
 #[derive(Debug, Clone, FromBytes, AsBytes, Unaligned)]
 #[repr(C)]
-pub struct Cookie([u8; Cookie::LENGTH]);
+pub struct Cookie([u8; Cookie::LEN]);
 
 impl Cookie {
-    pub const LENGTH: usize = 32;
+    pub const LEN: usize = 32;
 
     pub fn random() -> Self {
-        let mut cookie = Cookie([0u8; Self::LENGTH]);
+        let mut cookie = Cookie([0u8; Self::LEN]);
         rand::thread_rng().fill_bytes(&mut cookie.0);
         cookie
     }
@@ -38,7 +38,7 @@ impl Wire for Cookie {
     }
 
     fn len() -> usize {
-        Cookie::LENGTH
+        Cookie::LEN
     }
 }
 
@@ -46,11 +46,11 @@ impl TryFrom<&[u8]> for Cookie {
     type Error = anyhow::Error;
 
     fn try_from(v: &[u8]) -> Result<Self, Self::Error> {
-        if v.len() != Self::LENGTH {
+        if v.len() != Self::LEN {
             return Err(anyhow!(
                 "Incorrect cookie length. Got: {} Expecting: {}",
                 v.len(),
-                Self::LENGTH,
+                Self::LEN,
             ));
         }
 

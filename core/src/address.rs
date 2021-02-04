@@ -3,7 +3,6 @@ use crate::encoding;
 use crate::public::Public;
 use anyhow::anyhow;
 use bitvec::prelude::*;
-use ed25519_dalek::PUBLIC_KEY_LENGTH;
 use regex::Regex;
 use std::convert::TryFrom;
 
@@ -20,6 +19,7 @@ const ENCODED_PUBLIC_KEY_LEN: usize = 52;
 /// Length of a Nano address.
 const ADDRESS_STRING_LENGTH: usize = 65; // 5 + 52 + 8
 
+/// 4 bits of padding in the front of the public key when encoding.
 const ENCODED_PADDED_BITS: usize = 4;
 
 #[derive(Debug, PartialEq)]
@@ -52,11 +52,13 @@ impl Address {
         debug_assert_eq!(public_key_part.len(), ENCODED_PUBLIC_KEY_LEN);
 
         let bits = encoding::decode_nano_base_32(&public_key_part)?;
-        debug_assert_eq!(bits.len(), 8 * PUBLIC_KEY_LENGTH + 4);
+        debug_assert_eq!(bits.len(), 8 * Public::LEN + ENCODED_PADDED_BITS);
 
         let bits: &BitVec<Msb0, u8> = &bits[ENCODED_PADDED_BITS..].to_owned(); // Remove padding
+                                                                               // The to_owned() here is necessary to ensure the vec is aligned half way through the byte.
+                                                                               // Otherwise it will essentially ignore the [ENCODED_PADDED_BITS..] offset.
         let public_key_bytes: Vec<u8> = bits.to_owned().into_vec();
-        debug_assert_eq!(public_key_bytes.len(), PUBLIC_KEY_LENGTH);
+        debug_assert_eq!(public_key_bytes.len(), Public::LEN);
 
         Ok(Public::try_from(public_key_bytes.as_slice())?)
     }
@@ -80,8 +82,8 @@ impl From<&Public> for Address {
         s.push_str("nano_");
 
         // Public key -> nano_base_32
-        const PKP_LEN: usize = ENCODED_PADDED_BITS + 8 * Public::LENGTH;
-        const PKP_CAPACITY: usize = ENCODED_PADDED_BITS + 8 * Public::LENGTH + 4; // Capacity rounded up to 8 bits.
+        const PKP_LEN: usize = ENCODED_PADDED_BITS + 8 * Public::LEN;
+        const PKP_CAPACITY: usize = ENCODED_PADDED_BITS + 8 * Public::LEN + 4; // Capacity rounded up to 8 bits.
         let mut bits: BitVec<Msb0, u8> = BitVec::with_capacity(PKP_CAPACITY);
         let pad: BitVec<Msb0, u8> = bitvec![Msb0, u8; 0; ENCODED_PADDED_BITS];
         bits.extend_from_bitslice(&pad);
