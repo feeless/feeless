@@ -1,17 +1,18 @@
-use anyhow::anyhow;
-use tokio::io::{AsyncReadExt, AsyncWriteExt};
-use tokio::net::TcpStream;
-
 use crate::cookie::Cookie;
 use crate::header::{Flags, Header, MessageType};
 use crate::messages::node_id_handshake::{NodeIdHandshakeQuery, NodeIdHandshakeResponse};
 use crate::state::State;
 use crate::wire::Wire;
+use anyhow::anyhow;
 use feeless::Seed;
+use std::net::SocketAddr;
+use tokio::io::{AsyncReadExt, AsyncWriteExt};
+use tokio::net::TcpStream;
 
 pub struct Peer {
     state: State,
     stream: TcpStream,
+    peer_addr: SocketAddr,
 
     /// A reusable header to reduce allocations.
     header: Header,
@@ -23,9 +24,12 @@ pub struct Peer {
 impl Peer {
     pub fn new(state: State, stream: TcpStream) -> Self {
         let network = state.network();
+        // TODO: Remove unwrap
+        let peer_addr = stream.peer_addr().unwrap();
         Self {
             state,
             stream,
+            peer_addr,
             header: Header::new(network, MessageType::NodeIdHandshake, Flags::new()),
             buffer: Vec::with_capacity(1024),
         }
@@ -57,11 +61,22 @@ impl Peer {
         Ok(())
     }
 
+    pub async fn send_header(
+        &mut self,
+        message_type: MessageType,
+        flags: Flags,
+    ) -> anyhow::Result<()> {
+        let mut header = self.header;
+        header.reset(message_type, flags);
+        Ok(self.send(&header).await?)
+    }
+
     pub async fn run(&mut self) -> anyhow::Result<()> {
-        self.query_handshake().await?;
+        self.initial_handshake().await?;
 
         loop {
             let header = self.recv::<Header>().await?;
+            dbg!(&header);
 
             match header.message_type() {
                 MessageType::Keepalive => todo!(),
@@ -91,10 +106,7 @@ impl Peer {
             debug_assert!(public.verify(query.cookie().as_bytes(), &signature));
 
             let mut header = self.header;
-            header.reset(
-                MessageType::NodeIdHandshake,
-                *Flags::new().set_response(true),
-            );
+            header.reset(MessageType::NodeIdHandshake, *Flags::new().response(true));
             self.send(&header).await?;
 
             let response = NodeIdHandshakeResponse::new(public, signature);
@@ -107,10 +119,7 @@ impl Peer {
             let public = response.public;
             let signature = response.signature;
 
-            let cookie = &self
-                .state
-                .cookie_for_socket_addr(&self.stream.peer_addr().unwrap())
-                .await?;
+            let cookie = &self.state.cookie_for_socket_addr(&self.peer_addr).await?;
 
             if !public.verify(&cookie.as_bytes(), &signature) {
                 return Err(anyhow!("Invalid signature in node_id_handshake response"));
@@ -120,14 +129,13 @@ impl Peer {
         Ok(())
     }
 
-    async fn query_handshake(&mut self) -> anyhow::Result<()> {
-        let mut header = self.header;
-        header.reset(MessageType::NodeIdHandshake, *Flags::new().set_query(true));
-        self.send(&header).await?;
+    async fn initial_handshake(&mut self) -> anyhow::Result<()> {
+        self.send_header(MessageType::NodeIdHandshake, *Flags::new().query(true))
+            .await?;
 
         let cookie = Cookie::random();
         self.state
-            .set_cookie(self.stream.peer_addr().unwrap(), cookie.clone())
+            .set_cookie(self.peer_addr, cookie.clone())
             .await?;
         let handshake_query = NodeIdHandshakeQuery::new(cookie);
         dbg!("sending cookie");

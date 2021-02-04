@@ -44,9 +44,9 @@ impl Header {
         Self {
             magic_number: MagicNumber::new(),
             network,
-            version_max: Version::Current,
-            version_using: Version::Current,
-            version_min: Version::Current,
+            version_max: Version::Current18,
+            version_using: Version::Current18,
+            version_min: Version::Current18,
             message_type,
             flags,
         }
@@ -169,7 +169,7 @@ impl TryFrom<u8> for Network {
 #[derive(Debug, Clone, Copy, PartialEq)]
 #[repr(u8)]
 pub enum Version {
-    Current = 18,
+    Current18 = 18,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -182,7 +182,11 @@ pub enum MessageType {
     BulkPull = 6,
     BulkPush = 7,
     FrontierReq = 8,
+
+    /// A NodeIdHandshake shares a cookie to other peers, which is then responded with
+    /// the node giving out their public key and a signed message of the cookie.
     NodeIdHandshake = 10,
+
     BulkPullAccount = 11,
     TelemetryReq = 12,
     TelemetryAck = 13,
@@ -223,7 +227,7 @@ impl Flags {
         Self([0, 0])
     }
 
-    pub fn set_query(&mut self, v: bool) -> &mut Self {
+    pub fn query(&mut self, v: bool) -> &mut Self {
         self.mut_bits().set(Self::QUERY, v);
         self
     }
@@ -232,7 +236,7 @@ impl Flags {
         self.bits()[Self::QUERY]
     }
 
-    pub fn set_response(&mut self, v: bool) -> &mut Self {
+    pub fn response(&mut self, v: bool) -> &mut Self {
         self.mut_bits().set(Self::RESPONSE, v);
         self
     }
@@ -295,8 +299,8 @@ mod tests {
         let state = State::new(Network::Live);
 
         let mut flags = Flags::new();
-        flags.set_query(true);
-        flags.set_response(true);
+        flags.query(true);
+        flags.response(true);
 
         let h1 = Header::new(state.network(), MessageType::Keepalive, flags);
         let s = h1.serialize();

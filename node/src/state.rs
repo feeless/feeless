@@ -29,7 +29,7 @@ impl State {
         socket_addr: SocketAddr,
         cookie: Cookie,
     ) -> anyhow::Result<()> {
-        let mut cookies = &mut *self.cookies.write().await;
+        let cookies = &mut *self.cookies.write().await;
         cookies.insert(socket_addr, cookie);
         Ok(())
     }
