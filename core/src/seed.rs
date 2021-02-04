@@ -1,6 +1,8 @@
 use crate::encoding::blake2b;
 use crate::Private;
 use bytes::{BufMut, BytesMut};
+use rand;
+use rand::RngCore;
 use std::convert::TryFrom;
 
 const SEED_BYTES: usize = 32;
@@ -10,6 +12,12 @@ pub struct Seed(pub [u8; SEED_BYTES]);
 impl Seed {
     fn zero() -> Self {
         Self([0; SEED_BYTES])
+    }
+
+    pub fn random() -> Self {
+        let mut seed = Seed::zero();
+        rand::thread_rng().fill_bytes(&mut seed.0);
+        seed
     }
 
     /// Derive a private key from the seed with an index.

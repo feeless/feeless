@@ -9,11 +9,13 @@ anyhow = "1.0.38"
 bigdecimal = { version = "0.2.0", features = ["serde"] }
 tokio = "1.1.1"
 serde = { version = "*", features = ["derive"] }
-#ed25519-dalek = "1.0.1"
-#ed25519-dalek = { path = "../../ed25519-dalek" }
-ed25519-dalek = { git = "https://github.com/gak/ed25519-dalek.git", branch = "blake2b" }
 blake2 = "0.9.1"
 hex = "0.4.2"
 bytes = "1"
 bitvec = "0.20.1"
 regex = "1.4.3"
+rand = "*"
+
+#ed25519-dalek = "1.0.1"
+ed25519-dalek = { path = "../../ed25519-dalek" }
+#ed25519-dalek = { git = "https://github.com/gak/ed25519-dalek.git", branch = "blake2b" }

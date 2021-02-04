@@ -15,6 +15,10 @@ impl<'a> NodeIdHandshakeQuery {
     pub fn new(cookie: Cookie) -> Self {
         Self(cookie)
     }
+
+    pub fn cookie(&self) -> &Cookie {
+        &self.0
+    }
 }
 
 impl Wire for NodeIdHandshakeQuery {
@@ -43,11 +47,18 @@ pub struct NodeIdHandshakeResponse {
 
 impl NodeIdHandshakeResponse {
     pub const LEN: usize = Public::LEN + Signature::LEN;
+
+    pub fn new(public: Public, signature: Signature) -> Self {
+        Self { public, signature }
+    }
 }
 
 impl Wire for NodeIdHandshakeResponse {
     fn serialize(&self) -> Vec<u8> {
-        unimplemented!()
+        let mut v = Vec::with_capacity(Self::LEN);
+        v.extend_from_slice(&self.public.as_bytes());
+        v.extend_from_slice(&self.signature.as_bytes());
+        v
     }
 
     fn deserialize(_: &State, data: &[u8]) -> Result<Self, anyhow::Error>

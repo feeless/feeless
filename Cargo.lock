@@ -133,7 +133,6 @@ dependencies = [
 [[package]]
 name = "ed25519-dalek"
 version = "1.0.1"
-source = "git+https://github.com/gak/ed25519-dalek.git?branch=blake2b#fed76a9169b39ed4ce31d0b8409fc0aa6eb24644"
 dependencies = [
  "blake2",
  "curve25519-dalek",
@@ -155,6 +154,7 @@ dependencies = [
  "bytes",
  "ed25519-dalek",
  "hex",
+ "rand 0.7.3",
  "regex",
  "serde",
  "tokio",

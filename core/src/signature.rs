@@ -7,6 +7,10 @@ pub struct Signature([u8; Signature::LEN]);
 impl Signature {
     pub const LEN: usize = 64;
 
+    pub fn as_bytes(&self) -> &[u8] {
+        &self.0
+    }
+
     pub fn internal(&self) -> ed25519_dalek::Signature {
         ed25519_dalek::Signature::new(self.0)
     }

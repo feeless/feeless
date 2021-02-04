@@ -7,6 +7,7 @@ use crate::header::{Flags, Header, MessageType};
 use crate::messages::node_id_handshake::{NodeIdHandshakeQuery, NodeIdHandshakeResponse};
 use crate::state::State;
 use crate::wire::Wire;
+use feeless::Seed;
 
 pub struct Peer {
     state: State,
@@ -17,8 +18,6 @@ pub struct Peer {
 
     /// Storage that can be shared within this task without reallocating.
     buffer: Vec<u8>,
-
-    tmp: Option<Cookie>,
 }
 
 impl Peer {
@@ -29,7 +28,6 @@ impl Peer {
             stream,
             header: Header::new(network, MessageType::NodeIdHandshake, Flags::new()),
             buffer: Vec::with_capacity(1024),
-            tmp: None,
         }
     }
 
@@ -42,7 +40,6 @@ impl Peer {
 
         let buffer = &mut self.buffer[0..len];
         let bytes_read = self.stream.read_exact(buffer).await?;
-        dbg!(&buffer);
         if bytes_read < len {
             return Err(anyhow!(
                 "Received an incorrect amount of bytes. Got: {} Expected: {}",
@@ -84,26 +81,43 @@ impl Peer {
 
     async fn handle_node_id_handshake(&mut self, header: Header) -> anyhow::Result<()> {
         if header.flags().is_query() {
-            dbg!("recv handshake query");
             let query = self.recv::<NodeIdHandshakeQuery>().await?;
-            dbg!(query);
+            // XXX: Hacky code here just to see if it works!
+            let seed = Seed::random();
+            let private = seed.derive(0);
+            let public = private.to_public();
+            let signature = private.sign(query.cookie().as_bytes())?;
+
+            debug_assert!(public.verify(query.cookie().as_bytes(), &signature));
+
+            let mut header = self.header;
+            header.reset(
+                MessageType::NodeIdHandshake,
+                *Flags::new().set_response(true),
+            );
+            self.send(&header).await?;
+
+            let response = NodeIdHandshakeResponse::new(public, signature);
+            dbg!("sending handshake response");
+            self.send(&response).await?;
+            dbg!("sending handshake response done");
         }
         if header.flags().is_response() {
-            dbg!("recv handshake response");
             let response = self.recv::<NodeIdHandshakeResponse>().await?;
-            dbg!(&response);
             let public = response.public;
             let signature = response.signature;
 
-            let cookie = &self.tmp.as_ref().unwrap();
+            let cookie = &self
+                .state
+                .cookie_for_socket_addr(&self.stream.peer_addr().unwrap())
+                .await?;
 
             if !public.verify(&cookie.as_bytes(), &signature) {
                 return Err(anyhow!("Invalid signature in node_id_handshake response"));
             }
-            dbg!("omgigod it worked");
+            dbg!("signature verified");
         }
-
-        todo!()
+        Ok(())
     }
 
     async fn query_handshake(&mut self) -> anyhow::Result<()> {
@@ -112,7 +126,9 @@ impl Peer {
         self.send(&header).await?;
 
         let cookie = Cookie::random();
-        self.tmp = Some(cookie.clone());
+        self.state
+            .set_cookie(self.stream.peer_addr().unwrap(), cookie.clone())
+            .await?;
         let handshake_query = NodeIdHandshakeQuery::new(cookie);
         dbg!("sending cookie");
         self.send(&handshake_query).await?;
