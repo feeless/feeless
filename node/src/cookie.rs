@@ -1,8 +1,8 @@
 use crate::state::State;
 use crate::wire::Wire;
-use anyhow::anyhow;
 use rand::RngCore;
 
+use feeless::expect_len;
 use std::convert::TryFrom;
 use zerocopy::{AsBytes, FromBytes, LayoutVerified, Unaligned};
 
@@ -45,18 +45,12 @@ impl Wire for Cookie {
 impl TryFrom<&[u8]> for Cookie {
     type Error = anyhow::Error;
 
-    fn try_from(v: &[u8]) -> Result<Self, Self::Error> {
-        if v.len() != Self::LEN {
-            return Err(anyhow!(
-                "Incorrect cookie length. Got: {} Expecting: {}",
-                v.len(),
-                Self::LEN,
-            ));
-        }
+    fn try_from(value: &[u8]) -> Result<Self, Self::Error> {
+        expect_len(value.len(), Self::LEN, "Cookie")?;
 
         // TODO: Self::zero()
         let mut cookie = Self::random();
-        cookie.0.copy_from_slice(v);
+        cookie.0.copy_from_slice(value);
         Ok(cookie)
     }
 }

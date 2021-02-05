@@ -1,17 +1,16 @@
-use crate::{encoding, Address, Signature};
-use anyhow::anyhow;
+use crate::{encoding, expect_len, Address, Signature};
 use bitvec::prelude::*;
 use ed25519_dalek::{PublicKey, Verifier};
 use std::convert::TryFrom;
 use std::iter::FromIterator;
-
-const ADDRESS_CHECKSUM_LEN: usize = 5;
 
 #[derive(Debug, PartialEq)]
 pub struct Public(ed25519_dalek::PublicKey);
 
 impl Public {
     pub const LEN: usize = 32;
+
+    const ADDRESS_CHECKSUM_LEN: usize = 5;
 
     pub fn as_bytes(&self) -> &[u8] {
         self.0.as_bytes()
@@ -23,7 +22,7 @@ impl Public {
 
     // Public key -> blake2(5) -> nano_base_32
     pub fn checksum(&self) -> String {
-        let result = encoding::blake2b(ADDRESS_CHECKSUM_LEN, &self.as_bytes());
+        let result = encoding::blake2b(Self::ADDRESS_CHECKSUM_LEN, &self.as_bytes());
         let bits = BitVec::from_iter(result.iter().rev());
         encoding::encode_nano_base_32(&bits)
     }
@@ -37,14 +36,7 @@ impl TryFrom<&[u8]> for Public {
     type Error = anyhow::Error;
 
     fn try_from(value: &[u8]) -> Result<Self, Self::Error> {
-        if value.len() != Self::LEN {
-            return Err(anyhow!(
-                "Invalid length: {}, expecting: {}",
-                value.len(),
-                Self::LEN
-            ));
-        }
-
+        expect_len(value.len(), Self::LEN, "Public key")?;
         Ok(Self(ed25519_dalek::PublicKey::from_bytes(value)?))
     }
 }
@@ -69,7 +61,6 @@ impl std::fmt::Display for Public {
 
 #[cfg(test)]
 mod tests {
-    use crate::private::PRIVATE_KEY_BYTES;
     use crate::Private;
     use std::convert::TryFrom;
 
@@ -77,7 +68,7 @@ mod tests {
     /// https://docs.nano.org/protocol-design/signing-hashing-and-key-derivation/#signing-algorithm-ed25519
     #[test]
     fn empty_private_to_public() {
-        let private_key_bytes = [0; PRIVATE_KEY_BYTES];
+        let private_key_bytes = [0; Private::LEN];
         let private = Private::try_from(private_key_bytes.as_ref()).unwrap();
         let public = private.to_public();
         // If the result is...

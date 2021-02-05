@@ -1,5 +1,5 @@
 use crate::cookie::Cookie;
-use crate::header::{Flags, Header, MessageType};
+use crate::header::{Extensions, Header, MessageType};
 use crate::messages::node_id_handshake::{NodeIdHandshakeQuery, NodeIdHandshakeResponse};
 use crate::state::State;
 use crate::wire::Wire;
@@ -9,8 +9,17 @@ use std::net::SocketAddr;
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use tokio::net::TcpStream;
 
+/// A connection to a single peer.
 pub struct Peer {
     state: State,
+
+    // TODO: Both of these into a Communication trait, for ease of testing. e.g.:
+    //  * async fn Comm::send() -> Result<()>
+    //  * async fn Comm::recv() -> Result<()>
+    //  * fn Comm::address() -> String
+    //
+    // This would also remove Self::buffer.
+    // Not sure about the performance problems of having to use async-trait.
     stream: TcpStream,
     peer_addr: SocketAddr,
 
@@ -18,6 +27,7 @@ pub struct Peer {
     header: Header,
 
     /// Storage that can be shared within this task without reallocating.
+    /// This is currently only used for the recv buffers.
     buffer: Vec<u8>,
 }
 
@@ -30,7 +40,7 @@ impl Peer {
             state,
             stream,
             peer_addr,
-            header: Header::new(network, MessageType::NodeIdHandshake, Flags::new()),
+            header: Header::new(network, MessageType::NodeIdHandshake, Extensions::new()),
             buffer: Vec::with_capacity(1024),
         }
     }
@@ -64,10 +74,10 @@ impl Peer {
     pub async fn send_header(
         &mut self,
         message_type: MessageType,
-        flags: Flags,
+        ext: Extensions,
     ) -> anyhow::Result<()> {
         let mut header = self.header;
-        header.reset(message_type, flags);
+        header.reset(message_type, ext);
         Ok(self.send(&header).await?)
     }
 
@@ -95,9 +105,10 @@ impl Peer {
     }
 
     async fn handle_node_id_handshake(&mut self, header: Header) -> anyhow::Result<()> {
-        if header.flags().is_query() {
+        if header.ext().is_query() {
             let query = self.recv::<NodeIdHandshakeQuery>().await?;
             // XXX: Hacky code here just to see if it works!
+            // TODO: Move into state
             let seed = Seed::random();
             let private = seed.derive(0);
             let public = private.to_public();
@@ -106,7 +117,7 @@ impl Peer {
             debug_assert!(public.verify(query.cookie().as_bytes(), &signature));
 
             let mut header = self.header;
-            header.reset(MessageType::NodeIdHandshake, *Flags::new().response(true));
+            header.reset(MessageType::NodeIdHandshake, *Extensions::new().response());
             self.send(&header).await?;
 
             let response = NodeIdHandshakeResponse::new(public, signature);
@@ -114,7 +125,8 @@ impl Peer {
             self.send(&response).await?;
             dbg!("sending handshake response done");
         }
-        if header.flags().is_response() {
+
+        if header.ext().is_response() {
             let response = self.recv::<NodeIdHandshakeResponse>().await?;
             let public = response.public;
             let signature = response.signature;
@@ -126,11 +138,12 @@ impl Peer {
             }
             dbg!("signature verified");
         }
+
         Ok(())
     }
 
     async fn initial_handshake(&mut self) -> anyhow::Result<()> {
-        self.send_header(MessageType::NodeIdHandshake, *Flags::new().query(true))
+        self.send_header(MessageType::NodeIdHandshake, *Extensions::new().query())
             .await?;
 
         let cookie = Cookie::random();

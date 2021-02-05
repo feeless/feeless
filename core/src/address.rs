@@ -10,53 +10,38 @@ use std::convert::TryFrom;
 // [   ][encoded public key                                ][chksum]
 // [5  ][52                                                ][8     ] <-- Bytes
 
-/// Length of "nano_".
-const PREFIX_LEN: usize = 5;
-
-/// Length of the encoded public key.
-const ENCODED_PUBLIC_KEY_LEN: usize = 52;
-
-/// Length of a Nano address.
-const ADDRESS_STRING_LENGTH: usize = 65; // 5 + 52 + 8
-
-/// 4 bits of padding in the front of the public key when encoding.
-const ENCODED_PADDED_BITS: usize = 4;
-
 #[derive(Debug, PartialEq)]
 pub struct Address(String);
 
 impl Address {
+    /// Length of a Nano address.
+    pub const LEN: usize = 65; // 5 + 52 + 8
+
+    /// Length of "nano_".
+    pub const PREFIX_LEN: usize = 5;
+
+    /// Length of the encoded public key.
+    pub const ENCODED_PUBLIC_KEY_LEN: usize = 52;
+
+    /// 4 bits of padding in the front of the public key when encoding.
+    pub const ENCODED_PADDED_BITS: usize = 4;
+
     pub fn to_public(&self) -> Public {
         // We don't need to check the checksum because we assume if it's already stored, it's valid.
         self.extract_public_key().unwrap()
     }
 
-    fn sanity_check(&self) {
-        debug_assert_eq!(
-            self.0.len(),
-            ADDRESS_STRING_LENGTH,
-            "Address length is {} and needs to be {}",
-            self.0.len(),
-            ADDRESS_STRING_LENGTH
-        );
-        debug_assert!(
-            self.0.starts_with("nano_"),
-            "Address needs to start with nano_"
-        );
-    }
-
     fn extract_public_key(&self) -> anyhow::Result<Public> {
-        self.sanity_check();
-
-        let public_key_part = &self.0[PREFIX_LEN..(PREFIX_LEN + ENCODED_PUBLIC_KEY_LEN)];
-        debug_assert_eq!(public_key_part.len(), ENCODED_PUBLIC_KEY_LEN);
+        let public_key_part =
+            &self.0[Self::PREFIX_LEN..(Self::PREFIX_LEN + Self::ENCODED_PUBLIC_KEY_LEN)];
+        debug_assert_eq!(public_key_part.len(), Self::ENCODED_PUBLIC_KEY_LEN);
 
         let bits = encoding::decode_nano_base_32(&public_key_part)?;
-        debug_assert_eq!(bits.len(), 8 * Public::LEN + ENCODED_PADDED_BITS);
+        debug_assert_eq!(bits.len(), 8 * Public::LEN + Self::ENCODED_PADDED_BITS);
 
-        let bits: &BitVec<Msb0, u8> = &bits[ENCODED_PADDED_BITS..].to_owned(); // Remove padding
-                                                                               // The to_owned() here is necessary to ensure the vec is aligned half way through the byte.
-                                                                               // Otherwise it will essentially ignore the [ENCODED_PADDED_BITS..] offset.
+        let bits: &BitVec<Msb0, u8> = &bits[Self::ENCODED_PADDED_BITS..].to_owned(); // Remove padding
+                                                                                     // The to_owned() here is necessary to ensure the vec is aligned half way through the byte.
+                                                                                     // Otherwise it will essentially ignore the [ENCODED_PADDED_BITS..] offset.
         let public_key_bytes: Vec<u8> = bits.to_owned().into_vec();
         debug_assert_eq!(public_key_bytes.len(), Public::LEN);
 
@@ -64,7 +49,7 @@ impl Address {
     }
 
     fn validate_checksum(&self, public: &Public) -> anyhow::Result<()> {
-        let idx = PREFIX_LEN + ENCODED_PUBLIC_KEY_LEN;
+        let idx = Self::PREFIX_LEN + Self::ENCODED_PUBLIC_KEY_LEN;
         let checksum = &self.0[idx..];
         if public.checksum() != checksum {
             return Err(anyhow!("Invalid checksum"));
@@ -78,14 +63,14 @@ impl From<&Public> for Address {
     ///
     /// https://docs.nano.org/integration-guides/the-basics/#account-public-address
     fn from(public: &Public) -> Self {
-        let mut s = String::with_capacity(ADDRESS_STRING_LENGTH);
+        let mut s = String::with_capacity(Self::LEN);
         s.push_str("nano_");
 
         // Public key -> nano_base_32
-        const PKP_LEN: usize = ENCODED_PADDED_BITS + 8 * Public::LEN;
-        const PKP_CAPACITY: usize = ENCODED_PADDED_BITS + 8 * Public::LEN + 4; // Capacity rounded up to 8 bits.
+        const PKP_LEN: usize = Address::ENCODED_PADDED_BITS + 8 * Public::LEN;
+        const PKP_CAPACITY: usize = Address::ENCODED_PADDED_BITS + 8 * Public::LEN + 4; // Capacity rounded up to 8 bits.
         let mut bits: BitVec<Msb0, u8> = BitVec::with_capacity(PKP_CAPACITY);
-        let pad: BitVec<Msb0, u8> = bitvec![Msb0, u8; 0; ENCODED_PADDED_BITS];
+        let pad: BitVec<Msb0, u8> = bitvec![Msb0, u8; 0; Self::ENCODED_PADDED_BITS];
         bits.extend_from_bitslice(&pad);
         bits.extend_from_raw_slice(&public.as_bytes());
         debug_assert_eq!(bits.capacity(), PKP_CAPACITY);
@@ -97,8 +82,8 @@ impl From<&Public> for Address {
         let checksum = public.checksum();
         s.push_str(&checksum);
 
-        debug_assert_eq!(s.len(), ADDRESS_STRING_LENGTH);
-        debug_assert_eq!(s.capacity(), ADDRESS_STRING_LENGTH);
+        debug_assert_eq!(s.len(), Self::LEN);
+        debug_assert_eq!(s.capacity(), Self::LEN);
         Address(s)
     }
 }

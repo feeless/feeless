@@ -2,9 +2,12 @@ use crate::state::State;
 use crate::wire::Wire;
 use anyhow::anyhow;
 use bitvec::prelude::*;
+use feeless::expect_len;
 use std::convert::TryFrom;
 use std::result::Result;
 
+// TODO: Have header internally only contain [u8; 8] and use accessors, so that the header doesn't
+//       have to be encoded/decoded when sending/receiving.
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct Header {
     /// Always "R" 0x82, probably for RaiBlocks!
@@ -25,7 +28,7 @@ pub struct Header {
     message_type: MessageType,
 
     /// Extra data in bits.
-    flags: Flags,
+    ext: Extensions,
 }
 
 impl Header {
@@ -38,23 +41,23 @@ impl Header {
     const VERSION_USING: usize = 3;
     const VERSION_MIN: usize = 4;
     const MESSAGE_TYPE: usize = 5;
-    const FLAGS: usize = 6;
+    const EXTENSIONS: usize = 6;
 
-    pub fn new(network: Network, message_type: MessageType, flags: Flags) -> Self {
+    pub fn new(network: Network, message_type: MessageType, ext: Extensions) -> Self {
         Self {
             magic_number: MagicNumber::new(),
             network,
-            version_max: Version::Current18,
-            version_using: Version::Current18,
-            version_min: Version::Current18,
+            version_max: Version::V18,
+            version_using: Version::V18,
+            version_min: Version::V18,
             message_type,
-            flags,
+            ext,
         }
     }
 
-    pub fn reset(&mut self, message_type: MessageType, flags: Flags) -> &mut Self {
+    pub fn reset(&mut self, message_type: MessageType, ext: Extensions) -> &mut Self {
         self.message_type = message_type;
-        self.flags = flags;
+        self.ext = ext;
         self
     }
 
@@ -62,8 +65,8 @@ impl Header {
         self.message_type
     }
 
-    pub fn flags(&self) -> Flags {
-        self.flags
+    pub fn ext(&self) -> Extensions {
+        self.ext
     }
 }
 
@@ -76,19 +79,13 @@ impl Wire for Header {
             self.version_using as u8,
             self.version_min as u8,
             self.message_type as u8,
-            self.flags.0[0],
-            self.flags.0[1],
+            self.ext.0[0],
+            self.ext.0[1],
         ]
     }
 
     fn deserialize(state: &State, data: &[u8]) -> Result<Self, anyhow::Error> {
-        if data.len() != Header::LEN {
-            return Err(anyhow!(
-                "Incorrect length: Expecting: {}, got: {}",
-                Header::LEN,
-                data.len()
-            ));
-        }
+        expect_len(data.len(), Header::LEN, "Header")?;
 
         // Validation only.
         MagicNumber::try_from(data[Self::MAGIC_NUMBER])?;
@@ -105,9 +102,10 @@ impl Wire for Header {
         // TODO: Check versions (work out what each field means exactly)
 
         let message_type = MessageType::try_from(data[Self::MESSAGE_TYPE])?;
-        let flags = Flags::try_from(&data[Self::FLAGS..Self::FLAGS + Flags::LEN])?;
+        let ext =
+            Extensions::try_from(&data[Self::EXTENSIONS..Self::EXTENSIONS + Extensions::LEN])?;
 
-        Ok(Header::new(state.network(), message_type, flags))
+        Ok(Header::new(state.network(), message_type, ext))
     }
 
     fn len() -> usize {
@@ -169,7 +167,8 @@ impl TryFrom<u8> for Network {
 #[derive(Debug, Clone, Copy, PartialEq)]
 #[repr(u8)]
 pub enum Version {
-    Current18 = 18,
+    V18 = 18,
+    V19 = 19,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -215,20 +214,24 @@ impl TryFrom<u8> for MessageType {
 }
 
 #[derive(Clone, Copy, PartialEq)]
-pub struct Flags([u8; 2]);
+pub struct Extensions([u8; 2]);
 
-impl Flags {
+impl Extensions {
     const LEN: usize = 2;
 
+    // Bit offsets
     const QUERY: usize = 0;
     const RESPONSE: usize = 1;
+
+    const ITEM_COUNT: usize = 12;
+    const ITEM_COUNT_BITS: usize = 4;
 
     pub fn new() -> Self {
         Self([0, 0])
     }
 
-    pub fn query(&mut self, v: bool) -> &mut Self {
-        self.mut_bits().set(Self::QUERY, v);
+    pub fn query(&mut self) -> &mut Self {
+        self.mut_bits().set(Self::QUERY, true);
         self
     }
 
@@ -236,13 +239,17 @@ impl Flags {
         self.bits()[Self::QUERY]
     }
 
-    pub fn response(&mut self, v: bool) -> &mut Self {
-        self.mut_bits().set(Self::RESPONSE, v);
+    pub fn response(&mut self) -> &mut Self {
+        self.mut_bits().set(Self::RESPONSE, true);
         self
     }
 
     pub fn is_response(&self) -> bool {
         self.bits()[Self::RESPONSE]
+    }
+
+    pub fn item_count(&self) -> u8 {
+        self.bits()[Self::ITEM_COUNT..Self::ITEM_COUNT + Self::ITEM_COUNT_BITS].load_be()
     }
 
     fn bits(&self) -> &BitSlice<Lsb0, u8> {
@@ -254,7 +261,7 @@ impl Flags {
     }
 }
 
-impl std::fmt::Debug for Flags {
+impl std::fmt::Debug for Extensions {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let mut s = vec![];
         if self.is_query() {
@@ -269,18 +276,11 @@ impl std::fmt::Debug for Flags {
     }
 }
 
-impl TryFrom<&[u8]> for Flags {
+impl TryFrom<&[u8]> for Extensions {
     type Error = anyhow::Error;
 
     fn try_from(value: &[u8]) -> Result<Self, Self::Error> {
-        if value.len() != Self::LEN {
-            // Probably a coding error rather than external input.
-            return Err(anyhow!(
-                "Invalid length: Got: {} Expected: {}",
-                value.len(),
-                Self::LEN,
-            ));
-        }
+        expect_len(value.len(), Self::LEN, "Extensions")?;
 
         let mut s = Self::new();
         s.0[0] = value[0];
@@ -293,16 +293,14 @@ impl TryFrom<&[u8]> for Flags {
 mod tests {
     use super::*;
     use std::fmt::Debug;
+    use zerocopy::AsBytes;
 
     #[test]
     fn serialize() {
         let state = State::new(Network::Live);
 
-        let mut flags = Flags::new();
-        flags.query(true);
-        flags.response(true);
-
-        let h1 = Header::new(state.network(), MessageType::Keepalive, flags);
+        let ext = *Extensions::new().query().response();
+        let h1 = Header::new(state.network(), MessageType::Keepalive, ext);
         let s = h1.serialize();
         assert_eq!(s.len(), Header::LEN);
         assert_eq!(s, vec![0x52, 0x43, 18, 18, 18, 2, 3, 0]);
@@ -319,7 +317,7 @@ mod tests {
     #[test]
     fn bad_length() {
         let state = State::new(Network::Live);
-        let err = "Incorrect length";
+        let err = "Header is the wrong length";
         let s = vec![];
         assert_contains_err(Header::deserialize(&state, &s), err);
         let s = vec![0xFF, 0x43, 18, 18, 18, 2, 3, 0, 0xFF];
@@ -345,5 +343,22 @@ mod tests {
         let state = State::new(Network::Live);
         let s = vec![0x52, 0x43, 18, 18, 18, 100, 3, 0];
         assert_contains_err(Header::deserialize(&state, &s), "message type");
+    }
+
+    #[test]
+    fn item_count() {
+        let fixtures: &[(u8, u8, u8)] = &[
+            (0x00, 0x00, 0),
+            (0xff, 0xff, 15),
+            (0x00, 0xff, 15),
+            (0xff, 0xa0, 10),
+            (0xff, 0x50, 5),
+            (0xff, 0x10, 1),
+        ];
+        for (b1, b2, expected) in fixtures {
+            dbg!(b1, b2, expected);
+            let ext = Extensions::try_from([*b1, *b2].as_bytes()).unwrap();
+            assert_eq!(ext.item_count(), *expected);
+        }
     }
 }

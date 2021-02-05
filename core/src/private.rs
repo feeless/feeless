@@ -1,14 +1,13 @@
-use crate::{Public, Signature};
-use anyhow::anyhow;
+use crate::{expect_len, Public, Signature};
 use ed25519_dalek::ed25519::signature::Signature as InternalSignature;
 use ed25519_dalek::ExpandedSecretKey;
 use std::convert::TryFrom;
 
-pub const PRIVATE_KEY_BYTES: usize = 32;
-
 pub struct Private(ed25519_dalek::SecretKey);
 
 impl Private {
+    pub const LEN: usize = 32;
+
     pub fn to_public(&self) -> Public {
         Public::from(self.internal_public())
     }
@@ -28,14 +27,7 @@ impl TryFrom<&[u8]> for Private {
     type Error = anyhow::Error;
 
     fn try_from(bytes: &[u8]) -> Result<Self, Self::Error> {
-        if bytes.len() != PRIVATE_KEY_BYTES {
-            return Err(anyhow!(
-                "Private key is the wrong length: Got: {} Expected: {}",
-                bytes.len(),
-                PRIVATE_KEY_BYTES
-            ));
-        }
-
+        expect_len(bytes.len(), Private::LEN, "Private key")?;
         Ok(Self(ed25519_dalek::SecretKey::from_bytes(bytes)?))
     }
 }
@@ -54,7 +46,6 @@ impl std::fmt::Display for Private {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
     use crate::Seed;
 
     #[tokio::test]

@@ -1,6 +1,7 @@
 #![forbid(unsafe_code)]
 
 mod address;
+mod block_hash;
 mod encoding;
 mod private;
 mod public;
@@ -9,11 +10,25 @@ mod seed;
 mod signature;
 
 pub use address::Address;
+use anyhow::anyhow;
+pub use block_hash::BlockHash;
 pub use private::Private;
 pub use public::Public;
 pub use raw::Raw;
 pub use seed::Seed;
 pub use signature::Signature;
+
+pub fn expect_len(got_len: usize, expected_len: usize, msg: &str) -> anyhow::Result<()> {
+    if got_len != expected_len {
+        return Err(anyhow!(
+            "{} is the wrong length: Got: {} Expected: {}",
+            msg,
+            got_len,
+            expected_len,
+        ));
+    }
+    Ok(())
+}
 
 #[cfg(test)]
 mod tests {
