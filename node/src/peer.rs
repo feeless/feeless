@@ -165,8 +165,10 @@ impl Peer {
         // let pairs: (BlockHash, BlockHash) = ()
         let data = self.recv::<HandleConfirmReq>().await?;
 
-        dbg!(data);
+        println!("(TODO) confirm_req");
+        println!("hash {:X}", &data.hash);
+        println!("root {:X}", &data.root);
 
-        todo!()
+        Ok(())
     }
 }

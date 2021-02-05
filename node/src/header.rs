@@ -3,8 +3,36 @@ use crate::wire::Wire;
 use anyhow::anyhow;
 use bitvec::prelude::*;
 use feeless::expect_len;
-use std::convert::TryFrom;
+use std::convert::{TryFrom, TryInto};
 use std::result::Result;
+
+pub enum BlockType {
+    Invalid = 0,
+    NotABlock = 1,
+    Send = 2,
+    Recv = 3,
+    Open = 4,
+    Change = 5,
+    State = 6,
+}
+
+impl TryFrom<u8> for BlockType {
+    type Error = anyhow::Error;
+
+    fn try_from(value: u8) -> Result<Self, Self::Error> {
+        use BlockType::*;
+        Ok(match value {
+            0 => Invalid,
+            1 => NotABlock,
+            2 => Send,
+            3 => Recv,
+            4 => Open,
+            5 => Change,
+            6 => State,
+            _ => return Err(anyhow!("Invalid block type: {}", value)),
+        })
+    }
+}
 
 // TODO: Have header internally only contain [u8; 8] and use accessors, so that the header doesn't
 //       have to be encoded/decoded when sending/receiving.
@@ -226,6 +254,9 @@ impl Extensions {
     const ITEM_COUNT: usize = 12;
     const ITEM_COUNT_BITS: usize = 4;
 
+    const BLOCK_TYPE: usize = 8;
+    const BLOCK_TYPE_BITS: usize = 4;
+
     pub fn new() -> Self {
         Self([0, 0])
     }
@@ -250,6 +281,14 @@ impl Extensions {
 
     pub fn item_count(&self) -> u8 {
         self.bits()[Self::ITEM_COUNT..Self::ITEM_COUNT + Self::ITEM_COUNT_BITS].load_be()
+    }
+
+    pub fn block_type(&self) -> anyhow::Result<BlockType> {
+        Ok(
+            self.bits()[Self::BLOCK_TYPE..Self::BLOCK_TYPE + Self::BLOCK_TYPE_BITS]
+                .load_be::<u8>()
+                .try_into()?,
+        )
     }
 
     fn bits(&self) -> &BitSlice<Lsb0, u8> {
