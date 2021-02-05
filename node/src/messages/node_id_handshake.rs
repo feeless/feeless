@@ -1,12 +1,12 @@
 use crate::cookie::Cookie;
+use crate::header::{Extensions, Header, MessageType};
+use crate::peer::Peer;
 use crate::state::State;
 use crate::wire::Wire;
-use feeless::{Public, Signature};
+use feeless::{Public, Seed, Signature};
 use std::convert::TryFrom;
-use zerocopy::{AsBytes, FromBytes, Unaligned};
 
-#[derive(Debug, FromBytes, AsBytes, Unaligned)]
-#[repr(C)]
+#[derive(Debug)]
 pub struct NodeIdHandshakeQuery(pub Cookie);
 
 impl<'a> NodeIdHandshakeQuery {
@@ -75,3 +75,5 @@ impl Wire for NodeIdHandshakeResponse {
         Self::LEN
     }
 }
+
+impl Peer {}

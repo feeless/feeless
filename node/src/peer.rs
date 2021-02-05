@@ -1,17 +1,18 @@
 use crate::cookie::Cookie;
 use crate::header::{Extensions, Header, MessageType};
+use crate::messages::handle_confirm_req::HandleConfirmReq;
 use crate::messages::node_id_handshake::{NodeIdHandshakeQuery, NodeIdHandshakeResponse};
 use crate::state::State;
 use crate::wire::Wire;
 use anyhow::anyhow;
-use feeless::Seed;
+use feeless::{BlockHash, Seed};
 use std::net::SocketAddr;
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use tokio::net::TcpStream;
 
 /// A connection to a single peer.
 pub struct Peer {
-    state: State,
+    pub(crate) state: State,
 
     // TODO: Both of these into a Communication trait, for ease of testing. e.g.:
     //  * async fn Comm::send() -> Result<()>
@@ -21,10 +22,10 @@ pub struct Peer {
     // This would also remove Self::buffer.
     // Not sure about the performance problems of having to use async-trait.
     stream: TcpStream,
-    peer_addr: SocketAddr,
+    pub(crate) peer_addr: SocketAddr,
 
     /// A reusable header to reduce allocations.
-    header: Header,
+    pub(crate) header: Header,
 
     /// Storage that can be shared within this task without reallocating.
     /// This is currently only used for the recv buffers.
@@ -45,7 +46,7 @@ impl Peer {
         }
     }
 
-    async fn recv<T: Wire>(&mut self) -> anyhow::Result<T> {
+    pub(crate) async fn recv<T: Wire>(&mut self) -> anyhow::Result<T> {
         let len = T::len();
 
         if len > self.buffer.len() {
@@ -66,7 +67,7 @@ impl Peer {
         Ok(T::deserialize(&self.state, buffer)?)
     }
 
-    async fn send<T: Wire>(&mut self, message: &T) -> anyhow::Result<()> {
+    pub(crate) async fn send<T: Wire>(&mut self, message: &T) -> anyhow::Result<()> {
         self.stream.write_all(&message.serialize()).await?;
         Ok(())
     }
@@ -91,7 +92,7 @@ impl Peer {
             match header.message_type() {
                 MessageType::Keepalive => todo!(),
                 MessageType::Publish => todo!(),
-                MessageType::ConfirmReq => todo!(),
+                MessageType::ConfirmReq => self.handle_confirm_req(header).await?,
                 MessageType::ConfirmAck => todo!(),
                 MessageType::BulkPull => todo!(),
                 MessageType::BulkPush => todo!(),
@@ -155,5 +156,17 @@ impl Peer {
         self.send(&handshake_query).await?;
 
         Ok(())
+    }
+
+    async fn handle_confirm_req(&mut self, header: Header) -> anyhow::Result<()> {
+        let hash_pair_count = header.ext().item_count();
+        dbg!(&hash_pair_count);
+
+        // let pairs: (BlockHash, BlockHash) = ()
+        let data = self.recv::<HandleConfirmReq>().await?;
+
+        dbg!(data);
+
+        todo!()
     }
 }

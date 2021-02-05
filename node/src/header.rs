@@ -293,7 +293,6 @@ impl TryFrom<&[u8]> for Extensions {
 mod tests {
     use super::*;
     use std::fmt::Debug;
-    use zerocopy::AsBytes;
 
     #[test]
     fn serialize() {
@@ -357,7 +356,7 @@ mod tests {
         ];
         for (b1, b2, expected) in fixtures {
             dbg!(b1, b2, expected);
-            let ext = Extensions::try_from([*b1, *b2].as_bytes()).unwrap();
+            let ext = Extensions::try_from([*b1, *b2].as_ref()).unwrap();
             assert_eq!(ext.item_count(), *expected);
         }
     }

@@ -4,9 +4,8 @@ use rand::RngCore;
 
 use feeless::expect_len;
 use std::convert::TryFrom;
-use zerocopy::{AsBytes, FromBytes, LayoutVerified, Unaligned};
 
-#[derive(Debug, Clone, FromBytes, AsBytes, Unaligned)]
+#[derive(Debug, Clone)]
 #[repr(C)]
 pub struct Cookie([u8; Cookie::LEN]);
 
@@ -20,7 +19,7 @@ impl Cookie {
     }
 
     pub fn as_bytes(&self) -> &[u8] {
-        self.0.as_bytes()
+        self.0.as_ref()
     }
 }
 
@@ -33,8 +32,7 @@ impl Wire for Cookie {
     where
         Self: Sized,
     {
-        let cookie: &Cookie = LayoutVerified::<_, Cookie>::new(data).unwrap().into_ref();
-        Ok(cookie.clone())
+        Ok(Cookie::try_from(data)?)
     }
 
     fn len() -> usize {
