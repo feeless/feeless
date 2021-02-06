@@ -6,6 +6,7 @@ use feeless::expect_len;
 use std::convert::{TryFrom, TryInto};
 use std::result::Result;
 
+#[derive(Eq, PartialEq)]
 pub enum BlockType {
     Invalid = 0,
     NotABlock = 1,
@@ -57,6 +58,22 @@ pub struct Header {
 
     /// Extra data in bits.
     ext: Extensions,
+}
+
+impl Header {
+    pub fn validate(&self, state: &State) -> anyhow::Result<()> {
+        if self.network != state.network() {
+            return Err(anyhow!(
+                "Network mismatch: They're on {:?}. We're on {:?}",
+                self.network,
+                state.network(),
+            ));
+        }
+
+        // TODO: Check versions.
+
+        Ok(())
+    }
 }
 
 impl Header {
@@ -112,28 +129,18 @@ impl Wire for Header {
         ]
     }
 
-    fn deserialize(state: &State, data: &[u8]) -> Result<Self, anyhow::Error> {
-        expect_len(data.len(), Header::LEN, "Header")?;
+    fn deserialize(header: Option<&Header>, data: &[u8]) -> anyhow::Result<Self> {
+        debug_assert!(header.is_none());
 
-        // Validation only.
+        expect_len(data.len(), Header::LEN, "Header")?;
         MagicNumber::try_from(data[Self::MAGIC_NUMBER])?;
 
-        let their_network = Network::try_from(data[Self::NETWORK])?;
-        if their_network != state.network() {
-            return Err(anyhow!(
-                "Network mismatch: We're on {:?}, they're on {:?}",
-                state.network(),
-                their_network
-            ));
-        }
-
-        // TODO: Check versions (work out what each field means exactly)
-
+        let network = Network::try_from(data[Self::NETWORK])?;
         let message_type = MessageType::try_from(data[Self::MESSAGE_TYPE])?;
         let ext =
             Extensions::try_from(&data[Self::EXTENSIONS..Self::EXTENSIONS + Extensions::LEN])?;
 
-        Ok(Header::new(state.network(), message_type, ext))
+        Ok(Header::new(network, message_type, ext))
     }
 
     fn len() -> usize {
@@ -247,13 +254,11 @@ pub struct Extensions([u8; 2]);
 impl Extensions {
     const LEN: usize = 2;
 
-    // Bit offsets
+    // Bit offsets and lengths
     const QUERY: usize = 0;
     const RESPONSE: usize = 1;
-
     const ITEM_COUNT: usize = 12;
     const ITEM_COUNT_BITS: usize = 4;
-
     const BLOCK_TYPE: usize = 8;
     const BLOCK_TYPE_BITS: usize = 4;
 
@@ -343,7 +348,7 @@ mod tests {
         assert_eq!(s.len(), Header::LEN);
         assert_eq!(s, vec![0x52, 0x43, 18, 18, 18, 2, 3, 0]);
 
-        let h2 = Header::deserialize(&state, &s).unwrap();
+        let h2 = Header::deserialize(None, &s).unwrap();
         assert_eq!(h1, h2);
     }
 
@@ -357,30 +362,30 @@ mod tests {
         let state = State::new(Network::Live);
         let err = "Header is the wrong length";
         let s = vec![];
-        assert_contains_err(Header::deserialize(&state, &s), err);
+        assert_contains_err(Header::deserialize(None, &s), err);
         let s = vec![0xFF, 0x43, 18, 18, 18, 2, 3, 0, 0xFF];
-        assert_contains_err(Header::deserialize(&state, &s), err);
+        assert_contains_err(Header::deserialize(None, &s), err);
     }
 
     #[test]
     fn bad_magic() {
         let state = State::new(Network::Live);
         let s = vec![0xFF, 0x43, 18, 18, 18, 2, 3, 0];
-        assert_contains_err(Header::deserialize(&state, &s), "magic number");
+        assert_contains_err(Header::deserialize(None, &s), "magic number");
     }
 
     #[test]
     fn bad_network() {
         let state = State::new(Network::Test);
         let s = vec![0x52, 0x43, 18, 18, 18, 2, 3, 0];
-        assert_contains_err(Header::deserialize(&state, &s), "Network mismatch");
+        assert_contains_err(Header::deserialize(None, &s), "Network mismatch");
     }
 
     #[test]
     fn bad_message_type() {
         let state = State::new(Network::Live);
         let s = vec![0x52, 0x43, 18, 18, 18, 100, 3, 0];
-        assert_contains_err(Header::deserialize(&state, &s), "message type");
+        assert_contains_err(Header::deserialize(None, &s), "message type");
     }
 
     #[test]

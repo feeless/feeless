@@ -2,6 +2,7 @@ use crate::state::State;
 use crate::wire::Wire;
 use rand::RngCore;
 
+use crate::header::Header;
 use feeless::expect_len;
 use std::convert::TryFrom;
 
@@ -28,7 +29,7 @@ impl Wire for Cookie {
         Vec::from(self.as_bytes())
     }
 
-    fn deserialize(_: &State, data: &[u8]) -> Result<Self, anyhow::Error>
+    fn deserialize(header: Option<&Header>, data: &[u8]) -> anyhow::Result<Self>
     where
         Self: Sized,
     {

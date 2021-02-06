@@ -1,5 +1,6 @@
 #![forbid(unsafe_code)]
 
+mod channel;
 mod cookie;
 mod header;
 mod messages;
@@ -10,7 +11,7 @@ mod wire;
 use crate::header::Network;
 use crate::state::State;
 
-use peer::Peer;
+use channel::Channel;
 use tokio::net::TcpStream;
 
 #[tokio::main]
@@ -21,7 +22,7 @@ async fn main() {
     let handle = tokio::spawn(async {
         let address = "localhost:7075";
         let stream = TcpStream::connect(&address).await.unwrap();
-        let mut peer_handler = Peer::new(state_clone, stream);
+        let mut peer_handler = Channel::new(state_clone, stream);
         peer_handler.run().await.unwrap();
     });
 

@@ -1,9 +1,9 @@
+use crate::channel::Channel;
 use crate::cookie::Cookie;
-use crate::header::{Extensions, Header, MessageType};
-use crate::peer::Peer;
+use crate::header::Header;
 use crate::state::State;
 use crate::wire::Wire;
-use feeless::{Public, Seed, Signature};
+use feeless::{Public, Signature};
 use std::convert::TryFrom;
 
 #[derive(Debug)]
@@ -26,11 +26,11 @@ impl Wire for NodeIdHandshakeQuery {
         self.0.serialize()
     }
 
-    fn deserialize(state: &State, data: &[u8]) -> Result<Self, anyhow::Error>
+    fn deserialize(header: Option<&Header>, data: &[u8]) -> anyhow::Result<Self>
     where
         Self: Sized,
     {
-        let cookie = Cookie::deserialize(state, data)?;
+        let cookie = Cookie::deserialize(header, data)?;
         Ok(NodeIdHandshakeQuery(cookie))
     }
 
@@ -61,7 +61,7 @@ impl Wire for NodeIdHandshakeResponse {
         v
     }
 
-    fn deserialize(_: &State, data: &[u8]) -> Result<Self, anyhow::Error>
+    fn deserialize(header: Option<&Header>, data: &[u8]) -> anyhow::Result<Self>
     where
         Self: Sized,
     {
@@ -76,4 +76,4 @@ impl Wire for NodeIdHandshakeResponse {
     }
 }
 
-impl Peer {}
+impl Channel {}
