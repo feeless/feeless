@@ -3,6 +3,14 @@ use bitvec::prelude::*;
 use blake2::digest::{Update, VariableOutput};
 use blake2::VarBlake2b;
 
+pub fn to_hex(bytes: &[u8]) -> String {
+    let mut s = String::with_capacity(bytes.len() * 2);
+    for byte in bytes {
+        s.push_str(&format!("{:02X}", byte));
+    }
+    s
+}
+
 pub fn hex_formatter(f: &mut std::fmt::Formatter<'_>, bytes: &[u8]) -> std::fmt::Result {
     for byte in bytes {
         write!(f, "{:02X}", byte)?;

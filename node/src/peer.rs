@@ -49,7 +49,7 @@ impl Wire for Peer {
         v
     }
 
-    fn deserialize(header: Option<&Header>, data: &[u8]) -> anyhow::Result<Self>
+    fn deserialize(_: Option<&Header>, data: &[u8]) -> anyhow::Result<Self>
     where
         Self: Sized,
     {

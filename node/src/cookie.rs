@@ -3,10 +3,10 @@ use crate::wire::Wire;
 use rand::RngCore;
 
 use crate::header::Header;
-use feeless::expect_len;
+use feeless::{expect_len, hex_formatter};
 use std::convert::TryFrom;
 
-#[derive(Debug, Clone)]
+#[derive(Clone)]
 #[repr(C)]
 pub struct Cookie([u8; Cookie::LEN]);
 
@@ -24,12 +24,21 @@ impl Cookie {
     }
 }
 
+impl std::fmt::Debug for Cookie {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "Cookie(")?;
+        hex_formatter(f, self.0.as_ref());
+        write!(f, ")")?;
+        Ok(())
+    }
+}
+
 impl Wire for Cookie {
     fn serialize(&self) -> Vec<u8> {
         Vec::from(self.as_bytes())
     }
 
-    fn deserialize(header: Option<&Header>, data: &[u8]) -> anyhow::Result<Self>
+    fn deserialize(_: Option<&Header>, data: &[u8]) -> anyhow::Result<Self>
     where
         Self: Sized,
     {

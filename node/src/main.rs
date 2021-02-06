@@ -16,14 +16,16 @@ use tokio::net::TcpStream;
 
 #[tokio::main]
 async fn main() {
+    tracing_subscriber::fmt::init();
+
     let state = State::new(Network::Live);
 
     let state_clone = state.clone();
     let handle = tokio::spawn(async {
         let address = "localhost:7075";
         let stream = TcpStream::connect(&address).await.unwrap();
-        let mut peer_handler = Channel::new(state_clone, stream);
-        peer_handler.run().await.unwrap();
+        let mut channel = Channel::new(state_clone, stream);
+        channel.run().await.unwrap();
     });
 
     println!("Waiting...");

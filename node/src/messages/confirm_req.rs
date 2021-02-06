@@ -14,16 +14,16 @@ use std::convert::TryFrom;
 //    if: _root.header.block_type != enum_blocktype::not_a_block
 //    type: block_selector(_root.header.block_type_int)
 #[derive(Debug)]
-pub enum HandleConfirmReq {
+pub enum ConfirmReq {
     ConfirmReqByHash(Vec<RootHashPair>),
     BlockSelector,
 }
 
-impl HandleConfirmReq {
+impl ConfirmReq {
     pub const LEN: usize = BlockHash::LEN * 2;
 }
 
-impl Wire for HandleConfirmReq {
+impl Wire for ConfirmReq {
     fn serialize(&self) -> Vec<u8> {
         unimplemented!()
     }
@@ -75,7 +75,7 @@ impl TryFrom<&[u8]> for RootHashPair {
     type Error = anyhow::Error;
 
     fn try_from(value: &[u8]) -> Result<Self, Self::Error> {
-        expect_len(value.len(), Self::LEN, "Root hash pair");
+        expect_len(value.len(), Self::LEN, "Root hash pair")?;
         Ok(Self {
             hash: BlockHash::try_from(&value[0..BlockHash::LEN])?,
             root: BlockHash::try_from(&value[BlockHash::LEN..])?,

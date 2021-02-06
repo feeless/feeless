@@ -1,19 +1,22 @@
 use crate::cookie::Cookie;
 use crate::header::{BlockType, Extensions, Header, MessageType};
-use crate::messages::handle_confirm_req::HandleConfirmReq;
+use crate::messages::confirm_req::ConfirmReq;
 use crate::messages::node_id_handshake::{NodeIdHandshakeQuery, NodeIdHandshakeResponse};
 use crate::peer::Peer;
 use crate::state::State;
 use crate::wire::Wire;
 use anyhow::anyhow;
-use feeless::{expect_len, Seed};
+use feeless::{expect_len, to_hex, Seed};
+use std::fmt::Debug;
 use std::net::SocketAddr;
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use tokio::net::TcpStream;
+use tracing::{debug, info, instrument, trace};
 
 /// A connection to a single peer.
+#[derive(Debug)]
 pub struct Channel {
-    pub(crate) state: State,
+    pub state: State,
 
     // TODO: Both of these into a Communication trait, for ease of testing. e.g.:
     //  * async fn Comm::send() -> Result<()>
@@ -47,7 +50,8 @@ impl Channel {
         }
     }
 
-    async fn recv<T: Wire>(&mut self, header: Option<&Header>) -> anyhow::Result<T> {
+    #[instrument(skip(self, header))]
+    async fn recv<T: Wire + Debug>(&mut self, header: Option<&Header>) -> anyhow::Result<T> {
         let expected_len = T::len();
         if expected_len > self.buffer.len() {
             self.buffer.resize(expected_len, 0)
@@ -56,13 +60,21 @@ impl Channel {
         let buffer = &mut self.buffer[0..expected_len];
         let bytes_read = self.stream.read_exact(buffer).await?;
         expect_len(bytes_read, expected_len, "Recv packet")?;
+        trace!("HEX: {}", to_hex(&buffer));
 
         let buffer = &self.buffer[0..expected_len];
-        Ok(T::deserialize(header, buffer)?)
+        let result = T::deserialize(header, buffer)?;
+        debug!("OBJ: {:?}", &result);
+
+        Ok(result)
     }
 
-    async fn send<T: Wire>(&mut self, message: &T) -> anyhow::Result<()> {
-        self.stream.write_all(&message.serialize()).await?;
+    #[instrument(level = "debug", skip(self, message))]
+    async fn send<T: Wire + Debug>(&mut self, message: &T) -> anyhow::Result<()> {
+        let data = message.serialize();
+        trace!("HEX {}", to_hex(&data));
+        debug!("OBJ {:?}", &message);
+        self.stream.write_all(&data).await?;
         Ok(())
     }
 
@@ -76,13 +88,14 @@ impl Channel {
         Ok(self.send(&header).await?)
     }
 
+    #[instrument(skip(self))]
     pub async fn run(&mut self) -> anyhow::Result<()> {
-        self.initial_handshake().await?;
+        self.send_node_id_handshake().await?;
 
         loop {
             let header = self.recv::<Header>(None).await?;
             header.validate(&self.state)?;
-            dbg!(&header);
+            // debug!("Header: {:?}", &header);
 
             match header.message_type() {
                 MessageType::Keepalive => self.handle_keepalive(header).await?,
@@ -92,7 +105,7 @@ impl Channel {
                 // MessageType::BulkPull => todo!(),
                 // MessageType::BulkPush => todo!(),
                 // MessageType::FrontierReq => todo!(),
-                MessageType::NodeIdHandshake => self.handle_node_id_handshake(header).await?,
+                MessageType::NodeIdHandshake => self.recv_node_id_handshake(header).await?,
                 // MessageType::BulkPullAccount => todo!(),
                 // MessageType::TelemetryReq => todo!(),
                 // MessageType::TelemetryAck => todo!(),
@@ -101,15 +114,32 @@ impl Channel {
         }
     }
 
+    #[instrument(skip(self, header))]
     async fn handle_keepalive(&mut self, header: Header) -> anyhow::Result<()> {
         for _ in 0..8 {
             let peer = self.recv::<Peer>(Some(&header)).await?;
-            dbg!(peer);
+            debug!("Keepalive peer: {:?}", peer);
         }
         Ok(())
     }
 
-    async fn handle_node_id_handshake(&mut self, header: Header) -> anyhow::Result<()> {
+    #[instrument(skip(self))]
+    async fn send_node_id_handshake(&mut self) -> anyhow::Result<()> {
+        self.send_header(MessageType::NodeIdHandshake, *Extensions::new().query())
+            .await?;
+
+        let cookie = Cookie::random();
+        self.state
+            .set_cookie(self.peer_addr, cookie.clone())
+            .await?;
+        let handshake_query = NodeIdHandshakeQuery::new(cookie);
+        self.send(&handshake_query).await?;
+
+        Ok(())
+    }
+
+    #[instrument(skip(self, header))]
+    async fn recv_node_id_handshake(&mut self, header: Header) -> anyhow::Result<()> {
         if header.ext().is_query() {
             let query = self.recv::<NodeIdHandshakeQuery>(Some(&header)).await?;
             // XXX: Hacky code here just to see if it works!
@@ -118,7 +148,6 @@ impl Channel {
             let private = seed.derive(0);
             let public = private.to_public();
             let signature = private.sign(query.cookie().as_bytes())?;
-
             debug_assert!(public.verify(query.cookie().as_bytes(), &signature));
 
             let mut header = self.header;
@@ -126,9 +155,7 @@ impl Channel {
             self.send(&header).await?;
 
             let response = NodeIdHandshakeResponse::new(public, signature);
-            dbg!("sending handshake response");
             self.send(&response).await?;
-            dbg!("sending handshake response done");
         }
 
         if header.ext().is_response() {
@@ -141,35 +168,18 @@ impl Channel {
             if !public.verify(&cookie.as_bytes(), &signature) {
                 return Err(anyhow!("Invalid signature in node_id_handshake response"));
             }
-            dbg!("signature verified");
         }
 
         Ok(())
     }
 
-    async fn initial_handshake(&mut self) -> anyhow::Result<()> {
-        self.send_header(MessageType::NodeIdHandshake, *Extensions::new().query())
-            .await?;
-
-        let cookie = Cookie::random();
-        self.state
-            .set_cookie(self.peer_addr, cookie.clone())
-            .await?;
-        let handshake_query = NodeIdHandshakeQuery::new(cookie);
-        dbg!("sending cookie");
-        self.send(&handshake_query).await?;
-
-        Ok(())
-    }
-
+    #[instrument(skip(self, header))]
     async fn handle_confirm_req(&mut self, header: Header) -> anyhow::Result<()> {
         let hash_pair_count = header.ext().item_count();
-        dbg!(&hash_pair_count);
+        let data = self.recv::<ConfirmReq>(Some(&header)).await?;
+        trace!("Pairs: {:?}", &data);
 
-        let data = self.recv::<HandleConfirmReq>(Some(&header)).await?;
-
-        println!("(TODO) confirm_req");
-        dbg!(data);
+        info!("(TODO) confirm_req");
 
         Ok(())
     }

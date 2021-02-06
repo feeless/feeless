@@ -1,10 +1,11 @@
+use crate::encoding::hex_formatter;
 use crate::{encoding, expect_len, Address, Signature};
 use bitvec::prelude::*;
 use ed25519_dalek::{PublicKey, Verifier};
 use std::convert::TryFrom;
 use std::iter::FromIterator;
 
-#[derive(Debug, PartialEq)]
+#[derive(PartialEq)]
 pub struct Public(ed25519_dalek::PublicKey);
 
 impl Public {
@@ -29,6 +30,12 @@ impl Public {
 
     pub fn verify(&self, message: &[u8], signature: &Signature) -> bool {
         self.0.verify(message, &signature.internal()).is_ok()
+    }
+}
+
+impl std::fmt::Debug for Public {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        hex_formatter(f, self.0.as_ref())
     }
 }
 

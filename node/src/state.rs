@@ -6,7 +6,7 @@ use std::sync::Arc;
 use tokio::sync::RwLock;
 
 /// State contains a shared state between connections.
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct State {
     network: Network,
     cookies: Arc<RwLock<HashMap<SocketAddr, Cookie>>>,

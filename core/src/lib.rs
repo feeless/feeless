@@ -12,6 +12,7 @@ mod signature;
 pub use address::Address;
 use anyhow::anyhow;
 pub use block_hash::BlockHash;
+pub use encoding::{hex_formatter, to_hex};
 pub use private::Private;
 pub use public::Public;
 pub use raw::Raw;

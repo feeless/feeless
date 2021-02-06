@@ -1,7 +1,7 @@
+use crate::encoding::hex_formatter;
 use anyhow::anyhow;
 use std::convert::TryFrom;
 
-#[derive(Debug)]
 pub struct Signature([u8; Signature::LEN]);
 
 impl Signature {
@@ -13,6 +13,12 @@ impl Signature {
 
     pub fn internal(&self) -> ed25519_dalek::Signature {
         ed25519_dalek::Signature::new(self.0)
+    }
+}
+
+impl std::fmt::Debug for Signature {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        hex_formatter(f, self.0.as_ref())
     }
 }
 
