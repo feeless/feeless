@@ -12,5 +12,5 @@ pub trait Wire {
         Self: Sized;
 
     /// The expected size of the incoming data.
-    fn len(header: Option<&Header>) -> usize;
+    fn len(header: Option<&Header>) -> anyhow::Result<usize>;
 }

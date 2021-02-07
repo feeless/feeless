@@ -34,8 +34,8 @@ impl Wire for NodeIdHandshakeQuery {
         Ok(NodeIdHandshakeQuery(cookie))
     }
 
-    fn len(header: Option<&Header>) -> usize {
-        Self::LEN
+    fn len(_: Option<&Header>) -> anyhow::Result<usize> {
+        Ok(Self::LEN)
     }
 }
 
@@ -71,8 +71,8 @@ impl Wire for NodeIdHandshakeResponse {
         })
     }
 
-    fn len(header: Option<&Header>) -> usize {
-        Self::LEN
+    fn len(_: Option<&Header>) -> anyhow::Result<usize> {
+        Ok(Self::LEN)
     }
 }
 

@@ -35,12 +35,11 @@ impl Wire for Peer {
         v
     }
 
-    fn deserialize(header: Option<&Header>, data: &[u8]) -> anyhow::Result<Self>
+    fn deserialize(_: Option<&Header>, data: &[u8]) -> anyhow::Result<Self>
     where
         Self: Sized,
     {
-        debug_assert!(header.is_none());
-        expect_len(data.len(), Self::len(None), "Peer")?;
+        expect_len(data.len(), Self::len(None)?, "Peer")?;
 
         let mut addr: [u8; Self::ADDR_LEN] = [0u8; Self::ADDR_LEN];
         addr.copy_from_slice(&data[0..Self::ADDR_LEN]);
@@ -49,8 +48,8 @@ impl Wire for Peer {
         Ok(Self(SocketAddrV6::new(Ipv6Addr::from(addr), port, 0, 0)))
     }
 
-    fn len(_: Option<&Header>) -> usize {
-        Peer::LEN
+    fn len(header: Option<&Header>) -> anyhow::Result<usize> {
+        Ok(Peer::LEN)
     }
 }
 

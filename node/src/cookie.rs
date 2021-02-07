@@ -45,8 +45,8 @@ impl Wire for Cookie {
         Ok(Cookie::try_from(data)?)
     }
 
-    fn len(header: Option<&Header>) -> usize {
-        Cookie::LEN
+    fn len(header: Option<&Header>) -> anyhow::Result<usize> {
+        Ok(Cookie::LEN)
     }
 }
 

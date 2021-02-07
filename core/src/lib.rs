@@ -9,10 +9,11 @@ mod public;
 mod raw;
 mod seed;
 mod signature;
+mod work;
 
 pub use address::Address;
 use anyhow::anyhow;
-pub use block::Block;
+pub use block::StateBlock;
 pub use block_hash::BlockHash;
 pub use encoding::{hex_formatter, to_hex};
 pub use private::Private;
@@ -20,6 +21,7 @@ pub use public::Public;
 pub use raw::Raw;
 pub use seed::Seed;
 pub use signature::Signature;
+pub use work::Work;
 
 pub fn expect_len(got_len: usize, expected_len: usize, msg: &str) -> anyhow::Result<()> {
     if got_len != expected_len {

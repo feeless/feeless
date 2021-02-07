@@ -3,6 +3,7 @@ use crate::header::{BlockType, Extensions, Header, MessageType};
 use crate::messages::confirm_ack::ConfirmAck;
 use crate::messages::confirm_req::ConfirmReq;
 use crate::messages::node_id_handshake::{NodeIdHandshakeQuery, NodeIdHandshakeResponse};
+use crate::messages::telemetry_req::TelemetryReq;
 use crate::peer::Peer;
 use crate::state::State;
 use crate::state::{BoxedState, SledState};
@@ -55,9 +56,9 @@ impl Channel {
 
     #[instrument(skip(self, header))]
     async fn recv<T: Wire + Debug>(&mut self, header: Option<&Header>) -> anyhow::Result<T> {
-        let expected_len = T::len(header);
+        let expected_len = T::len(header)?;
         if expected_len > self.buffer.len() {
-            debug!("Expanding buffer {} -> {}", self.buffer.len(), expected_len);
+            trace!("Expanding buffer {} -> {}", self.buffer.len(), expected_len);
             self.buffer.resize(expected_len, 0)
         }
 
@@ -114,14 +115,14 @@ impl Channel {
             match header.message_type() {
                 MessageType::Keepalive => self.handle_keepalive(header).await?,
                 // MessageType::Publish => todo!(),
-                MessageType::ConfirmReq => self.handle_confirm_req(header).await?,
-                MessageType::ConfirmAck => self.handle_confirm_ack(header).await?,
+                MessageType::ConfirmReq => self.recv_confirm_req(header).await?,
+                MessageType::ConfirmAck => self.recv_confirm_ack(header).await?,
                 // MessageType::BulkPull => todo!(),
                 // MessageType::BulkPush => todo!(),
                 // MessageType::FrontierReq => todo!(),
                 MessageType::NodeIdHandshake => self.recv_node_id_handshake(header).await?,
                 // MessageType::BulkPullAccount => todo!(),
-                // MessageType::TelemetryReq => todo!(),
+                MessageType::TelemetryReq => self.recv_telemetry_req(header).await?,
                 // MessageType::TelemetryAck => todo!(),
                 _ => todo!("{:?}", header),
             }
@@ -196,22 +197,26 @@ impl Channel {
     }
 
     #[instrument(skip(self, header))]
-    async fn handle_confirm_req(&mut self, header: Header) -> anyhow::Result<()> {
+    async fn recv_confirm_req(&mut self, header: Header) -> anyhow::Result<()> {
         let data = self.recv::<ConfirmReq>(Some(&header)).await?;
         trace!("Pairs: {:?}", &data);
-
-        info!("(TODO) confirm_req");
-
+        warn!("(TODO) confirm_req");
         Ok(())
     }
 
     #[instrument(skip(self, header))]
-    async fn handle_confirm_ack(&mut self, header: Header) -> anyhow::Result<()> {
+    async fn recv_confirm_ack(&mut self, header: Header) -> anyhow::Result<()> {
         let data = self.recv::<ConfirmAck>(Some(&header)).await?;
-        info!("(TODO) confirm_req");
+        warn!("(TODO) confirm_ack");
         Ok(())
     }
 
+    #[instrument(skip(self))]
+    async fn recv_telemetry_req(&mut self, header: Header) -> anyhow::Result<()> {
+        self.recv::<TelemetryReq>(Some(&header)).await?;
+        warn!("(TODO) telemetry_req");
+        Ok(())
+    }
     #[instrument(skip(self))]
     async fn send_telemetry_req(&mut self) -> anyhow::Result<()> {
         self.send_header(MessageType::TelemetryReq, Extensions::new())

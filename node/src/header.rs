@@ -6,7 +6,7 @@ use feeless::expect_len;
 use std::convert::{TryFrom, TryInto};
 use std::result::Result;
 
-#[derive(Eq, PartialEq)]
+#[derive(Debug, Eq, PartialEq)]
 pub enum BlockType {
     Invalid = 0,
     NotABlock = 1,
@@ -143,8 +143,8 @@ impl Wire for Header {
         Ok(Header::new(network, message_type, ext))
     }
 
-    fn len(header: Option<&Header>) -> usize {
-        Header::LEN
+    fn len(_: Option<&Header>) -> anyhow::Result<usize> {
+        Ok(Header::LEN)
     }
 }
 
