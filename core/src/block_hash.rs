@@ -1,9 +1,8 @@
 use crate::encoding::hex_formatter;
 use crate::expect_len;
 use std::convert::TryFrom;
-use std::fmt::Debug;
+use std::fmt::{Debug, Formatter};
 
-#[derive(Debug)]
 pub struct BlockHash([u8; BlockHash::LEN]);
 
 impl BlockHash {
@@ -25,6 +24,15 @@ impl TryFrom<&[u8]> for BlockHash {
 impl std::fmt::Display for BlockHash {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{:X}", &self)
+    }
+}
+
+impl std::fmt::Debug for BlockHash {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "BlockHash(")?;
+        hex_formatter(f, &self.0)?;
+        write!(f, ")")?;
+        Ok(())
     }
 }
 

@@ -35,7 +35,12 @@ impl Public {
 
 impl std::fmt::Debug for Public {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        hex_formatter(f, self.0.as_ref())
+        write!(f, "Public(Hex:")?;
+        hex_formatter(f, self.0.as_ref())?;
+        write!(f, " Address:")?;
+        write!(f, "{}", self.to_address())?;
+        write!(f, ")")?;
+        Ok(())
     }
 }
 

@@ -23,6 +23,7 @@ async fn main() {
     let state_clone = state.clone();
     let handle = tokio::spawn(async {
         let address = "localhost:7075";
+        let address = "213.136.90.96:7075";
         let stream = TcpStream::connect(&address).await.unwrap();
         let mut channel = Channel::new(state_clone, stream);
         channel.run().await.unwrap();
@@ -32,3 +33,10 @@ async fn main() {
     handle.await.unwrap();
     println!("Quitting...");
 }
+
+/*
+[::ffff:213.136.90.96]:7075
+[::ffff:194.13.81.185]:7075
+[::ffff:195.72.210.29]:7075
+[::ffff:195.154.160.221]:7075
+**/

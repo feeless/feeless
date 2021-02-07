@@ -1,6 +1,7 @@
 use crate::cookie::Cookie;
 use crate::header::Network;
 use std::collections::HashMap;
+use std::convert::TryFrom;
 use std::net::SocketAddr;
 use std::sync::Arc;
 use tokio::sync::RwLock;
@@ -9,14 +10,22 @@ use tokio::sync::RwLock;
 #[derive(Clone, Debug)]
 pub struct State {
     network: Network,
-    cookies: Arc<RwLock<HashMap<SocketAddr, Cookie>>>,
+    db: sled::Db,
+    cookies: sled::Tree,
+    peers: sled::Tree,
 }
 
 impl State {
     pub fn new(network: Network) -> Self {
+        let path = format!("{:?}.db", network).to_ascii_lowercase();
+        let db: sled::Db = sled::open(&path).expect(&format!("Could not open database: {}", &path));
+        let cookies = db.open_tree("cookies").unwrap();
+        let peers = db.open_tree("peers").unwrap();
         Self {
             network,
-            cookies: Arc::new(RwLock::new(HashMap::with_capacity(1000))),
+            db,
+            cookies,
+            peers,
         }
     }
 
@@ -29,14 +38,19 @@ impl State {
         socket_addr: SocketAddr,
         cookie: Cookie,
     ) -> anyhow::Result<()> {
-        let cookies = &mut *self.cookies.write().await;
-        cookies.insert(socket_addr, cookie);
+        self.cookies
+            .insert(format!("{}", socket_addr), cookie.as_bytes())?;
         Ok(())
     }
 
-    pub async fn cookie_for_socket_addr(&self, socket_addr: &SocketAddr) -> anyhow::Result<Cookie> {
-        let cookies = self.cookies.read().await;
-        let cookie = (*cookies).get(socket_addr).unwrap(); // TODO: handle missing entry
-        Ok(cookie.clone())
+    pub async fn cookie_for_socket_addr(
+        &self,
+        socket_addr: &SocketAddr,
+    ) -> anyhow::Result<Option<Cookie>> {
+        let maybe_cookie = self.cookies.get(format!("{}", socket_addr))?;
+        Ok(match maybe_cookie.as_ref() {
+            None => None,
+            Some(c) => Some(Cookie::try_from(c.as_ref())?),
+        })
     }
 }

@@ -1,5 +1,6 @@
 use crate::cookie::Cookie;
 use crate::header::{BlockType, Extensions, Header, MessageType};
+use crate::messages::confirm_ack::ConfirmAck;
 use crate::messages::confirm_req::ConfirmReq;
 use crate::messages::node_id_handshake::{NodeIdHandshakeQuery, NodeIdHandshakeResponse};
 use crate::peer::Peer;
@@ -11,7 +12,7 @@ use std::fmt::Debug;
 use std::net::SocketAddr;
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use tokio::net::TcpStream;
-use tracing::{debug, info, instrument, trace};
+use tracing::{debug, info, instrument, trace, warn};
 
 /// A connection to a single peer.
 #[derive(Debug)]
@@ -52,8 +53,9 @@ impl Channel {
 
     #[instrument(skip(self, header))]
     async fn recv<T: Wire + Debug>(&mut self, header: Option<&Header>) -> anyhow::Result<T> {
-        let expected_len = T::len();
+        let expected_len = T::len(header);
         if expected_len > self.buffer.len() {
+            debug!("Expanding buffer {} -> {}", self.buffer.len(), expected_len);
             self.buffer.resize(expected_len, 0)
         }
 
@@ -67,6 +69,15 @@ impl Channel {
         debug!("OBJ: {:?}", &result);
 
         Ok(result)
+    }
+
+    async fn todo_dump(&mut self) -> anyhow::Result<()> {
+        loop {
+            let mut c = [0u8];
+            self.stream.read(&mut c).await?;
+            print!("{}", to_hex(&c));
+        }
+        todo!();
     }
 
     #[instrument(level = "debug", skip(self, message))]
@@ -91,6 +102,7 @@ impl Channel {
     #[instrument(skip(self))]
     pub async fn run(&mut self) -> anyhow::Result<()> {
         self.send_node_id_handshake().await?;
+        self.send_telemetry_req().await?;
 
         loop {
             let header = self.recv::<Header>(None).await?;
@@ -101,7 +113,7 @@ impl Channel {
                 MessageType::Keepalive => self.handle_keepalive(header).await?,
                 // MessageType::Publish => todo!(),
                 MessageType::ConfirmReq => self.handle_confirm_req(header).await?,
-                // MessageType::ConfirmAck => todo!(),
+                MessageType::ConfirmAck => self.handle_confirm_ack(header).await?,
                 // MessageType::BulkPull => todo!(),
                 // MessageType::BulkPush => todo!(),
                 // MessageType::FrontierReq => todo!(),
@@ -164,6 +176,14 @@ impl Channel {
             let signature = response.signature;
 
             let cookie = &self.state.cookie_for_socket_addr(&self.peer_addr).await?;
+            if cookie.is_none() {
+                warn!(
+                    "Peer {:?} has no cookie. Can't verify handshake.",
+                    self.peer_addr
+                );
+                return Ok(());
+            }
+            let cookie = cookie.as_ref().unwrap();
 
             if !public.verify(&cookie.as_bytes(), &signature) {
                 return Err(anyhow!("Invalid signature in node_id_handshake response"));
@@ -175,12 +195,25 @@ impl Channel {
 
     #[instrument(skip(self, header))]
     async fn handle_confirm_req(&mut self, header: Header) -> anyhow::Result<()> {
-        let hash_pair_count = header.ext().item_count();
         let data = self.recv::<ConfirmReq>(Some(&header)).await?;
         trace!("Pairs: {:?}", &data);
 
         info!("(TODO) confirm_req");
 
+        Ok(())
+    }
+
+    #[instrument(skip(self, header))]
+    async fn handle_confirm_ack(&mut self, header: Header) -> anyhow::Result<()> {
+        let data = self.recv::<ConfirmAck>(Some(&header)).await?;
+        info!("(TODO) confirm_req");
+        Ok(())
+    }
+
+    #[instrument(skip(self))]
+    async fn send_telemetry_req(&mut self) -> anyhow::Result<()> {
+        self.send_header(MessageType::TelemetryReq, Extensions::new())
+            .await?;
         Ok(())
     }
 }

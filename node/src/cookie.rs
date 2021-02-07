@@ -27,7 +27,7 @@ impl Cookie {
 impl std::fmt::Debug for Cookie {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "Cookie(")?;
-        hex_formatter(f, self.0.as_ref());
+        hex_formatter(f, self.0.as_ref())?;
         write!(f, ")")?;
         Ok(())
     }
@@ -45,7 +45,7 @@ impl Wire for Cookie {
         Ok(Cookie::try_from(data)?)
     }
 
-    fn len() -> usize {
+    fn len(header: Option<&Header>) -> usize {
         Cookie::LEN
     }
 }

@@ -143,7 +143,7 @@ impl Wire for Header {
         Ok(Header::new(network, message_type, ext))
     }
 
-    fn len() -> usize {
+    fn len(header: Option<&Header>) -> usize {
         Header::LEN
     }
 }
@@ -284,7 +284,7 @@ impl Extensions {
         self.bits()[Self::RESPONSE]
     }
 
-    pub fn item_count(&self) -> u8 {
+    pub fn item_count(&self) -> usize {
         self.bits()[Self::ITEM_COUNT..Self::ITEM_COUNT + Self::ITEM_COUNT_BITS].load_be()
     }
 
@@ -378,7 +378,9 @@ mod tests {
     fn bad_network() {
         let state = State::new(Network::Test);
         let s = vec![0x52, 0x43, 18, 18, 18, 2, 3, 0];
-        assert_contains_err(Header::deserialize(None, &s), "Network mismatch");
+        let header = Header::deserialize(None, &s).unwrap();
+        let result = header.validate(&state);
+        assert_contains_err(result, "Network mismatch");
     }
 
     #[test]
@@ -401,7 +403,7 @@ mod tests {
         for (b1, b2, expected) in fixtures {
             dbg!(b1, b2, expected);
             let ext = Extensions::try_from([*b1, *b2].as_ref()).unwrap();
-            assert_eq!(ext.item_count(), *expected);
+            assert_eq!(ext.item_count() as u8, *expected);
         }
     }
 }

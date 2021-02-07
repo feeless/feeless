@@ -56,7 +56,7 @@ impl Wire for Peer {
         Ok(Peer::try_from(data)?)
     }
 
-    fn len() -> usize {
+    fn len(header: Option<&Header>) -> usize {
         Peer::LEN
     }
 }

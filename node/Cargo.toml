@@ -14,3 +14,4 @@ rand = "0.8.3"
 serde = { version = "*", features = ["derive"] }
 tracing = "0.1"
 tracing-subscriber = "0.2"
+sled = "*"

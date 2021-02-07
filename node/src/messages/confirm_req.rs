@@ -56,7 +56,7 @@ impl Wire for ConfirmReq {
         }
     }
 
-    fn len() -> usize {
+    fn len(header: Option<&Header>) -> usize {
         BlockHash::LEN * 2
     }
 }

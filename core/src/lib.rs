@@ -1,6 +1,7 @@
 #![forbid(unsafe_code)]
 
 mod address;
+mod block;
 mod block_hash;
 mod encoding;
 mod private;
@@ -11,6 +12,7 @@ mod signature;
 
 pub use address::Address;
 use anyhow::anyhow;
+pub use block::Block;
 pub use block_hash::BlockHash;
 pub use encoding::{hex_formatter, to_hex};
 pub use private::Private;
