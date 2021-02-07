@@ -1,7 +1,7 @@
 use crate::channel::Channel;
 use crate::cookie::Cookie;
 use crate::header::Header;
-use crate::state::State;
+use crate::state::SledState;
 use crate::wire::Wire;
 use feeless::{Public, Signature};
 use std::convert::TryFrom;

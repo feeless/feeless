@@ -1,5 +1,6 @@
 #![forbid(unsafe_code)]
 
+mod bytes;
 mod channel;
 mod cookie;
 mod header;
@@ -9,7 +10,7 @@ mod state;
 mod wire;
 
 use crate::header::Network;
-use crate::state::State;
+use crate::state::SledState;
 
 use channel::Channel;
 use tokio::net::TcpStream;
@@ -17,8 +18,7 @@ use tokio::net::TcpStream;
 #[tokio::main]
 async fn main() {
     tracing_subscriber::fmt::init();
-
-    let state = State::new(Network::Live);
+    let state = Box::new(SledState::new(Network::Live));
 
     let state_clone = state.clone();
     let handle = tokio::spawn(async {

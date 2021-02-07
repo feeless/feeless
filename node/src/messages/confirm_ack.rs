@@ -1,33 +1,11 @@
-use crate::header::{BlockType, Header};
-use crate::state::State;
-use crate::wire::Wire;
-use feeless::{expect_len, Address, Block, BlockHash, Public, Signature};
 use std::convert::TryFrom;
 
-pub struct Bytes<'a> {
-    bytes: &'a [u8],
-    offset: usize,
-}
+use feeless::{expect_len, Address, Block, BlockHash, Public, Signature};
 
-impl<'a> Bytes<'a> {
-    pub fn new(bytes: &'a [u8]) -> Self {
-        Self { bytes, offset: 0 }
-    }
-
-    // TODO: Does this need to be safer?
-    //       The offsets given are for already known sizes.
-    pub fn slice(&mut self, size: usize) -> &[u8] {
-        let bytes = &self.bytes[self.offset..self.offset + size];
-        self.offset += size;
-        bytes
-    }
-
-    pub fn u8(&mut self) -> u8 {
-        let b = self.bytes[self.offset];
-        self.offset += 1;
-        b
-    }
-}
+use crate::bytes::Bytes;
+use crate::header::{BlockType, Header};
+use crate::state::SledState;
+use crate::wire::Wire;
 
 #[derive(Debug)]
 pub struct ConfirmAck {
@@ -53,13 +31,12 @@ impl Wire for ConfirmAck {
         let header = header.unwrap();
 
         let mut data = Bytes::new(data);
-
-        let account = Public::try_from(data.slice(Public::LEN))?;
-        let signature = Signature::try_from(data.slice(Signature::LEN))?;
+        let account = Public::try_from(data.slice(Public::LEN)?)?;
+        let signature = Signature::try_from(data.slice(Signature::LEN)?)?;
         let sequence = data.u8();
         let mut block_hashes = vec![];
         for _ in 0..header.ext().item_count() {
-            block_hashes.push(BlockHash::try_from(data.slice(BlockHash::LEN))?);
+            block_hashes.push(BlockHash::try_from(data.slice(BlockHash::LEN)?)?);
         }
         // let block = Block;
 

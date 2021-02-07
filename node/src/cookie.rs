@@ -1,4 +1,4 @@
-use crate::state::State;
+use crate::state::SledState;
 use crate::wire::Wire;
 use rand::RngCore;
 

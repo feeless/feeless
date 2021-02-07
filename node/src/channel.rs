@@ -5,7 +5,9 @@ use crate::messages::confirm_req::ConfirmReq;
 use crate::messages::node_id_handshake::{NodeIdHandshakeQuery, NodeIdHandshakeResponse};
 use crate::peer::Peer;
 use crate::state::State;
+use crate::state::{BoxedState, SledState};
 use crate::wire::Wire;
+
 use anyhow::anyhow;
 use feeless::{expect_len, to_hex, Seed};
 use std::fmt::Debug;
@@ -17,7 +19,7 @@ use tracing::{debug, info, instrument, trace, warn};
 /// A connection to a single peer.
 #[derive(Debug)]
 pub struct Channel {
-    pub state: State,
+    pub state: BoxedState,
 
     // TODO: Both of these into a Communication trait, for ease of testing. e.g.:
     //  * async fn Comm::send() -> Result<()>
@@ -38,7 +40,7 @@ pub struct Channel {
 }
 
 impl Channel {
-    pub fn new(state: State, stream: TcpStream) -> Self {
+    pub fn new(state: BoxedState, stream: TcpStream) -> Self {
         let network = state.network();
         // TODO: Remove unwrap
         let peer_addr = stream.peer_addr().unwrap();

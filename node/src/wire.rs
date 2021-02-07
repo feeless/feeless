@@ -1,5 +1,5 @@
 use crate::header::Header;
-use crate::state::State;
+use crate::state::SledState;
 
 pub trait Wire {
     fn serialize(&self) -> Vec<u8>;

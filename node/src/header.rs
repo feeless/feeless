@@ -1,4 +1,4 @@
-use crate::state::State;
+use crate::state::{BoxedState, SledState, State};
 use crate::wire::Wire;
 use anyhow::anyhow;
 use bitvec::prelude::*;
@@ -61,7 +61,7 @@ pub struct Header {
 }
 
 impl Header {
-    pub fn validate(&self, state: &State) -> anyhow::Result<()> {
+    pub fn validate(&self, state: &BoxedState) -> anyhow::Result<()> {
         if self.network != state.network() {
             return Err(anyhow!(
                 "Network mismatch: They're on {:?}. We're on {:?}",
@@ -336,11 +336,12 @@ impl TryFrom<&[u8]> for Extensions {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::state::TestState;
     use std::fmt::Debug;
 
     #[test]
     fn serialize() {
-        let state = State::new(Network::Live);
+        let state = SledState::new(Network::Live);
 
         let ext = *Extensions::new().query().response();
         let h1 = Header::new(state.network(), MessageType::Keepalive, ext);
@@ -359,7 +360,7 @@ mod tests {
 
     #[test]
     fn bad_length() {
-        let state = State::new(Network::Live);
+        let state: BoxedState = Box::new(TestState::new(Network::Live));
         let err = "Header is the wrong length";
         let s = vec![];
         assert_contains_err(Header::deserialize(None, &s), err);
@@ -369,14 +370,14 @@ mod tests {
 
     #[test]
     fn bad_magic() {
-        let state = State::new(Network::Live);
+        let state: BoxedState = Box::new(TestState::new(Network::Live));
         let s = vec![0xFF, 0x43, 18, 18, 18, 2, 3, 0];
         assert_contains_err(Header::deserialize(None, &s), "magic number");
     }
 
     #[test]
     fn bad_network() {
-        let state = State::new(Network::Test);
+        let state: BoxedState = Box::new(TestState::new(Network::Test));
         let s = vec![0x52, 0x43, 18, 18, 18, 2, 3, 0];
         let header = Header::deserialize(None, &s).unwrap();
         let result = header.validate(&state);
@@ -385,7 +386,7 @@ mod tests {
 
     #[test]
     fn bad_message_type() {
-        let state = State::new(Network::Live);
+        let state: BoxedState = Box::new(TestState::new(Network::Live));
         let s = vec![0x52, 0x43, 18, 18, 18, 100, 3, 0];
         assert_contains_err(Header::deserialize(None, &s), "message type");
     }

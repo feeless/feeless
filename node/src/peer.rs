@@ -1,5 +1,5 @@
 use crate::header::Header;
-use crate::state::State;
+use crate::state::SledState;
 use crate::wire::Wire;
 use feeless::expect_len;
 use std::convert::TryFrom;
@@ -18,25 +18,11 @@ impl Peer {
     }
 }
 
-impl TryFrom<&str> for Peer {
-    type Error = anyhow::Error;
+impl FromStr for Peer {
+    type Err = anyhow::Error;
 
-    fn try_from(value: &str) -> Result<Self, Self::Error> {
-        Ok(Peer(SocketAddrV6::from_str(value)?))
-    }
-}
-
-impl TryFrom<&[u8]> for Peer {
-    type Error = anyhow::Error;
-
-    fn try_from(value: &[u8]) -> Result<Self, Self::Error> {
-        expect_len(value.len(), Self::LEN, "Peer")?;
-
-        let mut addr: [u8; Self::ADDR_LEN] = [0u8; Self::ADDR_LEN];
-        addr.copy_from_slice(&value[0..Self::ADDR_LEN]);
-        let port: u16 = value[Self::ADDR_LEN] as u16 + value[Self::ADDR_LEN + 1] as u16 * 256;
-
-        Ok(Self(SocketAddrV6::new(Ipv6Addr::from(addr), port, 0, 0)))
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        Ok(Peer(SocketAddrV6::from_str(s)?))
     }
 }
 
@@ -49,14 +35,21 @@ impl Wire for Peer {
         v
     }
 
-    fn deserialize(_: Option<&Header>, data: &[u8]) -> anyhow::Result<Self>
+    fn deserialize(header: Option<&Header>, data: &[u8]) -> anyhow::Result<Self>
     where
         Self: Sized,
     {
-        Ok(Peer::try_from(data)?)
+        debug_assert!(header.is_none());
+        expect_len(data.len(), Self::len(None), "Peer")?;
+
+        let mut addr: [u8; Self::ADDR_LEN] = [0u8; Self::ADDR_LEN];
+        addr.copy_from_slice(&data[0..Self::ADDR_LEN]);
+        let port: u16 = data[Self::ADDR_LEN] as u16 + data[Self::ADDR_LEN + 1] as u16 * 256;
+
+        Ok(Self(SocketAddrV6::new(Ipv6Addr::from(addr), port, 0, 0)))
     }
 
-    fn len(header: Option<&Header>) -> usize {
+    fn len(_: Option<&Header>) -> usize {
         Peer::LEN
     }
 }
@@ -68,9 +61,9 @@ mod tests {
     #[test]
     fn serialize() {
         let addr = "[::ffff:255.254.253.252]:7075";
-        let peer = Peer::try_from(addr).unwrap();
+        let peer = Peer::from_str(addr).unwrap();
         let v = peer.serialize();
-        let peer2 = Peer::try_from(v.as_slice()).unwrap();
+        let peer2 = Peer::deserialize(None, v.as_slice()).unwrap();
         let addr2 = peer2.socket_addr_v6().to_string();
         assert_eq!(addr, addr2);
     }
