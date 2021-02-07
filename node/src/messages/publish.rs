@@ -1,10 +1,11 @@
 use crate::header::Header;
+use crate::wire::state_block::WireStateBlock;
 use crate::wire::Wire;
 use feeless::StateBlock;
 use tracing::warn;
 
 #[derive(Debug)]
-struct Publish(StateBlock);
+pub struct Publish(WireStateBlock);
 
 impl Wire for Publish {
     fn serialize(&self) -> Vec<u8> {
@@ -15,8 +16,7 @@ impl Wire for Publish {
     where
         Self: Sized,
     {
-        warn!("TODO deserialize publish");
-        Ok(Self {})
+        Ok(Self(WireStateBlock::deserialize(None, data)?))
     }
 
     fn len(_: Option<&Header>) -> Result<usize, anyhow::Error> {

@@ -141,7 +141,9 @@ impl Channel {
 
     #[instrument(skip(self, header))]
     async fn recv_publish(&mut self, header: Header) -> anyhow::Result<()> {
-        self.recv::<Publish>(Some(&header)).await?;
+        let publish = self.recv::<Publish>(Some(&header)).await?;
+        dbg!(publish);
+        // todo!();
         Ok(())
     }
 

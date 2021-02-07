@@ -1,66 +1,61 @@
-use bigdecimal::BigDecimal;
-use bigdecimal::ToPrimitive;
+use crate::expect_len;
+use anyhow::anyhow;
+use bigdecimal::{BigDecimal, FromPrimitive};
 use serde::{Deserialize, Serialize};
+use std::convert::{TryFrom, TryInto};
 use std::fmt::Display;
 use std::str::FromStr;
 
-const RAW_TO_NANO: &str = "1_000_000_000_000_000_000_000_000";
-const RAW_TO_MNANO: &str = "1_000_000_000_000_000_000_000_000_000_000";
+const RAW_TO_MNANO: u128 = 1_000_000_000_000_000_000_000_000_000_000;
+const RAW_TO_NANO: u128 = 1_000_000_000_000_000_000_000_000;
 
 #[derive(Debug, Eq, PartialEq, Serialize, Deserialize)]
-pub struct Raw(BigDecimal);
+pub struct Raw(u128);
 
 impl Raw {
+    pub const LEN: usize = 16;
+
     pub fn zero() -> Self {
-        Self(BigDecimal::from(0))
+        Self(0)
     }
 
-    pub fn from_raw<T: Into<BigDecimal>>(v: T) -> Self {
+    pub fn from_raw<T: Into<u128>>(v: T) -> Self {
         Self(v.into())
     }
 
-    pub fn from_nano<T: Into<BigDecimal>>(v: T) -> Self {
-        Self(v.into() * BigDecimal::from_str(RAW_TO_NANO).unwrap())
+    pub fn from_nano<T: Into<u128>>(v: T) -> Self {
+        Self(v.into() * RAW_TO_NANO)
     }
 
-    pub fn from_mnano<T: Into<BigDecimal>>(v: T) -> Self {
-        Self(v.into() * BigDecimal::from_str(RAW_TO_MNANO).unwrap())
+    pub fn from_mnano<T: Into<u128>>(v: T) -> Self {
+        Self(v.into() * RAW_TO_MNANO)
     }
 
     pub fn from_raw_str(v: &str) -> anyhow::Result<Self> {
-        Ok(Self(BigDecimal::from_str(v)?))
-    }
-
-    pub fn from_nano_str(v: &str) -> anyhow::Result<Self> {
-        Ok(Self(
-            BigDecimal::from_str(v)? * BigDecimal::from_str(RAW_TO_NANO).unwrap(),
-        ))
-    }
-
-    pub fn from_mnano_str(v: &str) -> anyhow::Result<Self> {
-        Ok(Self(
-            BigDecimal::from_str(v)? * BigDecimal::from_str(RAW_TO_MNANO).unwrap(),
-        ))
+        Ok(Self(u128::from_str(v)?))
     }
 
     pub fn to_raw_string(&self) -> String {
         self.0.to_string()
     }
 
-    pub fn to_raw_bigdecimal(&self) -> BigDecimal {
-        self.0.clone()
+    pub fn to_raw_u128(&self) -> u128 {
+        self.0
+    }
+
+    pub fn to_bigdecimal(&self) -> BigDecimal {
+        // TODO: Don't know why from_u128() doesn't work.
+        BigDecimal::from_str(&self.0.to_string()).unwrap()
     }
 
     pub fn to_nano_bigdecimal(&self) -> BigDecimal {
-        self.0.clone() / BigDecimal::from_str(RAW_TO_NANO).unwrap()
+        // TODO: Don't know why from_u128() doesn't work.
+        self.to_bigdecimal() / BigDecimal::from_str(&RAW_TO_NANO.to_string()).unwrap()
     }
 
     pub fn to_mnano_bigdecimal(&self) -> BigDecimal {
-        self.0.clone() / BigDecimal::from_str(RAW_TO_MNANO).unwrap()
-    }
-
-    pub fn try_to_mnano_i64(&self) -> Option<i64> {
-        self.to_mnano_bigdecimal().to_i64()
+        // TODO: Don't know why from_u128() doesn't work.
+        self.to_bigdecimal() / BigDecimal::from_str(&RAW_TO_MNANO.to_string()).unwrap()
     }
 
     pub fn to_nano_string(&self) -> String {
@@ -78,24 +73,51 @@ impl Display for Raw {
     }
 }
 
+impl From<u128> for Raw {
+    fn from(v: u128) -> Self {
+        Raw(v)
+    }
+}
+
+impl TryFrom<f64> for Raw {
+    type Error = anyhow::Error;
+
+    fn try_from(value: f64) -> Result<Self, Self::Error> {
+        unimplemented!()
+    }
+}
+
+impl TryFrom<&[u8]> for Raw {
+    type Error = anyhow::Error;
+
+    fn try_from(value: &[u8]) -> Result<Self, Self::Error> {
+        expect_len(value.len(), Self::LEN, "Raw")?;
+        let mut b = [0u8; 16];
+        b.copy_from_slice(value);
+        let amount = u128::from_be_bytes(b);
+        Ok(Raw(amount))
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::convert::TryFrom;
 
     #[test]
     fn display() {
         assert_eq!(Raw::zero().to_string(), "0");
         assert_eq!(
-            Raw::from_raw_str("9876543210.0123456789")
+            Raw::from_raw_str("98765432100123456789")
                 .unwrap()
                 .to_string(),
-            "9876543210.0123456789"
+            "98765432100123456789"
         );
     }
 
     #[test]
     fn convert_from_raw() {
-        let one_raw = Raw::from_raw(1);
+        let one_raw = Raw::from(1u128);
         assert_eq!(one_raw.to_raw_string(), "1");
         assert_eq!(one_raw.to_nano_string(), "0.000000000000000000000001");
         assert_eq!(
@@ -104,11 +126,11 @@ mod tests {
         );
 
         assert_eq!(
-            Raw::from_nano(1),
+            Raw::from_nano(1u32),
             Raw::from_raw_str("1000000000000000000000000").unwrap()
         );
         assert_eq!(
-            Raw::from_mnano(1),
+            Raw::from_mnano(1u128),
             Raw::from_raw_str("1000000000000000000000000000000").unwrap()
         );
 
@@ -130,11 +152,11 @@ mod tests {
     #[test]
     fn convert_to_raw() {
         assert_eq!(
-            Raw::from_nano_str("1").unwrap().to_raw_string(),
+            Raw::from_nano(1u128).to_raw_string(),
             "1000000000000000000000000"
         );
         assert_eq!(
-            Raw::from_mnano_str("1").unwrap().to_raw_string(),
+            Raw::from_mnano(1u128).to_raw_string(),
             "1000000000000000000000000000000"
         );
     }
@@ -142,8 +164,8 @@ mod tests {
     #[test]
     fn eq() {
         assert_eq!(
-            Raw::from_mnano_str("1").unwrap(),
-            Raw::from_raw_str("1000000000000000000000000000000").unwrap()
+            Raw::from_mnano(1u128),
+            Raw::from_raw(1000000000000000000000000000000u128)
         );
     }
 }

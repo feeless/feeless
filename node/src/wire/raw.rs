@@ -7,6 +7,7 @@ struct WireRaw(Raw);
 impl Wire for Raw {
     fn serialize(&self) -> Vec<u8> {
         // self.0
+        todo!()
     }
 
     fn deserialize(_: Option<&Header>, data: &[u8]) -> Result<Self, anyhow::Error>

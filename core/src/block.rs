@@ -47,4 +47,24 @@ pub struct StateBlock {
 
 impl StateBlock {
     pub const LEN: usize = 216;
+
+    pub fn new(
+        account: Public,
+        previous: BlockHash,
+        representative: Public,
+        balance: Raw,
+        link: Public,
+        signature: Signature,
+        work: Work,
+    ) -> Self {
+        Self {
+            account,
+            previous,
+            representative,
+            balance,
+            link,
+            signature,
+            work,
+        }
+    }
 }
