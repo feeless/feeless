@@ -81,25 +81,3 @@ impl Wire for ConfirmAck {
         }
     }
 }
-
-#[derive(Debug)]
-pub struct RootHashPair {
-    pub hash: BlockHash,
-    pub root: BlockHash,
-}
-
-impl RootHashPair {
-    const LEN: usize = BlockHash::LEN * 2;
-}
-
-impl TryFrom<&[u8]> for RootHashPair {
-    type Error = anyhow::Error;
-
-    fn try_from(value: &[u8]) -> Result<Self, Self::Error> {
-        expect_len(value.len(), Self::LEN, "Root hash pair")?;
-        Ok(Self {
-            hash: BlockHash::try_from(&value[0..BlockHash::LEN])?,
-            root: BlockHash::try_from(&value[BlockHash::LEN..])?,
-        })
-    }
-}

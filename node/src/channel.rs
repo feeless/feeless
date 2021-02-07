@@ -9,6 +9,7 @@ use crate::state::State;
 use crate::state::{BoxedState, SledState};
 use crate::wire::Wire;
 
+use crate::messages::publish::Publish;
 use anyhow::anyhow;
 use feeless::{expect_len, to_hex, Seed};
 use std::fmt::Debug;
@@ -113,8 +114,8 @@ impl Channel {
             // debug!("Header: {:?}", &header);
 
             match header.message_type() {
-                MessageType::Keepalive => self.handle_keepalive(header).await?,
-                // MessageType::Publish => todo!(),
+                MessageType::Keepalive => self.recv_keepalive(header).await?,
+                MessageType::Publish => self.recv_publish(header).await?,
                 MessageType::ConfirmReq => self.recv_confirm_req(header).await?,
                 MessageType::ConfirmAck => self.recv_confirm_ack(header).await?,
                 // MessageType::BulkPull => todo!(),
@@ -130,11 +131,17 @@ impl Channel {
     }
 
     #[instrument(skip(self, header))]
-    async fn handle_keepalive(&mut self, header: Header) -> anyhow::Result<()> {
+    async fn recv_keepalive(&mut self, header: Header) -> anyhow::Result<()> {
         for _ in 0..8 {
             let peer = self.recv::<Peer>(Some(&header)).await?;
             debug!("Keepalive peer: {:?}", peer);
         }
+        Ok(())
+    }
+
+    #[instrument(skip(self, header))]
+    async fn recv_publish(&mut self, header: Header) -> anyhow::Result<()> {
+        self.recv::<Publish>(Some(&header)).await?;
         Ok(())
     }
 
@@ -200,21 +207,21 @@ impl Channel {
     async fn recv_confirm_req(&mut self, header: Header) -> anyhow::Result<()> {
         let data = self.recv::<ConfirmReq>(Some(&header)).await?;
         trace!("Pairs: {:?}", &data);
-        warn!("(TODO) confirm_req");
+        warn!("TODO confirm_req");
         Ok(())
     }
 
     #[instrument(skip(self, header))]
     async fn recv_confirm_ack(&mut self, header: Header) -> anyhow::Result<()> {
         let data = self.recv::<ConfirmAck>(Some(&header)).await?;
-        warn!("(TODO) confirm_ack");
+        warn!("TODO confirm_ack");
         Ok(())
     }
 
     #[instrument(skip(self))]
     async fn recv_telemetry_req(&mut self, header: Header) -> anyhow::Result<()> {
         self.recv::<TelemetryReq>(Some(&header)).await?;
-        warn!("(TODO) telemetry_req");
+        warn!("TODO telemetry_req");
         Ok(())
     }
     #[instrument(skip(self))]
