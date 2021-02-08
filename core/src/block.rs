@@ -92,8 +92,6 @@ impl StateBlock {
         v.extend_from_slice(self.representative.as_bytes());
         v.extend_from_slice(self.balance.to_vec().as_slice());
         v.extend_from_slice(self.link.as_bytes());
-        // v.extend_from_slice(self.signature.as_bytes());
-        // v.extend_from_slice(self.work.as_bytes());
         dbg!(to_hex(&v));
         Ok(BlockHash::try_from(blake2b(BlockHash::LEN, &v).as_ref())?)
     }
@@ -138,6 +136,7 @@ mod tests {
             BlockHash::from_hex("0399B19B022D260F3DDFBA26D0306D423F1890D3AE06136FAB16802D1F2B87A7")
                 .unwrap(),
         );
+        // Signature and work aren't hashed, but left them as the real data anyway.
         let signature = Signature::from_hex("BCF9F123138355AE9E741912D319FF48E5FCCA39D9E5DD74411D32C69B1C7501A0BF001C45D4F68CB561B902A42711E6166B9018E76C50CC868EF2E32B78F200").unwrap();
         let work = Work::from_hex("d4757052401b9e08").unwrap();
 

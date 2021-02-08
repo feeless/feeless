@@ -206,6 +206,7 @@ dependencies = [
 [[package]]
 name = "ed25519-dalek"
 version = "1.0.1"
+source = "git+https://github.com/gak/ed25519-dalek.git?branch=blake2b#2225297d4f7d55c6f4ca314ad0358486b00820c6"
 dependencies = [
  "blake2",
  "curve25519-dalek",
@@ -234,7 +235,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "feeless_node"
+name = "feeless-node"
 version = "0.1.0"
 dependencies = [
  "anyhow",

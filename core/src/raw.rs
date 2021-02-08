@@ -1,5 +1,4 @@
 use crate::expect_len;
-use anyhow::anyhow;
 use bigdecimal::{BigDecimal, FromPrimitive};
 use serde::{Deserialize, Serialize};
 use std::cmp::Ordering;

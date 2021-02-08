@@ -1,5 +1,5 @@
 [package]
-name = "feeless_node"
+name = "feeless-node"
 version = "0.1.0"
 authors = ["gak <gak@gak0.com>"]
 edition = "2018"

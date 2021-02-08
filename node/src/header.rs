@@ -341,7 +341,7 @@ mod tests {
 
     #[test]
     fn serialize() {
-        let state = SledState::new(Network::Live);
+        let state = TestState::new(Network::Live);
 
         let ext = *Extensions::new().query().response();
         let h1 = Header::new(state.network(), MessageType::Keepalive, ext);
