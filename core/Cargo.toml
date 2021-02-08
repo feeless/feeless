@@ -16,5 +16,6 @@ bitvec = "0.20.1"
 regex = "1.4.3"
 rand = "*"
 
+ed25519-dalek = { version = "1.0.1", package = "ed25519-dalek-blake2-feeless" }
 #ed25519-dalek = { path = "../../ed25519-dalek" }
-ed25519-dalek = { git = "https://github.com/gak/ed25519-dalek.git", branch = "blake2b" }
+#ed25519-dalek = { git = "https://github.com/gak/ed25519-dalek.git", branch = "blake2b" }

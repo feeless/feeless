@@ -204,9 +204,10 @@ dependencies = [
 ]
 
 [[package]]
-name = "ed25519-dalek"
+name = "ed25519-dalek-blake2-feeless"
 version = "1.0.1"
-source = "git+https://github.com/gak/ed25519-dalek.git?branch=blake2b#2225297d4f7d55c6f4ca314ad0358486b00820c6"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "e7669f21c19267763527d701e801c02b89df11aacbf6e4ce96e3314587bd8d8d"
 dependencies = [
  "blake2",
  "curve25519-dalek",
@@ -226,7 +227,7 @@ dependencies = [
  "bitvec",
  "blake2",
  "bytes",
- "ed25519-dalek",
+ "ed25519-dalek-blake2-feeless",
  "hex",
  "rand 0.8.3",
  "regex",
