@@ -7,6 +7,10 @@ pub struct Signature([u8; Signature::LEN]);
 impl Signature {
     pub const LEN: usize = 64;
 
+    pub fn zero() -> Self {
+        Self([0u8; Signature::LEN])
+    }
+
     pub fn as_bytes(&self) -> &[u8] {
         &self.0
     }
@@ -34,7 +38,7 @@ impl TryFrom<&[u8]> for Signature {
             ));
         }
 
-        let mut s = Signature([0u8; Self::LEN]);
+        let mut s = Signature::zero();
         s.0.copy_from_slice(value);
         Ok(s)
     }

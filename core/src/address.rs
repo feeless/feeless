@@ -39,9 +39,11 @@ impl Address {
         let bits = encoding::decode_nano_base_32(&public_key_part)?;
         debug_assert_eq!(bits.len(), 8 * Public::LEN + Self::ENCODED_PADDED_BITS);
 
-        let bits: &BitVec<Msb0, u8> = &bits[Self::ENCODED_PADDED_BITS..].to_owned(); // Remove padding
-                                                                                     // The to_owned() here is necessary to ensure the vec is aligned half way through the byte.
-                                                                                     // Otherwise it will essentially ignore the [ENCODED_PADDED_BITS..] offset.
+        // Remove padding
+        // The to_owned() here is necessary to ensure the vec is aligned half way through the byte.
+        // Otherwise it will essentially ignore the [ENCODED_PADDED_BITS..] offset.
+        let bits: &BitVec<Msb0, u8> = &bits[Self::ENCODED_PADDED_BITS..].to_owned();
+
         let public_key_bytes: Vec<u8> = bits.to_owned().into_vec();
         debug_assert_eq!(public_key_bytes.len(), Public::LEN);
 

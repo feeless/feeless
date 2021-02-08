@@ -13,7 +13,7 @@ mod work;
 
 pub use address::Address;
 use anyhow::anyhow;
-pub use block::StateBlock;
+pub use block::{Link, StateBlock};
 pub use block_hash::BlockHash;
 pub use encoding::{hex_formatter, to_hex};
 pub use private::Private;

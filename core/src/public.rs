@@ -1,11 +1,11 @@
 use crate::encoding::hex_formatter;
-use crate::{encoding, expect_len, Address, Signature};
+use crate::{encoding, expect_len, to_hex, Address, Signature};
 use bitvec::prelude::*;
-use ed25519_dalek::{PublicKey, Verifier};
+use ed25519_dalek::Verifier;
 use std::convert::TryFrom;
 use std::iter::FromIterator;
 
-#[derive(PartialEq)]
+#[derive(Clone, PartialEq)]
 pub struct Public(ed25519_dalek::PublicKey);
 
 impl Public {
@@ -13,8 +13,18 @@ impl Public {
 
     const ADDRESS_CHECKSUM_LEN: usize = 5;
 
+    pub fn from_hex(s: &str) -> anyhow::Result<Self> {
+        Ok(Self(ed25519_dalek::PublicKey::from_bytes(
+            hex::decode(s.as_bytes())?.as_slice(),
+        )?))
+    }
+
     pub fn as_bytes(&self) -> &[u8] {
         self.0.as_bytes()
+    }
+
+    pub fn as_hex(&self) -> String {
+        to_hex(self.0.as_ref())
     }
 
     pub fn to_address(&self) -> Address {
@@ -54,7 +64,7 @@ impl TryFrom<&[u8]> for Public {
 }
 
 impl From<ed25519_dalek::PublicKey> for Public {
-    fn from(v: PublicKey) -> Self {
+    fn from(v: ed25519_dalek::PublicKey) -> Self {
         Self(v)
     }
 }
@@ -73,6 +83,7 @@ impl std::fmt::Display for Public {
 
 #[cfg(test)]
 mod tests {
+    use super::Public;
     use crate::Private;
     use std::convert::TryFrom;
 
@@ -90,5 +101,11 @@ mod tests {
             public.to_string(),
             "19D3D919475DEED4696B5D13018151D1AF88B2BD3BCFF048B45031C1F36D1858"
         )
+    }
+
+    #[test]
+    fn hex() {
+        let s = "19D3D919475DEED4696B5D13018151D1AF88B2BD3BCFF048B45031C1F36D1858";
+        assert_eq!(s, &Public::from_hex(&s).unwrap().as_hex());
     }
 }

@@ -2,6 +2,7 @@ use crate::expect_len;
 use anyhow::anyhow;
 use bigdecimal::{BigDecimal, FromPrimitive};
 use serde::{Deserialize, Serialize};
+use std::cmp::Ordering;
 use std::convert::{TryFrom, TryInto};
 use std::fmt::Display;
 use std::str::FromStr;
@@ -79,14 +80,6 @@ impl From<u128> for Raw {
     }
 }
 
-impl TryFrom<f64> for Raw {
-    type Error = anyhow::Error;
-
-    fn try_from(value: f64) -> Result<Self, Self::Error> {
-        unimplemented!()
-    }
-}
-
 impl TryFrom<&[u8]> for Raw {
     type Error = anyhow::Error;
 
@@ -96,6 +89,60 @@ impl TryFrom<&[u8]> for Raw {
         b.copy_from_slice(value);
         let amount = u128::from_be_bytes(b);
         Ok(Raw(amount))
+    }
+}
+
+impl PartialOrd for Raw {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        self.0.partial_cmp(&other.0)
+    }
+
+    fn lt(&self, other: &Self) -> bool {
+        self.0.lt(&other.0)
+    }
+
+    fn le(&self, other: &Self) -> bool {
+        self.0.le(&other.0)
+    }
+
+    fn gt(&self, other: &Self) -> bool {
+        self.0.gt(&other.0)
+    }
+
+    fn ge(&self, other: &Self) -> bool {
+        self.0.ge(&other.0)
+    }
+}
+
+impl PartialOrd<u128> for Raw {
+    fn partial_cmp(&self, other: &u128) -> Option<Ordering> {
+        self.0.partial_cmp(other)
+    }
+
+    fn lt(&self, other: &u128) -> bool {
+        self.0.lt(other)
+    }
+
+    fn le(&self, other: &u128) -> bool {
+        self.0.le(other)
+    }
+
+    fn gt(&self, other: &u128) -> bool {
+        self.0.gt(other)
+    }
+
+    fn ge(&self, other: &u128) -> bool {
+        self.0.ge(other)
+    }
+}
+
+impl PartialEq<u128> for Raw {
+    fn eq(&self, other: &u128) -> bool {
+        self.0.eq(other)
+    }
+
+    fn ne(&self, other: &u128) -> bool {
+        self.0.ne(other)
     }
 }
 
