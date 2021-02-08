@@ -10,13 +10,13 @@ description = "Nano (cryptocurrency) types and utilities, nano addresses, hashin
 anyhow = "1.0.38"
 bigdecimal = { version = "0.2.0", features = ["serde"] }
 tokio = "1.1.1"
-serde = { version = "*", features = ["derive"] }
+serde = { version = "1.0.123", features = ["derive"] }
 blake2 = "0.9.1"
 hex = "0.4.2"
-bytes = "1"
+bytes = "1.0.1"
 bitvec = "0.20.1"
 regex = "1.4.3"
-rand = "*"
+rand = "0.8.3"
 
 ed25519-dalek = { version = "1.0.1", package = "ed25519-dalek-blake2-feeless" }
 #ed25519-dalek = { path = "../../ed25519-dalek" }
