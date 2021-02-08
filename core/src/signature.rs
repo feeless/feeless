@@ -1,4 +1,5 @@
 use crate::encoding::hex_formatter;
+use crate::expect_len;
 use anyhow::anyhow;
 use std::convert::TryFrom;
 
@@ -9,6 +10,10 @@ impl Signature {
 
     pub fn zero() -> Self {
         Self([0u8; Signature::LEN])
+    }
+
+    pub fn from_hex(s: &str) -> anyhow::Result<Self> {
+        Ok(Signature::try_from(hex::decode(s.as_bytes())?.as_slice())?)
     }
 
     pub fn as_bytes(&self) -> &[u8] {
@@ -30,13 +35,7 @@ impl TryFrom<&[u8]> for Signature {
     type Error = anyhow::Error;
 
     fn try_from(value: &[u8]) -> Result<Self, Self::Error> {
-        if value.len() != Self::LEN {
-            return Err(anyhow!(
-                "Invalid length: {}, expecting: {}",
-                value.len(),
-                Self::LEN
-            ));
-        }
+        expect_len(value.len(), Self::LEN, "Signature")?;
 
         let mut s = Signature::zero();
         s.0.copy_from_slice(value);

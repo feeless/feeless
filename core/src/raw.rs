@@ -36,6 +36,10 @@ impl Raw {
         Ok(Self(u128::from_str(v)?))
     }
 
+    pub fn to_vec(&self) -> Vec<u8> {
+        self.0.to_be_bytes().to_vec()
+    }
+
     pub fn to_raw_string(&self) -> String {
         self.0.to_string()
     }
@@ -214,5 +218,13 @@ mod tests {
             Raw::from_mnano(1u128),
             Raw::from_raw(1000000000000000000000000000000u128)
         );
+    }
+
+    #[test]
+    fn serialize() {
+        let raw1 = Raw::from_mnano(1u128);
+        let bytes = raw1.to_vec();
+        let raw2 = Raw::try_from(bytes.as_slice()).unwrap();
+        assert_eq!(raw1, raw2);
     }
 }
