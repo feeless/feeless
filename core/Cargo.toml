@@ -5,6 +5,7 @@ authors = ["gak <gak@gak0.com>"]
 edition = "2018"
 license = "MIT/Apache-2.0"
 description = "Nano (cryptocurrency) types and utilities, nano addresses, hashing blocks, signing, etc."
+repository = "https://github.com/gak/feeless"
 
 [dependencies]
 anyhow = "1.0.38"
