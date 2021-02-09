@@ -1,4 +1,4 @@
-use crate::header::{BlockType, Header};
+use crate::wire::header::{BlockType, Header};
 
 use crate::wire::Wire;
 use feeless::{expect_len, BlockHash};

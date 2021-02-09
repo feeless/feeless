@@ -1,16 +1,16 @@
-use crate::cookie::Cookie;
-use crate::header::{Extensions, Header, MessageType};
 use crate::messages::confirm_ack::ConfirmAck;
 use crate::messages::confirm_req::ConfirmReq;
-use crate::messages::node_id_handshake::{NodeIdHandshakeQuery, NodeIdHandshakeResponse};
-use crate::messages::telemetry_req::TelemetryReq;
-use crate::peer::Peer;
+use crate::messages::empty::Empty;
+use crate::messages::handshake::{Handshake, HandshakeQuery, HandshakeResponse};
+use crate::messages::publish::Publish;
 use crate::state::BoxedState;
+use crate::wire::cookie::Cookie;
+use crate::wire::header::{Extensions, Header, MessageType};
+use crate::wire::peer::Peer;
 use crate::wire::Wire;
 
-use crate::messages::publish::Publish;
 use anyhow::anyhow;
-use feeless::{expect_len, to_hex, Seed};
+use feeless::{expect_len, to_hex, Public, Seed, Signature};
 use std::fmt::Debug;
 use std::net::SocketAddr;
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
@@ -49,7 +49,7 @@ impl Channel {
             state,
             stream,
             peer_addr,
-            header: Header::new(network, MessageType::NodeIdHandshake, Extensions::new()),
+            header: Header::new(network, MessageType::Handshake, Extensions::new()),
             buffer: Vec::with_capacity(1024),
         }
     }
@@ -111,7 +111,7 @@ impl Channel {
                 // MessageType::BulkPull => todo!(),
                 // MessageType::BulkPush => todo!(),
                 // MessageType::FrontierReq => todo!(),
-                MessageType::NodeIdHandshake => self.recv_node_id_handshake(header).await?,
+                MessageType::Handshake => self.recv_node_id_handshake(header).await?,
                 // MessageType::BulkPullAccount => todo!(),
                 MessageType::TelemetryReq => self.recv_telemetry_req(header).await?,
                 // MessageType::TelemetryAck => todo!(),
@@ -122,10 +122,6 @@ impl Channel {
 
     #[instrument(skip(self, header))]
     async fn recv_keepalive(&mut self, header: Header) -> anyhow::Result<()> {
-        for _ in 0..8 {
-            let peer = self.recv::<Peer>(Some(&header)).await?;
-            debug!("Keepalive peer: {:?}", peer);
-        }
         Ok(())
     }
 
@@ -139,14 +135,14 @@ impl Channel {
 
     #[instrument(skip(self))]
     async fn send_node_id_handshake(&mut self) -> anyhow::Result<()> {
-        self.send_header(MessageType::NodeIdHandshake, *Extensions::new().query())
+        self.send_header(MessageType::Handshake, *Extensions::new().query())
             .await?;
 
         let cookie = Cookie::random();
         self.state
             .set_cookie(self.peer_addr, cookie.clone())
             .await?;
-        let handshake_query = NodeIdHandshakeQuery::new(cookie);
+        let handshake_query = HandshakeQuery::new(cookie);
         self.send(&handshake_query).await?;
 
         Ok(())
@@ -154,8 +150,20 @@ impl Channel {
 
     #[instrument(skip(self, header))]
     async fn recv_node_id_handshake(&mut self, header: Header) -> anyhow::Result<()> {
+        let node_id_handshake = self.recv::<Handshake>(Some(&header)).await?;
+
+        enum ShouldRespond {
+            No,
+            Yes(Public, Signature),
+        }
+        let mut should_respond = ShouldRespond::No;
+
         if header.ext().is_query() {
-            let query = self.recv::<NodeIdHandshakeQuery>(Some(&header)).await?;
+            // This would probably be a programming error if it panicked.
+            let query = node_id_handshake
+                .query
+                .expect("query is None but is_query is True");
+
             // XXX: Hacky code here just to see if it works!
             // TODO: Move into state
             let seed = Seed::random();
@@ -164,16 +172,14 @@ impl Channel {
             let signature = private.sign(query.cookie().as_bytes())?;
             debug_assert!(public.verify(query.cookie().as_bytes(), &signature));
 
-            let mut header = self.header;
-            header.reset(MessageType::NodeIdHandshake, *Extensions::new().response());
-            self.send(&header).await?;
-
-            let response = NodeIdHandshakeResponse::new(public, signature);
-            self.send(&response).await?;
+            // Respond at the end because we mess with the header buffer.
+            should_respond = ShouldRespond::Yes(public, signature);
         }
 
         if header.ext().is_response() {
-            let response = self.recv::<NodeIdHandshakeResponse>(Some(&header)).await?;
+            let response = node_id_handshake
+                .response
+                .expect("response is None but is_response is True");
             let public = response.public;
             let signature = response.signature;
 
@@ -190,6 +196,15 @@ impl Channel {
             if !public.verify(&cookie.as_bytes(), &signature) {
                 return Err(anyhow!("Invalid signature in node_id_handshake response"));
             }
+        }
+
+        if let ShouldRespond::Yes(public, signature) = should_respond {
+            let mut header = self.header;
+            header.reset(MessageType::Handshake, *Extensions::new().response());
+            self.send(&header).await?;
+
+            let response = HandshakeResponse::new(public, signature);
+            self.send(&response).await?;
         }
 
         Ok(())
@@ -212,7 +227,7 @@ impl Channel {
 
     #[instrument(skip(self))]
     async fn recv_telemetry_req(&mut self, header: Header) -> anyhow::Result<()> {
-        self.recv::<TelemetryReq>(Some(&header)).await?;
+        self.recv::<Empty>(Some(&header)).await?;
         warn!("TODO telemetry_req");
         Ok(())
     }

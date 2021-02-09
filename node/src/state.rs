@@ -1,5 +1,5 @@
-use crate::cookie::Cookie;
-use crate::header::Network;
+use crate::wire::cookie::Cookie;
+use crate::wire::header::Network;
 
 use async_trait::async_trait;
 

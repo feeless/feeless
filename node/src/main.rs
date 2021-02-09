@@ -1,20 +1,22 @@
 #![forbid(unsafe_code)]
 
-mod bytes;
-mod channel;
-mod cookie;
-mod header;
-mod messages;
-mod peer;
-mod state;
-mod wire;
+use std::fs::File;
+use std::io::{BufRead, BufReader};
 
-use crate::header::Network;
-use crate::state::SledState;
-
-use channel::Channel;
 use clap::Clap;
 use tokio::net::TcpStream;
+
+use channel::Channel;
+use wire::header::Network;
+
+use crate::state::SledState;
+
+mod bytes;
+mod channel;
+mod dump;
+mod messages;
+mod state;
+mod wire;
 
 #[derive(Clap)]
 struct Opts {
@@ -45,7 +47,7 @@ async fn main() {
     let opts: Opts = Opts::parse();
     match opts.command {
         Command::Node(o) => node_with_single_peer(&o.address).await.unwrap(),
-        Command::Dump(o) => dump(&o.path).await.unwrap(),
+        Command::Dump(o) => dump::dump(&o.path).await.unwrap(),
     }
 }
 
@@ -63,10 +65,5 @@ async fn node_with_single_peer(address: &str) -> anyhow::Result<()> {
     println!("Waiting...");
     handle.await.unwrap();
     println!("Quitting...");
-    Ok(())
-}
-
-async fn dump(path: &str) -> anyhow::Result<()> {
-    dbg!(path);
     Ok(())
 }

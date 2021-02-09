@@ -1,7 +1,7 @@
 use crate::wire::Wire;
 use rand::RngCore;
 
-use crate::header::Header;
+use crate::wire::header::Header;
 use feeless::{expect_len, hex_formatter};
 use std::convert::TryFrom;
 

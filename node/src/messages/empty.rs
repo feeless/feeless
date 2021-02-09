@@ -1,10 +1,10 @@
-use crate::header::Header;
+use crate::wire::header::Header;
 use crate::wire::Wire;
 
 #[derive(Debug)]
-pub struct TelemetryReq;
+pub struct Empty;
 
-impl Wire for TelemetryReq {
+impl Wire for Empty {
     fn serialize(&self) -> Vec<u8> {
         vec![]
     }

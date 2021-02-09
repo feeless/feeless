@@ -288,11 +288,13 @@ dependencies = [
 name = "feeless-node"
 version = "0.1.0"
 dependencies = [
+ "ansi_term",
  "anyhow",
  "async-trait",
  "bitvec",
  "clap",
  "feeless",
+ "hex",
  "rand 0.8.3",
  "serde",
  "sled",

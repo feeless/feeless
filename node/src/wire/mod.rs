@@ -1,7 +1,10 @@
+use header::Header;
+
+pub mod cookie;
+pub mod header;
+pub mod peer;
 pub mod raw;
 pub mod state_block;
-
-use crate::header::Header;
 
 pub trait Wire {
     fn serialize(&self) -> Vec<u8>;

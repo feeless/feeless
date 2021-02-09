@@ -1,4 +1,4 @@
-use crate::header::Header;
+use crate::wire::header::Header;
 use crate::wire::state_block::WireStateBlock;
 use crate::wire::Wire;
 use feeless::StateBlock;

@@ -1,5 +1,5 @@
 use crate::bytes::Bytes;
-use crate::header::{BlockType, Header};
+use crate::wire::header::{BlockType, Header};
 use crate::wire::Wire;
 use anyhow::anyhow;
 use feeless::{BlockHash, Link, Public, Raw, Signature, StateBlock, Work};

@@ -3,7 +3,7 @@ use std::convert::TryFrom;
 use feeless::{BlockHash, Public, Signature, StateBlock};
 
 use crate::bytes::Bytes;
-use crate::header::{BlockType, Header};
+use crate::wire::header::{BlockType, Header};
 
 use crate::wire::Wire;
 

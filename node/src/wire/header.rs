@@ -74,6 +74,10 @@ impl Header {
 
         Ok(())
     }
+
+    pub fn to_short_string(&self) -> String {
+        format!("{:?} {:?}", self.message_type, self.ext)
+    }
 }
 
 impl Header {
@@ -219,7 +223,7 @@ pub enum MessageType {
 
     /// A NodeIdHandshake shares a cookie to other peers, which is then responded with
     /// the node giving out their public key and a signed message of the cookie.
-    NodeIdHandshake = 10,
+    Handshake = 10,
 
     BulkPullAccount = 11,
     TelemetryReq = 12,
@@ -239,7 +243,7 @@ impl TryFrom<u8> for MessageType {
             6 => BulkPull,
             7 => BulkPush,
             8 => FrontierReq,
-            10 => NodeIdHandshake,
+            10 => Handshake,
             11 => BulkPullAccount,
             12 => TelemetryReq,
             13 => TelemetryAck,
