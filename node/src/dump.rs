@@ -40,27 +40,28 @@ pub async fn dump(path: &str) -> anyhow::Result<()> {
 
         while !bytes.eof() {
             let header = Header::deserialize(None, bytes.slice(Header::LEN)?)?;
+            let h = Some(&header);
             let (direction_text, color) = match direction {
                 Direction::Send => (">>>", Green),
                 Direction::Recv => ("<<<", Yellow),
+            };
+
+            let p = match header.message_type() {
+                MessageType::Handshake => payload::<Handshake>(h, &mut bytes)?,
+                MessageType::ConfirmReq => payload::<ConfirmReq>(h, &mut bytes)?,
+                MessageType::ConfirmAck => payload::<ConfirmAck>(h, &mut bytes)?,
+                MessageType::Keepalive => payload::<Keepalive>(h, &mut bytes)?,
+                MessageType::TelemetryReq => payload::<Empty>(h, &mut bytes)?,
+                MessageType::Publish => payload::<Publish>(h, &mut bytes)?,
+                _ => todo!("{:?}", header),
             };
             println!(
                 "{} {}",
                 direction_text,
                 color.paint(header.to_short_string())
             );
-
-            let h = Some(&header);
-
-            match header.message_type() {
-                MessageType::Handshake => dump_payload::<Handshake>(h, &mut bytes)?,
-                MessageType::ConfirmReq => dump_payload::<ConfirmReq>(h, &mut bytes)?,
-                MessageType::ConfirmAck => dump_payload::<ConfirmAck>(h, &mut bytes)?,
-                MessageType::Keepalive => dump_payload::<Keepalive>(h, &mut bytes)?,
-                MessageType::TelemetryReq => dump_payload::<Empty>(h, &mut bytes)?,
-                MessageType::Publish => dump_payload::<Publish>(h, &mut bytes)?,
-                _ => todo!("{:?}", header),
-            };
+            let msg = format!("{:#?}", p.as_ref());
+            println!("{}", color.paint(msg));
         }
 
         direction.swap();
@@ -69,13 +70,12 @@ pub async fn dump(path: &str) -> anyhow::Result<()> {
     Ok(())
 }
 
-pub fn dump_payload<T: Wire + Debug>(
+pub fn payload<T: 'static + Wire>(
     header: Option<&Header>,
     bytes: &mut Bytes,
-) -> anyhow::Result<()> {
+) -> anyhow::Result<Box<dyn Wire>> {
     let len = T::len(header)?;
     let data = bytes.slice(len)?;
     let payload: T = T::deserialize(header, data)?;
-    println!("{:#?}", payload);
-    Ok(())
+    Ok(Box::new(payload))
 }

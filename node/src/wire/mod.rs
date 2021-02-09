@@ -1,4 +1,5 @@
 use header::Header;
+use std::fmt::Debug;
 
 pub mod cookie;
 pub mod header;
@@ -6,7 +7,7 @@ pub mod peer;
 pub mod raw;
 pub mod state_block;
 
-pub trait Wire {
+pub trait Wire: Debug {
     fn serialize(&self) -> Vec<u8>;
 
     /// Only when deserializing the header we don't have a header.
@@ -17,5 +18,7 @@ pub trait Wire {
         Self: Sized;
 
     /// The expected size of the incoming data.
-    fn len(header: Option<&Header>) -> anyhow::Result<usize>;
+    fn len(header: Option<&Header>) -> anyhow::Result<usize>
+    where
+        Self: Sized;
 }

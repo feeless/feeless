@@ -55,6 +55,8 @@ async fn node_with_single_peer(address: &str) -> anyhow::Result<()> {
     let state = Box::new(SledState::new(Network::Live));
     let address = address.to_owned();
 
+    // TODO: peering.nano.org
+
     let state_clone = state.clone();
     let handle = tokio::spawn(async move {
         let stream = TcpStream::connect(&address).await.unwrap();

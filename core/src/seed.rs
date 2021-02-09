@@ -1,5 +1,6 @@
 use crate::encoding::blake2b;
 use crate::{expect_len, Private};
+use bip39::{Language, Mnemonic, MnemonicType};
 use bytes::{BufMut, BytesMut};
 use rand::RngCore;
 use std::convert::TryFrom;
@@ -38,10 +39,22 @@ impl TryFrom<&str> for Seed {
     type Error = anyhow::Error;
 
     /// Expecting a hex string.
+    /// TODO: Move into Seed::from_hex()
     fn try_from(value: &str) -> Result<Self, Self::Error> {
         expect_len(value.len(), Seed::LEN * 2, "Seed")?;
         let mut seed = Seed::zero();
         hex::decode_to_slice(value, &mut seed.0)?;
+        Ok(seed)
+    }
+}
+
+impl TryFrom<&[u8]> for Seed {
+    type Error = anyhow::Error;
+
+    fn try_from(value: &[u8]) -> Result<Self, Self::Error> {
+        expect_len(value.len(), Seed::LEN, "Seed")?;
+        let mut seed = Seed::zero();
+        seed.0.copy_from_slice(value);
         Ok(seed)
     }
 }
