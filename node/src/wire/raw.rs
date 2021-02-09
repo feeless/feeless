@@ -10,7 +10,7 @@ impl Wire for Raw {
         todo!()
     }
 
-    fn deserialize(_: Option<&Header>, data: &[u8]) -> Result<Self, anyhow::Error>
+    fn deserialize(_: Option<&Header>, _data: &[u8]) -> Result<Self, anyhow::Error>
     where
         Self: Sized,
     {
@@ -24,7 +24,7 @@ impl Wire for Raw {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
+    
 
     #[test]
     fn serialize() {}

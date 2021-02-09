@@ -2,12 +2,12 @@ use crate::cookie::Cookie;
 use crate::header::Network;
 
 use async_trait::async_trait;
-use std::collections::HashMap;
+
 use std::convert::TryFrom;
 use std::fmt::Debug;
 use std::net::SocketAddr;
-use std::sync::Arc;
-use tokio::sync::RwLock;
+
+
 
 pub type BoxedState = Box<dyn State + Send + Sync>;
 
@@ -90,15 +90,15 @@ impl State for TestState {
 
     async fn set_cookie(
         &mut self,
-        socket_addr: SocketAddr,
-        cookie: Cookie,
+        _socket_addr: SocketAddr,
+        _cookie: Cookie,
     ) -> Result<(), anyhow::Error> {
         unimplemented!()
     }
 
     async fn cookie_for_socket_addr(
         &self,
-        socket_addr: &SocketAddr,
+        _socket_addr: &SocketAddr,
     ) -> Result<Option<Cookie>, anyhow::Error> {
         unimplemented!()
     }

@@ -2,7 +2,7 @@ use crate::header::Header;
 use crate::wire::state_block::WireStateBlock;
 use crate::wire::Wire;
 use feeless::StateBlock;
-use tracing::warn;
+
 
 #[derive(Debug)]
 pub struct Publish(WireStateBlock);

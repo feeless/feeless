@@ -1,6 +1,6 @@
 use crate::encoding::blake2b;
 use crate::{to_hex, Address, BlockHash, Public, Raw, Signature, Work};
-use std::convert::{TryFrom, TryInto};
+use std::convert::{TryFrom};
 
 pub enum BlockType {
     Invalid = 0,

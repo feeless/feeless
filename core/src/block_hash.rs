@@ -1,7 +1,7 @@
 use crate::encoding::hex_formatter;
 use crate::expect_len;
 use std::convert::TryFrom;
-use std::fmt::{Debug, Formatter};
+
 
 #[derive(Clone, PartialEq, Eq)]
 pub struct BlockHash([u8; BlockHash::LEN]);

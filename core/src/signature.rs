@@ -1,6 +1,6 @@
 use crate::encoding::hex_formatter;
 use crate::expect_len;
-use anyhow::anyhow;
+
 use std::convert::TryFrom;
 
 pub struct Signature([u8; Signature::LEN]);

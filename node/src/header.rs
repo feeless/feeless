@@ -1,4 +1,4 @@
-use crate::state::{BoxedState, SledState, State};
+use crate::state::{BoxedState, State};
 use crate::wire::Wire;
 use anyhow::anyhow;
 use bitvec::prelude::*;
@@ -360,7 +360,7 @@ mod tests {
 
     #[test]
     fn bad_length() {
-        let state: BoxedState = Box::new(TestState::new(Network::Live));
+        let _state: BoxedState = Box::new(TestState::new(Network::Live));
         let err = "Header is the wrong length";
         let s = vec![];
         assert_contains_err(Header::deserialize(None, &s), err);
@@ -370,7 +370,7 @@ mod tests {
 
     #[test]
     fn bad_magic() {
-        let state: BoxedState = Box::new(TestState::new(Network::Live));
+        let _state: BoxedState = Box::new(TestState::new(Network::Live));
         let s = vec![0xFF, 0x43, 18, 18, 18, 2, 3, 0];
         assert_contains_err(Header::deserialize(None, &s), "magic number");
     }
@@ -386,7 +386,7 @@ mod tests {
 
     #[test]
     fn bad_message_type() {
-        let state: BoxedState = Box::new(TestState::new(Network::Live));
+        let _state: BoxedState = Box::new(TestState::new(Network::Live));
         let s = vec![0x52, 0x43, 18, 18, 18, 100, 3, 0];
         assert_contains_err(Header::deserialize(None, &s), "message type");
     }

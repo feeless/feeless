@@ -1,8 +1,8 @@
 use crate::header::Header;
-use crate::state::SledState;
+
 use crate::wire::Wire;
 use feeless::expect_len;
-use std::convert::TryFrom;
+
 use std::net::{Ipv6Addr, SocketAddrV6};
 use std::str::FromStr;
 
@@ -48,7 +48,7 @@ impl Wire for Peer {
         Ok(Self(SocketAddrV6::new(Ipv6Addr::from(addr), port, 0, 0)))
     }
 
-    fn len(header: Option<&Header>) -> anyhow::Result<usize> {
+    fn len(_header: Option<&Header>) -> anyhow::Result<usize> {
         Ok(Peer::LEN)
     }
 }

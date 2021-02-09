@@ -1,10 +1,10 @@
 use std::convert::TryFrom;
 
-use feeless::{expect_len, Address, BlockHash, Public, Signature, StateBlock};
+use feeless::{BlockHash, Public, Signature, StateBlock};
 
 use crate::bytes::Bytes;
 use crate::header::{BlockType, Header};
-use crate::state::SledState;
+
 use crate::wire::Wire;
 
 #[derive(Debug)]

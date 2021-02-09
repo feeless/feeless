@@ -1,12 +1,12 @@
 use crate::cookie::Cookie;
-use crate::header::{BlockType, Extensions, Header, MessageType};
+use crate::header::{Extensions, Header, MessageType};
 use crate::messages::confirm_ack::ConfirmAck;
 use crate::messages::confirm_req::ConfirmReq;
 use crate::messages::node_id_handshake::{NodeIdHandshakeQuery, NodeIdHandshakeResponse};
 use crate::messages::telemetry_req::TelemetryReq;
 use crate::peer::Peer;
 use crate::state::State;
-use crate::state::{BoxedState, SledState};
+use crate::state::{BoxedState};
 use crate::wire::Wire;
 
 use crate::messages::publish::Publish;
@@ -16,7 +16,7 @@ use std::fmt::Debug;
 use std::net::SocketAddr;
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use tokio::net::TcpStream;
-use tracing::{debug, info, instrument, trace, warn};
+use tracing::{debug, instrument, trace, warn};
 
 /// A connection to a single peer.
 #[derive(Debug)]
@@ -215,7 +215,7 @@ impl Channel {
 
     #[instrument(skip(self, header))]
     async fn recv_confirm_ack(&mut self, header: Header) -> anyhow::Result<()> {
-        let data = self.recv::<ConfirmAck>(Some(&header)).await?;
+        let _data = self.recv::<ConfirmAck>(Some(&header)).await?;
         warn!("TODO confirm_ack");
         Ok(())
     }

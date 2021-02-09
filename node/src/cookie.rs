@@ -1,4 +1,4 @@
-use crate::state::SledState;
+
 use crate::wire::Wire;
 use rand::RngCore;
 
@@ -45,7 +45,7 @@ impl Wire for Cookie {
         Ok(Cookie::try_from(data)?)
     }
 
-    fn len(header: Option<&Header>) -> anyhow::Result<usize> {
+    fn len(_header: Option<&Header>) -> anyhow::Result<usize> {
         Ok(Cookie::LEN)
     }
 }

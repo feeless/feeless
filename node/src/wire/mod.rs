@@ -2,7 +2,7 @@ pub mod raw;
 pub mod state_block;
 
 use crate::header::Header;
-use crate::state::SledState;
+
 
 pub trait Wire {
     fn serialize(&self) -> Vec<u8>;

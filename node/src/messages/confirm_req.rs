@@ -1,5 +1,5 @@
 use crate::header::{BlockType, Header};
-use crate::state::SledState;
+
 use crate::wire::Wire;
 use feeless::{expect_len, BlockHash};
 use std::convert::TryFrom;

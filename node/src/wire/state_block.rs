@@ -4,7 +4,7 @@ use crate::wire::Wire;
 use anyhow::anyhow;
 use feeless::{BlockHash, Link, Public, Raw, Signature, StateBlock, Work};
 use std::convert::TryFrom;
-use tracing::{info, warn};
+use tracing::{warn};
 
 /// A wrapper around StateBlock with serialization.
 #[derive(Debug)]
@@ -27,7 +27,7 @@ impl Wire for WireStateBlock {
         let representative = Public::try_from(data.slice(Public::LEN)?)?;
         let raw = Raw::try_from(data.slice(Raw::LEN)?)?;
 
-        let link_data = data.slice(Public::LEN)?;
+        let _link_data = data.slice(Public::LEN)?;
         // TODO: I think this only works once we have previous blocks in a database.
         // let link_data_is_zero = link_data == [0u8; Public::LEN];
         // let link = if diff < 0 {
