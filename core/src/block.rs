@@ -92,7 +92,7 @@ impl StateBlock {
         v.extend_from_slice(self.representative.as_bytes());
         v.extend_from_slice(self.balance.to_vec().as_slice());
         v.extend_from_slice(self.link.as_bytes());
-        dbg!(to_hex(&v));
+
         BlockHash::try_from(blake2b(BlockHash::LEN, &v).as_ref())
     }
 }
