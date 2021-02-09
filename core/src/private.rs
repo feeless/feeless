@@ -19,7 +19,7 @@ impl Private {
     pub fn sign(&self, message: &[u8]) -> anyhow::Result<Signature> {
         let expanded_secret = ExpandedSecretKey::from(&self.0);
         let internal_signed = expanded_secret.sign(message, &self.internal_public());
-        Ok(Signature::try_from(internal_signed.as_bytes())?)
+        Signature::try_from(internal_signed.as_bytes())
     }
 }
 

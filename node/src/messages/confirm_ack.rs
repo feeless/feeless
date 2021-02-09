@@ -18,7 +18,7 @@ pub struct ConfirmAck {
 #[derive(Debug)]
 pub enum Confirm {
     VoteByHash(Vec<BlockHash>),
-    Block(StateBlock),
+    Block(StateBlock), // TODO: this variant is 704 bytes, use Box<>?
 }
 
 impl ConfirmAck {

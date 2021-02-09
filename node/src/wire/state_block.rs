@@ -4,7 +4,7 @@ use crate::wire::Wire;
 use anyhow::anyhow;
 use feeless::{BlockHash, Link, Public, Raw, Signature, StateBlock, Work};
 use std::convert::TryFrom;
-use tracing::{warn};
+use tracing::warn;
 
 /// A wrapper around StateBlock with serialization.
 #[derive(Debug)]

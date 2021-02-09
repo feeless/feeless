@@ -13,7 +13,7 @@ impl Signature {
     }
 
     pub fn from_hex(s: &str) -> anyhow::Result<Self> {
-        Ok(Signature::try_from(hex::decode(s.as_bytes())?.as_slice())?)
+        Signature::try_from(hex::decode(s.as_bytes())?.as_slice())
     }
 
     pub fn as_bytes(&self) -> &[u8] {

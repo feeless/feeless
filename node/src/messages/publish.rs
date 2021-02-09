@@ -3,7 +3,6 @@ use crate::wire::state_block::WireStateBlock;
 use crate::wire::Wire;
 use feeless::StateBlock;
 
-
 #[derive(Debug)]
 pub struct Publish(WireStateBlock);
 

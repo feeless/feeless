@@ -2,7 +2,6 @@ use crate::encoding::hex_formatter;
 use crate::expect_len;
 use std::convert::TryFrom;
 
-
 #[derive(Clone, PartialEq, Eq)]
 pub struct BlockHash([u8; BlockHash::LEN]);
 
@@ -10,7 +9,7 @@ impl BlockHash {
     pub const LEN: usize = 32;
 
     pub fn from_hex(s: &str) -> anyhow::Result<Self> {
-        Ok(BlockHash::try_from(hex::decode(s.as_bytes())?.as_slice())?)
+        BlockHash::try_from(hex::decode(s.as_bytes())?.as_slice())
     }
 
     pub fn as_bytes(&self) -> &[u8] {

@@ -3,7 +3,6 @@ pub mod state_block;
 
 use crate::header::Header;
 
-
 pub trait Wire {
     fn serialize(&self) -> Vec<u8>;
 

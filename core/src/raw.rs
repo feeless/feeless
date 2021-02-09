@@ -1,8 +1,8 @@
 use crate::expect_len;
-use bigdecimal::{BigDecimal};
+use bigdecimal::BigDecimal;
 use serde::{Deserialize, Serialize};
 use std::cmp::Ordering;
-use std::convert::{TryFrom};
+use std::convert::TryFrom;
 use std::fmt::Display;
 use std::str::FromStr;
 
@@ -142,10 +142,6 @@ impl PartialOrd<u128> for Raw {
 impl PartialEq<u128> for Raw {
     fn eq(&self, other: &u128) -> bool {
         self.0.eq(other)
-    }
-
-    fn ne(&self, other: &u128) -> bool {
-        self.0.ne(other)
     }
 }
 

@@ -289,11 +289,9 @@ impl Extensions {
     }
 
     pub fn block_type(&self) -> anyhow::Result<BlockType> {
-        Ok(
-            self.bits()[Self::BLOCK_TYPE..Self::BLOCK_TYPE + Self::BLOCK_TYPE_BITS]
-                .load_be::<u8>()
-                .try_into()?,
-        )
+        self.bits()[Self::BLOCK_TYPE..Self::BLOCK_TYPE + Self::BLOCK_TYPE_BITS]
+            .load_be::<u8>()
+            .try_into()
     }
 
     fn bits(&self) -> &BitSlice<Lsb0, u8> {

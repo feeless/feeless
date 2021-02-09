@@ -1,6 +1,6 @@
 use crate::encoding::blake2b;
 use crate::{to_hex, Address, BlockHash, Public, Raw, Signature, Work};
-use std::convert::{TryFrom};
+use std::convert::TryFrom;
 
 pub enum BlockType {
     Invalid = 0,
@@ -93,7 +93,7 @@ impl StateBlock {
         v.extend_from_slice(self.balance.to_vec().as_slice());
         v.extend_from_slice(self.link.as_bytes());
         dbg!(to_hex(&v));
-        Ok(BlockHash::try_from(blake2b(BlockHash::LEN, &v).as_ref())?)
+        BlockHash::try_from(blake2b(BlockHash::LEN, &v).as_ref())
     }
 }
 

@@ -24,7 +24,6 @@ impl Wire for Raw {
 
 #[cfg(test)]
 mod tests {
-    
 
     #[test]
     fn serialize() {}

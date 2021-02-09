@@ -47,7 +47,7 @@ impl Address {
         let public_key_bytes: Vec<u8> = bits.to_owned().into_vec();
         debug_assert_eq!(public_key_bytes.len(), Public::LEN);
 
-        Ok(Public::try_from(public_key_bytes.as_slice())?)
+        Public::try_from(public_key_bytes.as_slice())
     }
 
     fn validate_checksum(&self, public: &Public) -> anyhow::Result<()> {

@@ -5,8 +5,7 @@ use crate::messages::confirm_req::ConfirmReq;
 use crate::messages::node_id_handshake::{NodeIdHandshakeQuery, NodeIdHandshakeResponse};
 use crate::messages::telemetry_req::TelemetryReq;
 use crate::peer::Peer;
-use crate::state::State;
-use crate::state::{BoxedState};
+use crate::state::BoxedState;
 use crate::wire::Wire;
 
 use crate::messages::publish::Publish;
@@ -73,15 +72,6 @@ impl Channel {
         debug!("OBJ: {:?}", &result);
 
         Ok(result)
-    }
-
-    async fn todo_dump(&mut self) -> anyhow::Result<()> {
-        loop {
-            let mut c = [0u8];
-            self.stream.read(&mut c).await?;
-            print!("{}", to_hex(&c));
-        }
-        todo!();
     }
 
     #[instrument(level = "debug", skip(self, message))]

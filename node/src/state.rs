@@ -7,8 +7,6 @@ use std::convert::TryFrom;
 use std::fmt::Debug;
 use std::net::SocketAddr;
 
-
-
 pub type BoxedState = Box<dyn State + Send + Sync>;
 
 #[async_trait]
@@ -35,7 +33,8 @@ pub struct SledState {
 impl SledState {
     pub fn new(network: Network) -> Self {
         let path = format!("{:?}.db", network).to_ascii_lowercase();
-        let db: sled::Db = sled::open(&path).expect(&format!("Could not open database: {}", &path));
+        let db: sled::Db =
+            sled::open(&path).unwrap_or_else(|_| panic!("Could not open database: {}", &path));
         let cookies = db.open_tree("cookies").unwrap();
         let peers = db.open_tree("peers").unwrap();
         Self {

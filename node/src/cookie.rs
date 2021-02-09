@@ -1,4 +1,3 @@
-
 use crate::wire::Wire;
 use rand::RngCore;
 
@@ -42,7 +41,7 @@ impl Wire for Cookie {
     where
         Self: Sized,
     {
-        Ok(Cookie::try_from(data)?)
+        Cookie::try_from(data)
     }
 
     fn len(_header: Option<&Header>) -> anyhow::Result<usize> {
