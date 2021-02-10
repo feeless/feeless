@@ -3,7 +3,7 @@
 ## What is Feeless?
 
 **Feeless** is a **Nano** cryptocurrency node, wallet, tools, and Rust crate. This is not the official project for Nano,
-only a reimplementation written in Rust. The official Nano node
+only an implementation written in Rust. The official Nano node
 implementation [lives here](https://github.com/nanocurrency/nano-node).
 
 ⚠ This is a work in progress. It's not ready to use as a real node! ⚠
