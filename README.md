@@ -69,7 +69,7 @@ A medium term task list:
 - [ ] Blocks
   - [x] Hashing
   - [ ] Work
-  - [ ] State blocks
+  - [x] State blocks
   - [ ] <v18 blocks?
 - [ ] Packet dissector
   - [x] Parse hex dump from Wireshark
