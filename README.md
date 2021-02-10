@@ -119,6 +119,7 @@ A medium term task list:
   - [ ] Logic
     - [ ] Rebroadcasting
     - [ ] Representatives
+    - [ ] Publish retries (difficulty changes)
     - [ ] ...
   - [ ] Messages
     - [ ] Node ID Handshake
