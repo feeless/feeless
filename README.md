@@ -3,7 +3,7 @@
 **⚠ This is a work in progress. It's not ready to use as a real node! ⚠**
 
 As a personal adventure into understanding Nano, I decided to write a Nano node in Rust. The original implementation is
-in C++.
+in C++. I give no promises about my motivation to finish 🤐. This is licenced under both MIT and Apache 2.0.
 
 ## What is Nano?
 
