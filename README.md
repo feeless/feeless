@@ -1,11 +1,13 @@
-# feeless
+# ⋰·⋰ feeless
 
-> A Nano Cryptocurrency node, wallet, tools, and Rust library.
+## What is feeless?
 
-**⚠ This is a work in progress. It's not ready to use as a real node! ⚠**
+**Feeless** is a **Nano** cryptocurrency node, wallet, tools, and Rust crate.
 
-As a personal adventure into understanding Nano, I decided to write a Nano node in Rust. I give no promises about my
-future motivation to complete this project 🤐.
+⚠ This is a work in progress. It's not ready to use as a real node!
+
+I decided to start this project as a personal adventure into understanding Nano. I give no promises about my future
+motivation to complete this project 🤐.
 
 ## What is Nano?
 
@@ -14,7 +16,8 @@ future motivation to complete this project 🤐.
 The main features of **Nano** are:
 
 * No transaction fees.
-* Extremely fast to send @ less than 1 second. (Bitcoin takes at least 10 minutes.)
+* Extremely fast to send at less than 1 second for 100% confirmation. (Bitcoin takes on average 10 minutes for
+  ~80%<sup>1</sup> confirmation.)
 * Decentralized (as much as Bitcoin).
 * No inflation.
 * Significantly less energy use than Bitcoin.
@@ -22,6 +25,9 @@ The main features of **Nano** are:
 Other names: Nano cryptocurrency, Nano coin, Rai Blocks.
 
 For more information on what Nano is, see the Nano documentation: https://docs.nano.org/what-is-nano/overview/
+
+1. The Bitcoin white paper, section 11 "Calculations" explains there's a ~80% chance for an attacker with 10% mining
+   power to overtake the longest chain. (https://bitcoin.org/bitcoin.pdf)
 
 ## Goals
 
