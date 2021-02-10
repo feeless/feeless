@@ -25,21 +25,20 @@ For more information on what Nano is, see the Nano documentation: https://docs.n
 
 ### Rust crate
 
-* A complete library that a Rust developer can use to manage wallets, keys, blocks.
-* Compatibility with the JSON RPC server.
+* A complete library that a Rust developer can use to handle wallets, keys, blocks, signing, proof of work, etc.
 
-### Tooling
+### Tools
 
 * A command line tool for particular actions, e.g. generating seeds, conversions between keys, addresses, etc.
-* An RPC command line interface for the JSON RPC server.
+* A command line client for the official Nano RPC server.
 
 ### Nano node
 
-* A functional node with as much business logic as I can understand from the C++ implementation.
-* It has to perform well enough to help the network. I don't want Nano to slow down if people start using this! 🤦‍♀️
+* A functional Nano node with business logic from the official C++ implementation.
 * Correct rebroadcasting rules
 * Representative voting
 * Bootstrapping
+* It has to perform well enough to help the network. I don't want Nano to slow down if people start using this! 🤦‍♀️
 
 ## Non-goals
 
