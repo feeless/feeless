@@ -22,7 +22,7 @@ The main features of **Nano** are:
   ~80%<sup>1</sup> confirmation.)
 * Decentralized (as much as Bitcoin).
 * No inflation.
-* Significantly less energy use than Bitcoin.
+* Massively less energy use than Bitcoin.
 
 Other names: Nano cryptocurrency, Nano coin, Rai Blocks.
 
