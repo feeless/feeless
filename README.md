@@ -3,14 +3,14 @@
 **⚠ This is a work in progress. It's not ready to use as a real node! ⚠**
 
 As a personal adventure into understanding Nano, I decided to write a Nano node in Rust. The original implementation is
-in C++. I give no promises about my motivation to finish 🤐. This is licenced under both MIT and Apache 2.0.
+in C++. I give no promises about my future motivation to complete this project 🤐.
 
 ## What is Nano?
 
 **Nano** is a decentralized money that is significantly improves on Bitcoin and other cryptocurrencies. Nano's features
 are:
 
-The main features of *Nano* are:
+The main features of **Nano** are:
 
 * No transaction fees.
 * Extremely fast to send @ less than 1 second. (Bitcoin takes at least 10 minutes.)
@@ -22,7 +22,35 @@ Other names: Nano cryptocurrency, Nano coin, Rai Blocks.
 
 For more information on what Nano is, see the Nano documentation: https://docs.nano.org/what-is-nano/overview/
 
-## Task List
+## Goals
+
+### Rust crate
+
+* A complete library that a Rust developer can use to manage wallets, keys, blocks.
+* Compatibility with the JSON RPC server.
+
+### Tooling
+
+* A command line tool for particular actions, e.g. generating seeds, conversions between keys, addresses, etc.
+* An RPC command line interface for the JSON RPC server.
+
+### Nano node
+
+* A functional node with as much business logic as I can understand from the C++ implementation.
+* It has to perform well enough to help the network. I don't want Nano to slow down if people start using this! 🤦‍♀️
+* Correct Rebroadcasting rules
+* Representative voting
+* Bootstrapping
+
+## Non-goals
+
+* Only support protocol version 18+
+* No UDP support
+* No user interface
+
+## Task list
+
+A medium term task list:
 
 - [x] Seeds
   - [x] Mnemonic (word list) seed generation/parsing (BIP39)
@@ -46,23 +74,24 @@ For more information on what Nano is, see the Nano documentation: https://docs.n
   - [ ] State blocks
   - [ ] <v18 blocks?
 - [ ] Packet dissector
-  - [x] Parse HEX dump from Wireshark
+  - [x] Parse hex dump from Wireshark
   - [ ] Parse pcap
   - [x] Dump some message types to console
 - [ ] Node
   - [ ] Configuration
     - [x] Initial command line interface
     - [ ] Network
-    - [ ] Database paths
+    - [ ] Database
     - [ ] ...
   - [ ] Networks
     - [x] Live (Don't worry, I'm only connecting to my own node at the moment!)
     - [ ] Test
     - [ ] Beta
   - [ ] Bootstrap peer connection (peering.nano.org)
-  - [x] Validate peer network
-  - [ ] Validate peer versions
+  - [x] Validate given peer network
+  - [ ] Validate given peer versions
   - [ ] Multiple peer connectivity (currently only connects to one peer)
+    - [ ] Configurable maximum peer limit
   - [x] Header parsing
     - [x] Network
     - [x] Versions
@@ -137,13 +166,18 @@ For more information on what Nano is, see the Nano documentation: https://docs.n
 ## Credits and references
 
 * Thanks to the hard work from the Nano Foundation.
+* https://forum.nano.org/, https://old.reddit.com/r/nanocurrency/, Nano Discord: https://chat.nano.org/
+  * A very friendly community helping out others and myself.
 * https://docs.nano.org/
   * General useful information.
-* https://forum.nano.org/, https://old.reddit.com/r/nanocurrency/, Nano Discord: https://chat.nano.org/
-  * Friendly community helping out myself and others.
 * https://nanoo.tools/
-  * Helped me understand technical details on state blocks and hashing.
-  * Helped with confirming conversions between things.
+  * Helped me understand technical details on state blocks and hashing, and also with validating conversions between
+    things.
 * https://github.com/nanocurrency/protocol/blob/master/reference
-  * Node protocol specification
-  
+  * Node protocol specification.
+* https://github.com/nanocurrency/nano-node
+  * The actual Nano implementation as a source of truth.
+
+## Licence
+
+This project is licenced under both MIT and Apache 2.0.
