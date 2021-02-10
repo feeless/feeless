@@ -2,8 +2,8 @@
 
 **⚠ This is a work in progress. It's not ready to use as a real node! ⚠**
 
-As a personal adventure into understanding Nano, I decided to write a Nano node in Rust. The original implementation is
-in C++. I give no promises about my future motivation to complete this project 🤐.
+As a personal adventure into understanding Nano, I decided to write a Nano node in Rust. I give no promises about my
+future motivation to complete this project 🤐.
 
 ## What is Nano?
 
@@ -37,7 +37,7 @@ For more information on what Nano is, see the Nano documentation: https://docs.n
 
 * A functional node with as much business logic as I can understand from the C++ implementation.
 * It has to perform well enough to help the network. I don't want Nano to slow down if people start using this! 🤦‍♀️
-* Correct Rebroadcasting rules
+* Correct rebroadcasting rules
 * Representative voting
 * Bootstrapping
 
