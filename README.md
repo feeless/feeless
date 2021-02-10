@@ -7,8 +7,7 @@ in C++. I give no promises about my future motivation to complete this project ð
 
 ## What is Nano?
 
-**Nano** is a decentralized money that is significantly improves on Bitcoin and other cryptocurrencies. Nano's features
-are:
+**Nano** is a decentralized money that is significantly improves on Bitcoin and other cryptocurrencies.
 
 The main features of **Nano** are:
 
