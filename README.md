@@ -8,7 +8,7 @@ implementation [lives here](https://github.com/nanocurrency/nano-node).
 
 ⚠ This is a work in progress. It's not ready to use as a real node! ⚠
 
-I decided to start this project as a personal adventure into understanding Nano. I give no promises about my future
+I decided to start this project as a personal adventure of understanding Nano. I give no promises about my future
 motivation to complete this project 🤐.
 
 ## What is Nano?
