@@ -33,8 +33,8 @@ Other names: Nano cryptocurrency, Nano coin, Rai Blocks.
 
 <sup>
 1. The Bitcoin white paper, under section 11 "Calculations" explains there's a ~80% chance for an attacker with 10% mining power to overtake the longest chain. https://bitcoin.org/bitcoin.pdf
-1. Measuring Decentralization in Bitcoin andEthereum using Multiple Metrics and Granularities https://arxiv.org/pdf/2101.10699.pdf
-1. List of representative nodes showing a Nakamoto coefficient of 8 at the time of writing (2021-02) https://nanocharts.info/
+2. Measuring Decentralization in Bitcoin andEthereum using Multiple Metrics and Granularities https://arxiv.org/pdf/2101.10699.pdf
+3. List of representative nodes showing a Nakamoto coefficient of 8 at the time of writing (2021-02) https://nanocharts.info/
 
 </sup>
 
