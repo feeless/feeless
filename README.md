@@ -1,4 +1,6 @@
-# feeless - A Nano Cryptocurrency node, wallet, tools, and Rust library.
+# feeless
+
+> A Nano Cryptocurrency node, wallet, tools, and Rust library.
 
 **⚠ This is a work in progress. It's not ready to use as a real node! ⚠**
 
