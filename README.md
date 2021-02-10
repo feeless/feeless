@@ -16,7 +16,7 @@ motivation to complete this project 🤐.
 The main features of **Nano** are:
 
 * No transaction fees.
-* Extremely fast to send at less than 1 second for 100% confirmation. (Bitcoin takes on average 10 minutes for
+* Extremely fast to send money--less than 1 second for 100% confirmation. (Bitcoin takes 10 minutes on average for
   ~80%<sup>1</sup> confirmation.)
 * Decentralized (as much as Bitcoin).
 * No inflation.
