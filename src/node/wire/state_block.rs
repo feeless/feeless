@@ -1,8 +1,9 @@
+use crate::block::BlockType;
 use crate::bytes::Bytes;
-use crate::wire::header::{BlockType, Header};
-use crate::wire::Wire;
+use crate::node::wire::header::Header;
+use crate::node::wire::Wire;
+use crate::{BlockHash, Link, Public, Raw, Signature, StateBlock, Work};
 use anyhow::anyhow;
-use feeless::{BlockHash, Link, Public, Raw, Signature, StateBlock, Work};
 use std::convert::TryFrom;
 use tracing::warn;
 

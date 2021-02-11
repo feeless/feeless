@@ -1,8 +1,7 @@
-use crate::wire::Wire;
+use crate::node::wire::header::Header;
+use crate::node::wire::Wire;
+use crate::{expect_len, hex_formatter};
 use rand::RngCore;
-
-use crate::wire::header::Header;
-use feeless::{expect_len, hex_formatter};
 use std::convert::TryFrom;
 
 #[derive(Clone)]

@@ -1,10 +1,8 @@
-use crate::channel::Channel;
-use crate::wire::cookie::Cookie;
-use crate::wire::header::Header;
-
 use crate::bytes::Bytes;
-use crate::wire::Wire;
-use feeless::{Public, Signature};
+use crate::node::wire::cookie::Cookie;
+use crate::node::wire::header::Header;
+use crate::node::wire::Wire;
+use crate::{Public, Signature};
 use std::convert::TryFrom;
 
 #[derive(Debug)]
@@ -128,5 +126,3 @@ impl Wire for HandshakeResponse {
         Ok(Self::LEN)
     }
 }
-
-impl Channel {}

@@ -1,8 +1,6 @@
-use crate::wire::cookie::Cookie;
-use crate::wire::header::Network;
-
+use crate::node::wire::cookie::Cookie;
+use crate::node::wire::header::Network;
 use async_trait::async_trait;
-
 use std::convert::TryFrom;
 use std::fmt::Debug;
 use std::net::SocketAddr;

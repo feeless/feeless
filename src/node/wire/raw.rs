@@ -1,6 +1,6 @@
-use crate::wire::header::Header;
-use crate::wire::Wire;
-use feeless::Raw;
+use crate::node::wire::header::Header;
+use crate::node::wire::Wire;
+use crate::Raw;
 
 struct WireRaw(Raw);
 

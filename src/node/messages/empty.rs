@@ -1,5 +1,5 @@
-use crate::wire::header::Header;
-use crate::wire::Wire;
+use crate::node::wire::header::Header;
+use crate::node::wire::Wire;
 
 #[derive(Debug)]
 pub struct Empty;

@@ -1,16 +1,14 @@
-use crate::messages::confirm_ack::ConfirmAck;
-use crate::messages::confirm_req::ConfirmReq;
-use crate::messages::empty::Empty;
-use crate::messages::handshake::{Handshake, HandshakeQuery, HandshakeResponse};
-use crate::messages::publish::Publish;
-use crate::state::BoxedState;
-use crate::wire::cookie::Cookie;
-use crate::wire::header::{Extensions, Header, MessageType};
-use crate::wire::peer::Peer;
-use crate::wire::Wire;
-
+use crate::node::messages::confirm_ack::ConfirmAck;
+use crate::node::messages::confirm_req::ConfirmReq;
+use crate::node::messages::empty::Empty;
+use crate::node::messages::handshake::{Handshake, HandshakeQuery, HandshakeResponse};
+use crate::node::messages::publish::Publish;
+use crate::node::state::BoxedState;
+use crate::node::wire::cookie::Cookie;
+use crate::node::wire::header::{Extensions, Header, MessageType};
+use crate::node::wire::Wire;
+use crate::{expect_len, to_hex, Public, Seed, Signature};
 use anyhow::anyhow;
-use feeless::{expect_len, to_hex, Public, Seed, Signature};
 use std::fmt::Debug;
 use std::net::SocketAddr;
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
@@ -120,8 +118,8 @@ impl Channel {
         }
     }
 
-    #[instrument(skip(self, header))]
-    async fn recv_keepalive(&mut self, header: Header) -> anyhow::Result<()> {
+    #[instrument(skip(self))]
+    async fn recv_keepalive(&mut self, _: Header) -> anyhow::Result<()> {
         Ok(())
     }
 

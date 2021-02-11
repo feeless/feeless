@@ -1,6 +1,43 @@
-[workspace]
+[package]
+name = "feeless"
+version = "0.1.1"
+authors = ["gak <gak@gak0.com>"]
+edition = "2018"
+license = "MIT/Apache-2.0"
+description = "Nano (cryptocurrency) types and utilities, nano addresses, hashing blocks, signing, etc."
+repository = "https://github.com/gak/feeless"
 
-members = [
-    "node",
-    "core"
-]
+#[lib]
+#name = "feeless"
+#path = "src/lib.rs"
+#
+#[[bin]]
+#name = "feeless"
+#path = "src/main.rs"
+#
+[dependencies]
+async-trait = "*"
+hex = "0.4.2"
+ansi_term = "0.12"
+anyhow = "1.0.38"
+clap = "3.0.0-beta.2"
+tracing = "0.1"
+tracing-subscriber = "0.2"
+bigdecimal = { version = "0.2.0", features = ["serde"] }
+tokio = { version = "*", features = ["full"] }
+serde = { version = "1.0.123", features = ["derive"] }
+blake2 = "0.9.1"
+bytes = "1.0.1"
+bitvec = "0.20.1"
+regex = "1.4.3"
+rand = "0.8.3"
+tiny-bip39 = "0.8.0"
+ed25519-dalek-bip32 = "0.1.1"
+
+ed25519-dalek = { version = "1.0.1", package = "ed25519-dalek-blake2-feeless" }
+#ed25519-dalek = { path = "../../ed25519-dalek" }
+#ed25519-dalek = { git = "https://github.com/gak/ed25519-dalek.git", branch = "blake2b" }
+
+# Node Only
+
+sled = "*"

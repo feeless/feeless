@@ -1,7 +1,7 @@
-use crate::wire::header::{BlockType, Header};
-
-use crate::wire::Wire;
-use feeless::{expect_len, BlockHash};
+use crate::block::BlockType;
+use crate::node::wire::header::Header;
+use crate::node::wire::Wire;
+use crate::{expect_len, BlockHash};
 use std::convert::TryFrom;
 
 /// Requests confirmation of the given block or list of root/hash pairs.

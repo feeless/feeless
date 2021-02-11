@@ -1,7 +1,9 @@
 use crate::encoding::blake2b;
 use crate::{to_hex, Address, BlockHash, Public, Raw, Signature, Work};
+use anyhow::anyhow;
 use std::convert::TryFrom;
 
+#[derive(Debug, Eq, PartialEq)]
 pub enum BlockType {
     Invalid = 0,
     NotABlock = 1,
@@ -10,6 +12,24 @@ pub enum BlockType {
     Open = 4,
     Change = 5,
     State = 6,
+}
+
+impl TryFrom<u8> for BlockType {
+    type Error = anyhow::Error;
+
+    fn try_from(value: u8) -> Result<Self, Self::Error> {
+        use BlockType::*;
+        Ok(match value {
+            0 => Invalid,
+            1 => NotABlock,
+            2 => Send,
+            3 => Receive,
+            4 => Open,
+            5 => Change,
+            6 => State,
+            _ => return Err(anyhow!("Invalid block type: {}", value)),
+        })
+    }
 }
 
 #[derive(Debug)]

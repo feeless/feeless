@@ -1,39 +1,11 @@
-use crate::state::{BoxedState, State};
-use crate::wire::Wire;
+use crate::block::BlockType;
+use crate::expect_len;
+use crate::node::state::BoxedState;
+use crate::node::wire::Wire;
 use anyhow::anyhow;
 use bitvec::prelude::*;
-use feeless::expect_len;
 use std::convert::{TryFrom, TryInto};
 use std::result::Result;
-
-#[derive(Debug, Eq, PartialEq)]
-pub enum BlockType {
-    Invalid = 0,
-    NotABlock = 1,
-    Send = 2,
-    Recv = 3,
-    Open = 4,
-    Change = 5,
-    State = 6,
-}
-
-impl TryFrom<u8> for BlockType {
-    type Error = anyhow::Error;
-
-    fn try_from(value: u8) -> Result<Self, Self::Error> {
-        use BlockType::*;
-        Ok(match value {
-            0 => Invalid,
-            1 => NotABlock,
-            2 => Send,
-            3 => Recv,
-            4 => Open,
-            5 => Change,
-            6 => State,
-            _ => return Err(anyhow!("Invalid block type: {}", value)),
-        })
-    }
-}
 
 // TODO: Have header internally only contain [u8; 8] and use accessors, so that the header doesn't
 //       have to be encoded/decoded when sending/receiving.
@@ -338,7 +310,7 @@ impl TryFrom<&[u8]> for Extensions {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::state::TestState;
+    use crate::node::state::{State, TestState};
     use std::fmt::Debug;
 
     #[test]

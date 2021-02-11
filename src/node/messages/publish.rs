@@ -1,7 +1,7 @@
-use crate::wire::header::Header;
-use crate::wire::state_block::WireStateBlock;
-use crate::wire::Wire;
-use feeless::StateBlock;
+use crate::node::wire::header::Header;
+use crate::node::wire::state_block::WireStateBlock;
+use crate::node::wire::Wire;
+use crate::StateBlock;
 
 #[derive(Debug)]
 pub struct Publish(WireStateBlock);

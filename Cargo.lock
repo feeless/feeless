@@ -368,35 +368,22 @@ dependencies = [
 name = "feeless"
 version = "0.1.1"
 dependencies = [
+ "ansi_term",
  "anyhow",
+ "async-trait",
  "bigdecimal",
  "bitvec",
  "blake2",
  "bytes",
+ "clap",
  "ed25519-dalek-bip32",
  "ed25519-dalek-blake2-feeless",
  "hex",
  "rand 0.8.3",
  "regex",
  "serde",
- "tiny-bip39",
- "tokio",
-]
-
-[[package]]
-name = "feeless-node"
-version = "0.1.0"
-dependencies = [
- "ansi_term",
- "anyhow",
- "async-trait",
- "bitvec",
- "clap",
- "feeless",
- "hex",
- "rand 0.8.3",
- "serde",
  "sled",
+ "tiny-bip39",
  "tokio",
  "tracing",
  "tracing-subscriber",

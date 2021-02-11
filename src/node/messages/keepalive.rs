@@ -1,12 +1,8 @@
-use std::convert::TryFrom;
-
-use feeless::{BlockHash, Public, Signature, StateBlock};
-
 use crate::bytes::Bytes;
-
-use crate::wire::header::Header;
-use crate::wire::peer::Peer;
-use crate::wire::Wire;
+use crate::node::wire::header::Header;
+use crate::node::wire::peer::Peer;
+use crate::node::wire::Wire;
+use std::convert::TryFrom;
 
 #[derive(Debug)]
 pub struct Keepalive(Vec<Peer>);

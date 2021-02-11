@@ -1,11 +1,9 @@
-use std::convert::TryFrom;
-
-use feeless::{BlockHash, Public, Signature, StateBlock};
-
+use crate::block::BlockType;
 use crate::bytes::Bytes;
-use crate::wire::header::{BlockType, Header};
-
-use crate::wire::Wire;
+use crate::node::wire::header::Header;
+use crate::node::wire::Wire;
+use crate::{BlockHash, Public, Signature, StateBlock};
+use std::convert::TryFrom;
 
 #[derive(Debug)]
 pub struct ConfirmAck {
