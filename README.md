@@ -86,10 +86,10 @@ A medium term task list:
   - [x] raw
   - [x] nano
   - [x] Mnano/NANO
-- [ ] Proof of work
+- [x] Proof of work (core)
   - [x] Verification against a threshold
-  - [ ] Generation
-  - [ ] Dynamic threshold
+  - [x] Generation
+  - [x] Dynamic threshold
 - [ ] Blocks
   - [x] Hashing
   - [ ] Work

@@ -39,13 +39,6 @@ impl Difficulty {
     }
 
     pub fn is_more_than(&self, threshold: &Difficulty) -> bool {
-        println!("{} {}", hex::encode(&self.0.to_be_bytes()), &self.0);
-        println!(
-            "{} {} (min)",
-            hex::encode(&threshold.0.to_be_bytes()),
-            &threshold.0
-        );
-        dbg!(self.0 > threshold.0);
         self.0 > threshold.0
     }
 }

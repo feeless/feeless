@@ -2,7 +2,9 @@ use std::convert::TryFrom;
 
 use crate::difficulty::Difficulty;
 use crate::encoding::blake2b;
-use crate::{expect_len, BlockHash, Public};
+use crate::{expect_len, hex_formatter, BlockHash, Public};
+use rand::RngCore;
+use std::fmt::{Debug, Formatter};
 
 #[derive(Debug)]
 pub enum Subject {
@@ -19,7 +21,6 @@ impl Subject {
     }
 }
 
-#[derive(Debug)]
 pub struct Work([u8; Work::LEN]);
 
 impl Work {
@@ -29,14 +30,36 @@ impl Work {
         Self([0u8; Self::LEN])
     }
 
+    pub fn random() -> Self {
+        let mut s = Self([0u8; Self::LEN]);
+        rand::thread_rng().fill_bytes(&mut s.0);
+        s
+    }
+
     pub fn from_hex(s: &str) -> anyhow::Result<Self> {
         let mut value = hex::decode(s)?;
         let value = value.as_slice();
         Work::try_from(value)
     }
 
-    pub fn generate(subject: &Subject, difficulty: u32) -> Work {
-        todo!()
+    /// Block and generate forever until we find a solution.
+    pub fn generate(subject: &Subject, threshold: &Difficulty) -> anyhow::Result<Work> {
+        loop {
+            let work = Work::attempt(&subject, &threshold)?;
+            if work.is_none() {
+                continue;
+            }
+            return Ok(work.unwrap());
+        }
+    }
+
+    pub fn attempt(subject: &Subject, threshold: &Difficulty) -> anyhow::Result<Option<Work>> {
+        let work = Work::random();
+        if work.verify(subject, threshold)? {
+            Ok(Some(work))
+        } else {
+            Ok(None)
+        }
     }
 
     pub fn hash(work_and_subject: &[u8]) -> Box<[u8]> {
@@ -67,6 +90,15 @@ impl Work {
     }
 }
 
+impl std::fmt::Debug for Work {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "Work(")?;
+        hex_formatter(f, &self.0)?;
+        write!(f, ")")?;
+        Ok(())
+    }
+}
+
 impl TryFrom<&[u8]> for Work {
     type Error = anyhow::Error;
 
@@ -82,6 +114,7 @@ impl TryFrom<&[u8]> for Work {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::Seed;
 
     #[test]
     fn verify() {
@@ -135,8 +168,20 @@ mod tests {
 
     #[test]
     fn generate_work() {
-        // let subject = Subject::
-        // let work = Work::generate();
-        // work.verify()
+        // Let's use a low difficulty in debug mode, it doesn't take forever.
+        let threshold = if cfg!(debug_assertions) {
+            Difficulty::from_hex("ffff000000000000")
+        } else {
+            Difficulty::from_hex("ffffffc000000000")
+        }
+        .unwrap();
+        dbg!(&threshold);
+
+        let public = Seed::zero().derive(0).to_public();
+        dbg!(&public);
+        let subject = Subject::Public(public);
+        let work = Work::generate(&subject, &threshold).unwrap();
+        dbg!(&work);
+        assert!(work.verify(&subject, &threshold).unwrap());
     }
 }
