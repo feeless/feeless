@@ -45,15 +45,17 @@ pub async fn dump(path: &str) -> anyhow::Result<()> {
                 Direction::Recv => ("<<<", Yellow),
             };
 
-            let p = match header.message_type() {
-                MessageType::Handshake => payload::<Handshake>(h, &mut bytes)?,
-                MessageType::ConfirmReq => payload::<ConfirmReq>(h, &mut bytes)?,
-                MessageType::ConfirmAck => payload::<ConfirmAck>(h, &mut bytes)?,
-                MessageType::Keepalive => payload::<Keepalive>(h, &mut bytes)?,
-                MessageType::TelemetryReq => payload::<Empty>(h, &mut bytes)?,
-                MessageType::Publish => payload::<Publish>(h, &mut bytes)?,
+            let func = match header.message_type() {
+                MessageType::Handshake => payload::<Handshake>,
+                MessageType::ConfirmReq => payload::<ConfirmReq>,
+                MessageType::ConfirmAck => payload::<ConfirmAck>,
+                MessageType::Keepalive => payload::<Keepalive>,
+                // TODO: Just make a wrapper around Empty so the name can be shown in Debug.
+                MessageType::TelemetryReq => payload::<Empty>,
+                MessageType::Publish => payload::<Publish>,
                 _ => todo!("{:?}", header),
             };
+            let p = func(h, &mut bytes)?;
             println!(
                 "{} {}",
                 direction_text,
