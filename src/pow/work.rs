@@ -1,10 +1,10 @@
 use std::convert::TryFrom;
 
-use crate::difficulty::Difficulty;
 use crate::encoding::blake2b;
+use crate::pow::difficulty::Difficulty;
 use crate::{expect_len, hex_formatter, BlockHash, Public};
 use rand::RngCore;
-use std::fmt::{Debug};
+use std::fmt::Debug;
 
 #[derive(Debug)]
 pub enum Subject {

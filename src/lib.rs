@@ -1,34 +1,30 @@
 #![forbid(unsafe_code)]
 
-mod address;
-mod block;
-mod block_hash;
-mod bytes;
-mod difficulty;
-pub mod dump;
-mod encoding;
-pub mod node;
-mod phrase;
-mod private;
-mod public;
-mod raw;
-mod seed;
-mod signature;
-mod work;
-
-pub use address::Address;
 use anyhow::anyhow;
+
 pub use block::{Link, StateBlock};
 pub use block_hash::BlockHash;
 pub use dump::dump;
 pub use encoding::{hex_formatter, to_hex};
-pub use phrase::{Language, MnemonicType, Phrase};
-pub use private::Private;
-pub use public::Public;
+pub use keys::address::Address;
+pub use keys::phrase::{Language, MnemonicType, Phrase};
+pub use keys::private::Private;
+pub use keys::public::Public;
+pub use keys::seed::Seed;
+pub use pow::work::Work;
 pub use raw::Raw;
-pub use seed::Seed;
 pub use signature::Signature;
-pub use work::Work;
+
+mod block;
+mod block_hash;
+mod bytes;
+pub mod dump;
+mod encoding;
+mod keys;
+pub mod node;
+mod pow;
+mod raw;
+mod signature;
 
 pub fn expect_len(got_len: usize, expected_len: usize, msg: &str) -> anyhow::Result<()> {
     if got_len != expected_len {
@@ -44,8 +40,9 @@ pub fn expect_len(got_len: usize, expected_len: usize, msg: &str) -> anyhow::Res
 
 #[cfg(test)]
 mod tests {
-    use super::*;
     use std::convert::TryFrom;
+
+    use super::*;
 
     #[test]
     fn conversions() {

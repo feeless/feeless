@@ -1,6 +1,6 @@
 use crate::encoding;
 
-use crate::public::Public;
+use crate::keys::public::Public;
 use anyhow::anyhow;
 use bitvec::prelude::*;
 use regex::Regex;

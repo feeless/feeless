@@ -4,9 +4,6 @@ use clap::Clap;
 use feeless::dump;
 use feeless::node::node_with_single_peer;
 
-
-
-
 #[derive(Clap)]
 struct Opts {
     #[clap(subcommand)]
