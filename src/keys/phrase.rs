@@ -1,4 +1,4 @@
-use crate::{Private};
+use crate::Private;
 use anyhow::anyhow;
 pub use bip39::Language;
 use bip39::Mnemonic;
@@ -25,12 +25,12 @@ impl Phrase {
     ) -> anyhow::Result<ExtendedSecretKey> {
         let bip39_seed = self.to_bip39_seed(passphrase)?;
         let key = ExtendedSecretKey::from_seed(bip39_seed.as_bytes())
-            .map_err(|e| anyhow!("Extended secret key from BIP39 seed: {:?}", e))?;
+            .map_err(|e| anyhow!("extended secret key from BIP39 seed: {:?}", e))?;
         let path = format!("m/44'/165'/{}'", account);
         let path: DerivationPath = path.parse().unwrap();
         let derived = key
             .derive(&path)
-            .map_err(|e| anyhow!("Deriving from bip39 seed to private key: {:?}", e))?;
+            .map_err(|e| anyhow!("deriving from bip39 seed to private key: {:?}", e))?;
         Ok(derived)
     }
 

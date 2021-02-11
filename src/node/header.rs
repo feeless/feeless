@@ -36,7 +36,7 @@ impl Header {
     pub fn validate(&self, state: &BoxedState) -> anyhow::Result<()> {
         if self.network != state.network() {
             return Err(anyhow!(
-                "Network mismatch: They're on {:?}. We're on {:?}",
+                "network mismatch: They're on {:?}. We're on {:?}",
                 self.network,
                 state.network(),
             ));
@@ -147,7 +147,7 @@ impl TryFrom<u8> for MagicNumber {
 
     fn try_from(v: u8) -> Result<Self, Self::Error> {
         if v != Self::MAGIC {
-            return Err(anyhow!("Invalid magic number: {}", v));
+            return Err(anyhow!("invalid magic number: {}", v));
         }
         Ok(Self::new())
     }
@@ -170,7 +170,7 @@ impl TryFrom<u8> for Network {
             0x41 => Test,
             0x42 => Beta,
             0x43 => Live,
-            v => return Err(anyhow!("Unknown network: {} ({:X})", v, v)),
+            v => return Err(anyhow!("unknown network: {} ({:X})", v, v)),
         })
     }
 }
@@ -219,7 +219,7 @@ impl TryFrom<u8> for MessageType {
             11 => BulkPullAccount,
             12 => TelemetryReq,
             13 => TelemetryAck,
-            v => return Err(anyhow!("Unknown message type: {}", v)),
+            v => return Err(anyhow!("unknown message type: {}", v)),
         })
     }
 }
@@ -335,7 +335,7 @@ mod tests {
     #[test]
     fn bad_length() {
         let _state: BoxedState = Box::new(TestState::new(Network::Live));
-        let err = "Header is the wrong length";
+        let err = "header is the wrong length";
         let s = vec![];
         assert_contains_err(Header::deserialize(None, &s), err);
         let s = vec![0xFF, 0x43, 18, 18, 18, 2, 3, 0, 0xFF];
@@ -355,7 +355,7 @@ mod tests {
         let s = vec![0x52, 0x43, 18, 18, 18, 2, 3, 0];
         let header = Header::deserialize(None, &s).unwrap();
         let result = header.validate(&state);
-        assert_contains_err(result, "Network mismatch");
+        assert_contains_err(result, "network mismatch");
     }
 
     #[test]

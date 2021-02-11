@@ -29,7 +29,7 @@ mod signature;
 pub fn expect_len(got_len: usize, expected_len: usize, msg: &str) -> anyhow::Result<()> {
     if got_len != expected_len {
         return Err(anyhow!(
-            "{} is the wrong length: Got: {} Expected: {}",
+            "{} is the wrong length: got: {} expected: {}",
             msg,
             got_len,
             expected_len,

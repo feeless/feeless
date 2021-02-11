@@ -31,7 +31,7 @@ impl TryFrom<u8> for BlockType {
             4 => Open,
             5 => Change,
             6 => State,
-            _ => return Err(anyhow!("Invalid block type: {}", value)),
+            _ => return Err(anyhow!("invalid block type: {}", value)),
         })
     }
 }
@@ -178,7 +178,7 @@ impl Wire for StateBlock {
 
         if header.ext().block_type()? != BlockType::State {
             return Err(anyhow!(
-                "Unexpected block type: {:?}",
+                "unexpected block type: {:?}",
                 header.ext().block_type()
             ));
         }

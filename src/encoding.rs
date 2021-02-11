@@ -49,7 +49,7 @@ pub fn decode_nano_base_32(s: &str) -> anyhow::Result<BitVec<Msb0, u8>> {
     for char in s.chars() {
         let value = ALPHABET
             .find(char) // TODO: performance
-            .ok_or_else(|| anyhow!("Unknown character found while decoding: {}", char))?;
+            .ok_or_else(|| anyhow!("unknown character found while decoding: {}", char))?;
         let value = value as u8;
         let char_bits: &BitSlice<Msb0, u8> = value.view_bits();
         bits.extend_from_bitslice(&char_bits[(8 - ENCODING_BITS)..8]);

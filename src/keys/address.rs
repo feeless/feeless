@@ -54,7 +54,7 @@ impl Address {
         let idx = Self::PREFIX_LEN + Self::ENCODED_PUBLIC_KEY_LEN;
         let checksum = &self.0[idx..];
         if public.checksum() != checksum {
-            return Err(anyhow!("Invalid checksum"));
+            return Err(anyhow!("invalid checksum"));
         }
         Ok(())
     }
@@ -96,9 +96,9 @@ impl TryFrom<&str> for Address {
     fn try_from(value: &str) -> Result<Self, Self::Error> {
         // TODO: Lazy
         let re = Regex::new("^nano_[13][13456789abcdefghijkmnopqrstuwxyz]{59}$")
-            .expect("Could not build regexp for nano address");
+            .expect("could not build regexp for nano address");
         if !re.is_match(value) {
-            return Err(anyhow!("Not a valid nano address: {}", value));
+            return Err(anyhow!("not a valid nano address: {}", value));
         }
 
         let address = Address(value.into());
