@@ -42,7 +42,7 @@ Nano is also known as: Nano cryptocurrency, Nano coin, Rai Blocks.
 
 ### General
 
-* Correctness rather than performance, at least until I'm happy with the feature set.
+* Correctness before performance.
 
 ### Rust crate
 
