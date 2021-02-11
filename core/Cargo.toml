@@ -10,7 +10,7 @@ repository = "https://github.com/gak/feeless"
 [dependencies]
 anyhow = "1.0.38"
 bigdecimal = { version = "0.2.0", features = ["serde"] }
-tokio = "1.1.1"
+tokio = { version = "*", features = ["full"] }
 serde = { version = "1.0.123", features = ["derive"] }
 blake2 = "0.9.1"
 hex = "0.4.2"
