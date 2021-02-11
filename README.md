@@ -21,9 +21,9 @@ The main features of **Nano** are:
 * Extremely fast to send money--less than 1 second for 100% confirmation.
 
   <sup>Bitcoin takes 10 minutes on average for ~80%<sup>1</sup> confirmation.</sup>
-* Highly decentralized
+* Highly decentralized.
 
-  <sup>(IIUC) Using the Nakamoto coeffieint measurement, it is more decentralized than Bitcoin<sup>2 3</sup>.
+  <sup>(IIUC) Using the Nakamoto coefficient measurement, it is more decentralized than Bitcoin<sup>2 3</sup>.
 * No inflation.
 * Green--Massively less energy use than Bitcoin.
 
