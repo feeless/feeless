@@ -56,11 +56,7 @@ impl Work {
     /// A single attempt.
     pub fn attempt(subject: &Subject, threshold: &Difficulty) -> anyhow::Result<Option<Work>> {
         let work = Work::random();
-        if work.verify(subject, threshold)? {
-            Ok(Some(work))
-        } else {
-            Ok(None)
-        }
+        Ok(work.verify(subject, threshold)?.then(|| work))
     }
 
     pub fn hash(work_and_subject: &[u8]) -> Box<[u8]> {
@@ -68,12 +64,12 @@ impl Work {
     }
 
     pub fn verify(&self, subject: &Subject, threshold: &Difficulty) -> anyhow::Result<bool> {
-        let difficulty = self.get_difficulty(subject)?;
-        Ok(difficulty.is_more_than(threshold))
+        let difficulty = self.difficulty(subject)?;
+        Ok(&difficulty > threshold)
     }
 
     // This is very probably not performant, but I'm just here to make it work first.
-    pub fn get_difficulty(&self, subject: &Subject) -> anyhow::Result<Difficulty> {
+    pub fn difficulty(&self, subject: &Subject) -> anyhow::Result<Difficulty> {
         let mut work_and_subject = Vec::new();
 
         // For some reason this is reversed!
@@ -156,7 +152,7 @@ mod tests {
             let subject = Subject::Hash(hash);
             let work = Work::from_hex(work).unwrap();
             let expected_difficulty = Difficulty::from_hex(expected_difficulty).unwrap();
-            let difficulty = work.get_difficulty(&subject).unwrap();
+            let difficulty = work.difficulty(&subject).unwrap();
             assert_eq!(difficulty, expected_difficulty, "{:?}", &fixture);
             assert_eq!(
                 work.verify(&subject, &threshold).unwrap(),

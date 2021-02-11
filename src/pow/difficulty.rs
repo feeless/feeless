@@ -1,4 +1,5 @@
 use crate::expect_len;
+use std::cmp::Ordering;
 
 #[derive(Debug, Eq, PartialEq)]
 pub struct Difficulty(u64);
@@ -37,9 +38,11 @@ impl Difficulty {
     pub fn as_u64(&self) -> u64 {
         self.0
     }
+}
 
-    pub fn is_more_than(&self, threshold: &Difficulty) -> bool {
-        self.0 > threshold.0
+impl PartialOrd for Difficulty {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        self.0.partial_cmp(&other.0)
     }
 }
 
