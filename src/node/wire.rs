@@ -1,11 +1,6 @@
-use header::Header;
 use std::fmt::Debug;
 
-pub mod cookie;
-pub mod header;
-pub mod peer;
-pub mod raw;
-pub mod state_block;
+use crate::node::header::Header;
 
 pub trait Wire: Debug {
     fn serialize(&self) -> Vec<u8>;

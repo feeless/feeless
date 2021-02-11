@@ -1,6 +1,6 @@
 use crate::block::BlockType;
 use crate::bytes::Bytes;
-use crate::node::wire::header::Header;
+use crate::node::header::Header;
 use crate::node::wire::Wire;
 use crate::{BlockHash, Public, Signature, StateBlock};
 use std::convert::TryFrom;

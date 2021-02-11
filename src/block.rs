@@ -1,7 +1,11 @@
+use crate::bytes::Bytes;
 use crate::encoding::blake2b;
+use crate::node::header::Header;
+use crate::node::wire::Wire;
 use crate::{Address, BlockHash, Public, Raw, Signature, Work};
 use anyhow::anyhow;
 use std::convert::TryFrom;
+use tracing::warn;
 
 #[derive(Debug, Eq, PartialEq)]
 pub enum BlockType {
@@ -114,6 +118,72 @@ impl StateBlock {
         v.extend_from_slice(self.link.as_bytes());
 
         BlockHash::try_from(blake2b(BlockHash::LEN, &v).as_ref())
+    }
+}
+
+impl Wire for StateBlock {
+    fn serialize(&self) -> Vec<u8> {
+        unimplemented!()
+    }
+
+    fn deserialize(_: Option<&Header>, data: &[u8]) -> Result<Self, anyhow::Error>
+    where
+        Self: Sized,
+    {
+        warn!("TODO Wire::deserialize");
+        let mut data = Bytes::new(data);
+
+        let account = Public::try_from(data.slice(Public::LEN)?)?;
+        let previous = BlockHash::try_from(data.slice(BlockHash::LEN)?)?;
+        let representative = Public::try_from(data.slice(Public::LEN)?)?;
+        let raw = Raw::try_from(data.slice(Raw::LEN)?)?;
+
+        let _link_data = data.slice(Public::LEN)?;
+        // TODO: I think this only works once we have previous blocks in a database.
+        // let link_data_is_zero = link_data == [0u8; Public::LEN];
+        // let link = if diff < 0 {
+        //     // Send
+        //     info!("Senddddddddddddddd");
+        //     Link::SendDestinationPublicKey(Public::try_from(link_data)?)
+        // } else if raw > 0 {
+        //     // Receive
+        //     info!("Recvvvvvvvvvvvvvvv");
+        //     Link::PairingSendBlockHash(BlockHash::try_from(link_data)?)
+        // } else {
+        //     // Change rep
+        //     if !link_data_is_zero {
+        //         return Err(anyhow!("link data is zero but raw is not zero: {:?}", raw));
+        //     }
+        //     info!("Changerepppppppppppppppp");
+        //     Link::Nothing
+        // };
+        let link = Link::Nothing;
+
+        let signature = Signature::try_from(data.slice(Signature::LEN)?)?;
+
+        Ok(Self::new(
+            account,
+            previous,
+            representative,
+            raw,
+            link,
+            signature,
+            Work::zero(), // TODO
+        ))
+    }
+
+    fn len(header: Option<&Header>) -> Result<usize, anyhow::Error> {
+        debug_assert!(header.is_some());
+        let header = header.unwrap();
+
+        if header.ext().block_type()? != BlockType::State {
+            return Err(anyhow!(
+                "Unexpected block type: {:?}",
+                header.ext().block_type()
+            ));
+        }
+
+        Ok(StateBlock::LEN)
     }
 }
 

@@ -1,6 +1,6 @@
 use crate::bytes::Bytes;
-use crate::node::wire::cookie::Cookie;
-use crate::node::wire::header::Header;
+use crate::node::cookie::Cookie;
+use crate::node::header::Header;
 use crate::node::wire::Wire;
 use crate::{Public, Signature};
 use std::convert::TryFrom;

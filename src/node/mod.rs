@@ -1,10 +1,15 @@
-use crate::node::channel::Channel;
-use crate::node::state::SledState;
-use crate::node::wire::header::Network;
 use tokio::net::TcpStream;
 
+use header::Network;
+
+use crate::node::channel::Channel;
+use crate::node::state::SledState;
+
 mod channel;
+pub mod cookie;
+pub mod header;
 pub mod messages;
+pub mod peer;
 pub mod state;
 pub mod wire;
 

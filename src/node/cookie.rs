@@ -1,4 +1,4 @@
-use crate::node::wire::header::Header;
+use crate::node::header::Header;
 use crate::node::wire::Wire;
 use crate::{expect_len, hex_formatter};
 use rand::RngCore;

@@ -1,5 +1,5 @@
 use crate::expect_len;
-use crate::node::wire::header::Header;
+use crate::node::header::Header;
 use crate::node::wire::Wire;
 use std::net::{Ipv6Addr, SocketAddrV6};
 use std::str::FromStr;

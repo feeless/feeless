@@ -1,14 +1,13 @@
 use crate::bytes::Bytes;
+use crate::node::header::{Header, MessageType};
 use crate::node::messages::confirm_ack::ConfirmAck;
 use crate::node::messages::confirm_req::ConfirmReq;
 use crate::node::messages::empty::Empty;
 use crate::node::messages::handshake::Handshake;
 use crate::node::messages::keepalive::Keepalive;
 use crate::node::messages::publish::Publish;
-use crate::node::wire::header::{Header, MessageType};
 use crate::node::wire::Wire;
 use ansi_term::Color::{Green, Yellow};
-
 
 use std::fs::File;
 use std::io::{BufRead, BufReader};

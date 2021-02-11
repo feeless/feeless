@@ -1,11 +1,11 @@
+use crate::node::cookie::Cookie;
+use crate::node::header::{Extensions, Header, MessageType};
 use crate::node::messages::confirm_ack::ConfirmAck;
 use crate::node::messages::confirm_req::ConfirmReq;
 use crate::node::messages::empty::Empty;
 use crate::node::messages::handshake::{Handshake, HandshakeQuery, HandshakeResponse};
 use crate::node::messages::publish::Publish;
 use crate::node::state::BoxedState;
-use crate::node::wire::cookie::Cookie;
-use crate::node::wire::header::{Extensions, Header, MessageType};
 use crate::node::wire::Wire;
 use crate::{expect_len, to_hex, Public, Seed, Signature};
 use anyhow::anyhow;
