@@ -40,6 +40,10 @@ Nano is also known as: Nano cryptocurrency, Nano coin, Rai Blocks.
 
 ## Goals
 
+### General
+
+* Correctness rather than performance, at least until I'm happy with the feature set.
+
 ### Rust crate
 
 * A complete library that a Rust developer can use to handle wallets, keys, blocks, signing, proof of work, etc.
@@ -83,6 +87,9 @@ A medium term task list:
   - [x] nano
   - [x] Mnano/NANO
 - [ ] Proof of work
+  - [x] Verification against a threshold
+  - [ ] Generation
+  - [ ] Dynamic threshold
 - [ ] Blocks
   - [x] Hashing
   - [ ] Work
