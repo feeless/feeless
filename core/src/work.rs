@@ -1,45 +1,8 @@
-use crate::encoding::blake2b;
-use crate::{expect_len, BlockHash, Public};
 use std::convert::TryFrom;
 
-#[derive(Debug, Eq, PartialEq)]
-pub struct Difficulty(u64);
-
-impl Difficulty {
-    const LEN: usize = 8;
-    const HEX_LEN: usize = Self::LEN * 2;
-
-    pub fn new(v: u64) -> Self {
-        Self(v)
-    }
-
-    pub fn from_hex(s: &str) -> anyhow::Result<Self> {
-        expect_len(s.len(), Self::HEX_LEN, "Difficulty")?;
-        let mut slice = [0u8; Self::LEN];
-        hex::decode_to_slice(s, &mut slice)?;
-        Self::from_slice(&slice)
-    }
-
-    pub fn from_fixed_slice(s: &[u8; Self::LEN]) -> anyhow::Result<Self> {
-        Ok(Difficulty(u64::from_le_bytes(*s)))
-    }
-
-    pub fn from_slice(s: &[u8]) -> anyhow::Result<Self> {
-        let mut b = [0u8; Self::LEN];
-        b.copy_from_slice(s);
-        Ok(Difficulty(u64::from_le_bytes(b)))
-    }
-
-    pub fn is_more_than(&self, threshold: &Difficulty) -> bool {
-        println!("{} {}", hex::encode(&self.0.to_le_bytes()), &self.0);
-        println!(
-            "{} {} (min)",
-            hex::encode(&threshold.0.to_le_bytes()),
-            &threshold.0
-        );
-        self.0 > threshold.0
-    }
-}
+use crate::difficulty::Difficulty;
+use crate::encoding::blake2b;
+use crate::{expect_len, BlockHash, Public};
 
 #[derive(Debug)]
 pub enum Subject {
@@ -68,7 +31,6 @@ impl Work {
 
     pub fn from_hex(s: &str) -> anyhow::Result<Self> {
         let mut value = hex::decode(s)?;
-        value.reverse();
         let value = value.as_slice();
         Work::try_from(value)
     }
@@ -89,11 +51,15 @@ impl Work {
     // This is very probably not performant, but I'm just here to make it work first.
     pub fn get_difficulty(&self, subject: &Subject) -> anyhow::Result<Difficulty> {
         let mut work_and_subject = Vec::new();
-        work_and_subject.extend_from_slice(&self.0);
+
+        // For some reason this is reversed!
+        let mut reversed_work = self.0.to_vec();
+        reversed_work.reverse();
+
+        work_and_subject.extend_from_slice(&reversed_work);
         work_and_subject.extend_from_slice(subject.to_bytes());
         let mut hash = Self::hash(&work_and_subject);
-        hash.reverse();
-        Difficulty::from_slice(hash.as_ref())
+        Difficulty::from_le_slice(hash.as_ref())
     }
 
     pub fn as_bytes(&self) -> &[u8] {
@@ -139,12 +105,12 @@ mod tests {
                 "fffffffb6fc1b4a6",
                 true,
             ),
-            // This is the same as above except the work has its first byte modified,
-            // causing a totally different difficulty, and not enough work.
+            // This is the same as above except the work is just zeros,
+            // causing a totally different difficulty, and not enough work in this case.
             (
                 "2387767168f9453db0eca227c79d7e7a31b78cafb58bd9cdee630881c70979ba",
-                "c58e13f297179bc2",
-                "3b24d56cc1f19103",
+                "0000000000000000",
+                "357abcab02726362",
                 false,
             ),
         ];
@@ -156,11 +122,8 @@ mod tests {
             let subject = Subject::Hash(hash);
             let work = Work::from_hex(work).unwrap();
             let expected_difficulty = Difficulty::from_hex(expected_difficulty).unwrap();
-
             let difficulty = work.get_difficulty(&subject).unwrap();
-
             assert_eq!(difficulty, expected_difficulty, "{:?}", &fixture);
-
             assert_eq!(
                 work.verify(&subject, &threshold).unwrap(),
                 *is_enough_work,

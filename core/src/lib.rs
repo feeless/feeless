@@ -4,6 +4,7 @@
 mod address;
 mod block;
 mod block_hash;
+mod difficulty;
 mod encoding;
 mod phrase;
 mod private;
