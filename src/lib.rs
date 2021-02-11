@@ -1,4 +1,3 @@
-#![feature(num_as_ne_bytes)]
 #![forbid(unsafe_code)]
 
 mod address;
