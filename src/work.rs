@@ -4,7 +4,7 @@ use crate::difficulty::Difficulty;
 use crate::encoding::blake2b;
 use crate::{expect_len, hex_formatter, BlockHash, Public};
 use rand::RngCore;
-use std::fmt::{Debug, Formatter};
+use std::fmt::{Debug};
 
 #[derive(Debug)]
 pub enum Subject {
@@ -37,7 +37,7 @@ impl Work {
     }
 
     pub fn from_hex(s: &str) -> anyhow::Result<Self> {
-        let mut value = hex::decode(s)?;
+        let value = hex::decode(s)?;
         let value = value.as_slice();
         Work::try_from(value)
     }
@@ -82,7 +82,7 @@ impl Work {
 
         work_and_subject.extend_from_slice(&reversed_work);
         work_and_subject.extend_from_slice(subject.to_bytes());
-        let mut hash = Self::hash(&work_and_subject);
+        let hash = Self::hash(&work_and_subject);
         Difficulty::from_le_slice(hash.as_ref())
     }
 

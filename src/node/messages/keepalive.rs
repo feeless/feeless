@@ -2,7 +2,7 @@ use crate::bytes::Bytes;
 use crate::node::wire::header::Header;
 use crate::node::wire::peer::Peer;
 use crate::node::wire::Wire;
-use std::convert::TryFrom;
+
 
 #[derive(Debug)]
 pub struct Keepalive(Vec<Peer>);

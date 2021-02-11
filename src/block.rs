@@ -1,5 +1,5 @@
 use crate::encoding::blake2b;
-use crate::{to_hex, Address, BlockHash, Public, Raw, Signature, Work};
+use crate::{Address, BlockHash, Public, Raw, Signature, Work};
 use anyhow::anyhow;
 use std::convert::TryFrom;
 

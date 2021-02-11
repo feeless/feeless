@@ -1,6 +1,6 @@
 use crate::encoding::blake2b;
 use crate::{expect_len, Private};
-use bip39::{Language, Mnemonic, MnemonicType};
+
 use bytes::{BufMut, BytesMut};
 use rand::RngCore;
 use std::convert::TryFrom;
