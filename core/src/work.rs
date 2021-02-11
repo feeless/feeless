@@ -53,6 +53,7 @@ impl Work {
         }
     }
 
+    /// A single attempt.
     pub fn attempt(subject: &Subject, threshold: &Difficulty) -> anyhow::Result<Option<Work>> {
         let work = Work::random();
         if work.verify(subject, threshold)? {

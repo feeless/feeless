@@ -29,7 +29,7 @@ The main features of **Nano** are:
 
 For more information on what Nano is, see the Nano documentation: https://docs.nano.org/what-is-nano/overview/
 
-Nano is also known as: Nano cryptocurrency, Nano coin, Rai Blocks.
+Nano is also known as: Nano cryptocurrency, Nano coin, RaiBlocks.
 
 <sup>
 1. The Bitcoin white paper, under section 11 "Calculations" explains there's a ~80% chance for an attacker with 10% mining power to overtake the longest chain. https://bitcoin.org/bitcoin.pdf

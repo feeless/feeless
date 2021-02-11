@@ -10,9 +10,7 @@ pub mod state_block;
 pub trait Wire: Debug {
     fn serialize(&self) -> Vec<u8>;
 
-    /// Only when deserializing the header we don't have a header.
-    /// This should .expect() when unwrapping when it's not a header, since it'll be a
-    /// programming error.
+    /// `header` will be `None` when we're deserializing the header itself.
     fn deserialize(header: Option<&Header>, data: &[u8]) -> anyhow::Result<Self>
     where
         Self: Sized;
