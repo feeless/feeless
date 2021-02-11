@@ -3,18 +3,10 @@ name = "feeless"
 version = "0.1.1"
 authors = ["gak <gak@gak0.com>"]
 edition = "2018"
-license = "MIT/Apache-2.0"
-description = "Nano (cryptocurrency) types and utilities, nano addresses, hashing blocks, signing, etc."
+license = "MIT OR Apache-2.0"
+description = "A Nano (cryptocurrency) node and utilities such as nano addresses, hashing blocks, signing, etc."
 repository = "https://github.com/gak/feeless"
 
-#[lib]
-#name = "feeless"
-#path = "src/lib.rs"
-#
-#[[bin]]
-#name = "feeless"
-#path = "src/main.rs"
-#
 [dependencies]
 async-trait = "*"
 hex = "0.4.2"
