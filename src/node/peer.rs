@@ -1,10 +1,9 @@
-use crate::expect_len;
 use crate::node::header::Header;
 use crate::node::wire::Wire;
+use crate::{expect_len, hex_formatter};
 use std::net::{Ipv6Addr, SocketAddrV6};
 use std::str::FromStr;
 
-#[derive(Debug)]
 pub struct Peer(SocketAddrV6);
 
 impl Peer {
@@ -48,6 +47,12 @@ impl Wire for Peer {
 
     fn len(_header: Option<&Header>) -> anyhow::Result<usize> {
         Ok(Peer::LEN)
+    }
+}
+
+impl std::fmt::Debug for Peer {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "Peer({})", self.0)
     }
 }
 

@@ -26,6 +26,8 @@ mod pow;
 mod raw;
 mod signature;
 
+pub const DEFAULT_PORT: u16 = 7075;
+
 pub fn expect_len(got_len: usize, expected_len: usize, msg: &str) -> anyhow::Result<()> {
     if got_len != expected_len {
         return Err(anyhow!(

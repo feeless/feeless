@@ -335,7 +335,7 @@ mod tests {
     #[test]
     fn bad_length() {
         let _state: BoxedState = Box::new(TestState::new(Network::Live));
-        let err = "header is the wrong length";
+        let err = "Header is the wrong length";
         let s = vec![];
         assert_contains_err(Header::deserialize(None, &s), err);
         let s = vec![0xFF, 0x43, 18, 18, 18, 2, 3, 0, 0xFF];

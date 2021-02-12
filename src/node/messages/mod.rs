@@ -4,3 +4,4 @@ pub mod empty;
 pub mod handshake;
 pub mod keepalive;
 pub mod publish;
+pub mod telemetry_req;

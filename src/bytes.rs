@@ -14,6 +14,14 @@ impl<'a> Bytes<'a> {
         self.offset >= self.bytes.len()
     }
 
+    pub fn offset(&self) -> usize {
+        self.offset
+    }
+
+    pub fn len(&self) -> usize {
+        self.bytes.len()
+    }
+
     pub fn slice(&mut self, size: usize) -> anyhow::Result<&[u8]> {
         self.bounds_check(size)?;
         let bytes = &self.bytes[self.offset..self.offset + size];

@@ -96,9 +96,9 @@ A medium term task list:
   - [x] State blocks
   - [ ] <v18 blocks?
 - [ ] Packet dissector
-  - [x] Parse hex dump from Wireshark
-  - [ ] Parse pcap
+  - [x] Parse pcap file
   - [x] Dump some message types to console
+  - [ ] Mark this done when all packets are decoded successfully (see below)
 - [ ] Node
   - [ ] Configuration
     - [x] Initial command line interface
