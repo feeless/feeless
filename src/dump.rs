@@ -8,6 +8,7 @@ use crate::node::messages::keepalive::Keepalive;
 use crate::node::messages::publish::Publish;
 use crate::node::wire::Wire;
 
+use crate::node::messages::telemetry_ack::TelemetryAck;
 use crate::node::messages::telemetry_req::TelemetryReq;
 use crate::{to_hex, DEFAULT_PORT};
 use ansi_term;
@@ -63,7 +64,7 @@ pub async fn dump(path: &str) -> anyhow::Result<()> {
             continue;
         };
 
-        // Only look at 7075.
+        // Only look at port 7075.
         // TODO: Infer peers or by valid header?
         // Might be nicer if it can learn peers from the dump in case there are other port used.
         // Another option is to just parse every packet and if the header is not valid, just
@@ -86,12 +87,15 @@ pub async fn dump(path: &str) -> anyhow::Result<()> {
                 Direction::Recv => ("<<<", recv_color),
             };
 
+            dbg!(&header);
+
             let func = match header.message_type() {
                 MessageType::Handshake => payload::<Handshake>,
                 MessageType::ConfirmReq => payload::<ConfirmReq>,
                 MessageType::ConfirmAck => payload::<ConfirmAck>,
                 MessageType::Keepalive => payload::<Keepalive>,
                 MessageType::TelemetryReq => payload::<TelemetryReq>,
+                MessageType::TelemetryAck => payload::<TelemetryAck>,
                 MessageType::Publish => payload::<Publish>,
                 m => {
                     println!("{}", error_color.paint(format!("TODO {:?}", header)));
@@ -108,7 +112,11 @@ pub async fn dump(path: &str) -> anyhow::Result<()> {
             );
         }
 
-        direction.swap();
+        // TODO: This doesn't apply now that we're doing pcap capture. It should know the IP
+        // address of the network, and use that as the source. Maybe scan through it and work out
+        // the most used one.
+        //
+        // direction.swap();
     }
 }
 
@@ -122,8 +130,8 @@ fn next_packet(reader: &mut PcapNGReader<File>) -> anyhow::Result<Option<Vec<u8>
             Err(err) => {
                 return match err {
                     PcapError::Eof => Ok(None),
-                    err => Err(anyhow!("{:?}", err)),
-                }
+                    err => Err(anyhow!("Pcap error: {:?}", err)),
+                };
             }
         };
         let ng = match block {
