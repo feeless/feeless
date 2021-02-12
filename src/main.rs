@@ -1,8 +1,8 @@
 #![forbid(unsafe_code)]
 
 use clap::Clap;
-use feeless::dump;
 use feeless::node::node_with_single_peer;
+use feeless::pcap;
 
 #[derive(Clap)]
 struct Opts {
@@ -31,8 +31,11 @@ async fn main() {
     tracing_subscriber::fmt::init();
 
     let opts: Opts = Opts::parse();
-    match opts.command {
-        Command::Node(o) => node_with_single_peer(&o.address).await.unwrap(),
-        Command::Dump(o) => dump::dump(&o.path).await.unwrap(),
+    let result = match opts.command {
+        Command::Node(o) => node_with_single_peer(&o.address).await,
+        Command::Dump(o) => pcap::pcap_dump(&o.path).await,
+    };
+    if result.is_err() {
+        println!("{:#?}", result.unwrap());
     }
 }

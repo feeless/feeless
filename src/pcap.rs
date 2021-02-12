@@ -20,7 +20,7 @@ use pcap_parser::traits::PcapReaderIterator;
 use pcap_parser::{Block, PcapBlockOwned, PcapError, PcapNGReader};
 use std::fs::File;
 use std::io::{BufRead, BufReader};
-use tracing::{debug, info, warn};
+use tracing::{debug, info, trace, warn};
 
 enum Direction {
     Send,
@@ -36,7 +36,7 @@ impl Direction {
     }
 }
 
-pub async fn dump(path: &str) -> anyhow::Result<()> {
+pub async fn pcap_dump(path: &str) -> anyhow::Result<()> {
     info!("Loading dump: {}", path);
 
     let mut direction = Direction::Send;
@@ -48,7 +48,9 @@ pub async fn dump(path: &str) -> anyhow::Result<()> {
     let error_color = Color::Red;
 
     let mut reader = PcapNGReader::new(65536, file)?;
+    let mut packet_idx = 0;
     'packet: loop {
+        packet_idx += 1; // 1 based packet numbering because wireshark uses it.
         let data = next_packet(&mut reader)?;
         let data = if data.is_none() {
             // EOF
@@ -73,13 +75,17 @@ pub async fn dump(path: &str) -> anyhow::Result<()> {
             continue;
         }
 
-        let bytes = &packet.payload;
+        let bytes = packet.payload;
 
-        // TODO: WTF: packet.payload is giving two extra bytes at the end.
-        let bytes = &bytes[0..bytes.len() - 2];
+        // TODO: WTF: packet.payload is giving two extra bytes at the end of every packet.
+        // let bytes = &bytes[0..bytes.len() - 2];
+
+        trace!("packet: {} size: {}", &packet_idx, bytes.len());
+        trace!("dump: {}", to_hex(&bytes));
 
         let mut bytes = Bytes::new(bytes);
         while !bytes.eof() {
+            dbg!(bytes.remain());
             let header = Header::deserialize(None, bytes.slice(Header::LEN)?)?;
             let h = Some(&header);
             let (direction_text, color) = match direction {
@@ -103,7 +109,9 @@ pub async fn dump(path: &str) -> anyhow::Result<()> {
                     continue 'packet;
                 }
             };
+            dbg!(bytes.remain());
             let p = func(h, &mut bytes)?;
+            dbg!(bytes.remain());
             let dbg = format!("{:#?}", p.as_ref());
             println!(
                 "{} {}",
@@ -160,6 +168,15 @@ pub fn payload<T: 'static + Wire>(
     bytes: &mut Bytes,
 ) -> anyhow::Result<Box<dyn Wire>> {
     let len = T::len(header)?;
+
+    if bytes.remain() < len {
+        return Err(anyhow!(
+            "not enough bytes left to process. want: {}, has: {}",
+            len,
+            bytes.remain()
+        ));
+    }
+
     let data = bytes.slice(len)?;
     let payload: T = T::deserialize(header, data)?;
     Ok(Box::new(payload))

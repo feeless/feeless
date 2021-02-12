@@ -18,6 +18,10 @@ impl<'a> Bytes<'a> {
         self.offset
     }
 
+    pub fn remain(&self) -> usize {
+        self.len() - self.offset()
+    }
+
     pub fn len(&self) -> usize {
         self.bytes.len()
     }
