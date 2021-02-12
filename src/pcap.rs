@@ -16,8 +16,9 @@ use ansi_term::Color;
 use anyhow::anyhow;
 use etherparse::SlicedPacket;
 use etherparse::TransportSlice;
-use pcap_parser::traits::PcapReaderIterator;
-use pcap_parser::{Block, PcapBlockOwned, PcapError, PcapNGReader};
+// use pcap_parser::traits::PcapReaderIterator;
+// use pcap_parser::{Block, PcapBlockOwned, PcapError, PcapNGReader};
+use pcarp::Capture;
 use std::fs::File;
 use std::io::{BufRead, BufReader};
 use tracing::{debug, info, trace, warn};
@@ -47,17 +48,21 @@ pub async fn pcap_dump(path: &str) -> anyhow::Result<()> {
     let direction_marker_color = Color::Yellow.bold();
     let error_color = Color::Red;
 
-    let mut reader = PcapNGReader::new(65536, file)?;
+    // let mut reader = PcapNGReader::new(65536, file)?;
+    let mut reader = Capture::new(file)?;
+
     let mut packet_idx = 0;
     'packet: loop {
         packet_idx += 1; // 1 based packet numbering because wireshark uses it.
-        let data = next_packet(&mut reader)?;
-        let data = if data.is_none() {
+        let data = reader.next().transpose()?;
+        let packet = if data.is_none() {
             // EOF
             return Ok(());
         } else {
             data.unwrap()
         };
+        trace!("{}", packet.data.len());
+        let data = packet.data;
 
         let packet = SlicedPacket::from_ethernet(&data)?;
         let tcp = if let Some(TransportSlice::Tcp(tcp)) = &packet.transport {
@@ -76,6 +81,8 @@ pub async fn pcap_dump(path: &str) -> anyhow::Result<()> {
         }
 
         let bytes = packet.payload;
+        // let real_len = data[46] as usize;
+        // let bytes = &data[54..54 + real_len];
 
         // TODO: WTF: packet.payload is giving two extra bytes at the end of every packet.
         // let bytes = &bytes[0..bytes.len() - 2];
@@ -130,38 +137,40 @@ pub async fn pcap_dump(path: &str) -> anyhow::Result<()> {
 
 /// Returns `Ok(None)` when EOF
 // TODO: I don't know how to return a reference slice. Lifetime problems.
-fn next_packet(reader: &mut PcapNGReader<File>) -> anyhow::Result<Option<Vec<u8>>> {
-    loop {
-        let result = &reader.next();
-        let (offset, block) = match result {
-            Ok(ok) => ok,
-            Err(err) => {
-                return match err {
-                    PcapError::Eof => Ok(None),
-                    err => Err(anyhow!("Pcap error: {:?}", err)),
-                };
-            }
-        };
-        let ng = match block {
-            PcapBlockOwned::NG(ng) => ng,
-            _ => return Err(anyhow!("only ng blocks supported")),
-        };
-
-        let data = match ng {
-            Block::EnhancedPacket(ep) => ep.data,
-            Block::SimplePacket(sp) => sp.data,
-            _ => {
-                // Ignoring non packet data.
-                reader.consume(*offset);
-                continue;
-            }
-        };
-
-        let data = data.to_owned();
-        reader.consume(*offset);
-        return Ok(Some(data));
-    }
-}
+// fn next_packet(reader: &mut PcapNGReader<File>) -> anyhow::Result<Option<Vec<u8>>> {
+//     loop {
+//         let result = &reader.next();
+//         let (offset, block) = match result {
+//             Ok(ok) => ok,
+//             Err(err) => {
+//                 return match err {
+//                     PcapError::Eof => Ok(None),
+//                     err => Err(anyhow!("Pcap error: {:?}", err)),
+//                 };
+//             }
+//         };
+//         let ng = match block {
+//             PcapBlockOwned::NG(ng) => ng,
+//             _ => return Err(anyhow!("only ng blocks supported")),
+//         };
+//
+//         let data = match ng {
+//             Block::EnhancedPacket(ep) => ep.data,
+//             Block::SimplePacket(sp) => sp.data,
+//             _ => {
+//                 // Ignoring non packet data.
+//                 reader.consume(*offset);
+//                 continue;
+//             }
+//         };
+//
+//         dbg!("WTF", data.len());
+//
+//         let data = data.to_owned();
+//         reader.consume(*offset);
+//         return Ok(Some(data));
+//     }
+// }
 
 pub fn payload<T: 'static + Wire>(
     header: Option<&Header>,

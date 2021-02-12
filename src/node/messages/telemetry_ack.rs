@@ -28,7 +28,7 @@ pub struct TelemetryAck([u8; Self::LEN]);
 // }
 
 impl TelemetryAck {
-    pub const LEN: usize = 200;
+    pub const LEN: usize = 202;
 }
 
 impl Wire for TelemetryAck {
