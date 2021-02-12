@@ -41,7 +41,7 @@ pub async fn dump(path: &str) -> anyhow::Result<()> {
     let mut direction = Direction::Send;
     let file = File::open(path)?;
 
-    let recv_color = Color::Green.bold();
+    let recv_color = Color::Green.normal();
     let send_color = Color::Blue.bold();
     let direction_marker_color = Color::Yellow.bold();
     let error_color = Color::Red;
