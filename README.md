@@ -203,6 +203,17 @@ A medium term task list:
 * https://iancoleman.io/bip39/
   * Helped me test out my BIP 39/BIP 44 implementations.
 
+## Other implementations
+
+* nano-rs (Rust) https://github.com/termhn/nano-rs
+* nano-python (Python) https://github.com/orhanhenrik/nano-python-node
+* gonano (Go) https://github.com/alexbakker/gonano
+* Node.js Nano Node (JavaScript) https://github.com/numtel/node-nano-node
+* nanocurrency-node (TypeScript) https://github.com/pRizz/nanocurrency-node
+* Prailude (Lua, C) https://github.com/slact/prailude
+* RaiSharp (C#) https://github.com/vardthomas/Aggrex.RaiSharp
+* Railroad (Rust) https://github.com/PlasmaPower/railroad
+  
 ## License
 
 Licensed under either of these at your option:
