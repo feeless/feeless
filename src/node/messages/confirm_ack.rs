@@ -76,7 +76,6 @@ impl Wire for ConfirmAck {
         let header = header.unwrap();
 
         if header.ext().block_type()? == BlockType::NotABlock {
-            trace!("not a block");
             Ok(Self::VOTE_COMMON_LEN + header.ext().item_count() * BlockHash::LEN)
         } else {
             trace!("a block");

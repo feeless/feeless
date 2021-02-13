@@ -44,7 +44,12 @@ enum Direction {
 
 pub struct PcapDump {
     /// Storage to continue a TCP payload for the next packet in a stream.
-    stream_cont: HashMap<String, Vec<u8>>,
+    stream_cont: HashMap<String, (usize, Vec<u8>)>,
+
+    pub expanded: bool,
+    pub start_at: Option<usize>,
+    pub end_at: Option<usize>,
+    pub filter_addr: Option<Ipv4Addr>,
 
     subject: Subject,
     found_subject: Option<Ipv4Addr>,
@@ -61,6 +66,10 @@ impl PcapDump {
             stream_cont: HashMap::new(),
             subject,
             found_subject,
+            expanded: false,
+            start_at: None,
+            end_at: None,
+            filter_addr: None,
         }
     }
 
@@ -74,11 +83,14 @@ impl PcapDump {
         let direction_marker_color = Color::White.bold();
         let error_color = Color::Red;
 
+        let mut has_started = false;
         let mut reader = Capture::new(file)?;
         let mut packet_idx = 0;
         'next_packet: loop {
             packet_idx += 1; // 1 based packet numbering because wireshark uses it.
+
             let data = reader.next().transpose()?;
+
             let packet = if data.is_none() {
                 // EOF
                 return Ok(());
@@ -92,6 +104,7 @@ impl PcapDump {
                 None => continue,
             };
 
+            // Work out direction based on subject
             if self.subject == Subject::AutoFirstSource && self.found_subject.is_none() {
                 self.found_subject = Some(ip.source_addr());
             }
@@ -105,9 +118,35 @@ impl PcapDump {
                 Direction::Recv
             };
 
+            // Start and end packet happens after the subject code, so we can still use the
+            // first source from the first packet.
+            if !has_started {
+                match self.start_at {
+                    Some(start_at) => {
+                        if start_at == packet_idx {
+                            has_started = true;
+                        } else {
+                            continue;
+                        }
+                    }
+                    None => has_started = true,
+                }
+            }
+            if let Some(end_at) = self.end_at {
+                if packet_idx > end_at {
+                    return Ok(());
+                }
+            }
+
             // Only look at port 7075.
             if tcp.destination_port() != DEFAULT_PORT && tcp.source_port() != DEFAULT_PORT {
                 continue;
+            }
+
+            if let Some(addr) = self.filter_addr {
+                if ip.source_addr() != addr && ip.destination_addr() != addr {
+                    continue;
+                }
             }
 
             let stream_id = format!(
@@ -118,21 +157,34 @@ impl PcapDump {
                 tcp.destination_port()
             );
 
+            trace!(
+                "Packet: #{} size: {} {}",
+                &packet_idx,
+                packet.payload.len(),
+                &stream_id
+            );
+
             let mut v = vec![];
             let bytes = match self.stream_cont.get(&stream_id) {
-                Some(b) => {
+                Some((other_packet_idx, b)) => {
                     // We have some left over data from a previous packet.
-                    trace!("Prepending {} bytes from a previous packet.", b.len());
+                    trace!(
+                        "Prepending {} bytes from packet #{}.",
+                        b.len(),
+                        other_packet_idx
+                    );
+                    trace!("Prepending: {}", to_hex(&b));
                     v.extend_from_slice(&b);
+                    trace!("  New data: {}", to_hex(&packet.payload));
                     v.extend_from_slice(&packet.payload);
                     self.stream_cont.remove(&stream_id);
                     v.as_slice()
                 }
-                None => packet.payload,
+                None => {
+                    trace!("{}", to_hex(&packet.payload));
+                    packet.payload
+                }
             };
-
-            trace!("packet: #{} size: {}", &packet_idx, bytes.len());
-            // trace!("dump: {}", to_hex(&bytes));
 
             let mut bytes = Bytes::new(bytes);
             while !bytes.eof() {
@@ -153,8 +205,14 @@ impl PcapDump {
                         }
                     };
                 let (direction_text, color) = match direction {
-                    Direction::Send => (format!(">>> {}", ip.destination_addr()), send_color),
-                    Direction::Recv => (format!("<<< {}", ip.source_addr()), recv_color),
+                    Direction::Send => (
+                        format!(">>> {}:{}", ip.destination_addr(), tcp.destination_port()),
+                        send_color,
+                    ),
+                    Direction::Recv => (
+                        format!("<<< {}:{}", ip.source_addr(), tcp.source_port()),
+                        recv_color,
+                    ),
                 };
 
                 let func = match header.message_type() {
@@ -166,7 +224,7 @@ impl PcapDump {
                     // MessageType::TelemetryAck => payload::<TelemetryAck>,
                     MessageType::Publish => payload::<Publish>,
                     _ => {
-                        println!("{}", error_color.paint(format!("TODO {:?}", header)));
+                        warn!("TODO {:?}", header);
                         continue 'next_packet;
                     }
                 };
@@ -186,18 +244,24 @@ impl PcapDump {
                 let decoded = match maybe_decoded {
                     Some(p) => p,
                     None => {
+                        bytes.seek(-(Header::LEN as i64))?;
                         let remaining = Vec::from(bytes.slice(bytes.remain())?);
-                        self.stream_cont.insert(stream_id.clone(), remaining);
+                        self.stream_cont
+                            .insert(stream_id.clone(), (packet_idx, remaining));
                         continue 'next_packet;
                     }
                 };
 
-                // let dbg = format!("{:#?}", decoded.as_ref());
-                // println!(
-                //     "{} {}",
-                //     direction_marker_color.paint(direction_text),
-                //     color.paint(dbg)
-                // );
+                let dbg = if self.expanded {
+                    format!("{:#?}", decoded.as_ref())
+                } else {
+                    format!("{:?}", decoded.as_ref())
+                };
+                println!(
+                    "{} {}",
+                    direction_marker_color.paint(direction_text),
+                    color.paint(dbg)
+                );
             }
         }
     }
@@ -230,7 +294,8 @@ pub fn payload<T: 'static + Wire>(
 
     if bytes.remain() < len {
         trace!(
-            "Not enough bytes left to process. Will prepend {} bytes in next packet.",
+            "Not enough bytes left to process. Needs {} more. Will prepend {} bytes in next packet.",
+            len - bytes.remain(),
             bytes.remain()
         );
         return Ok(None);

@@ -27,7 +27,25 @@ struct NodeOpts {
 #[derive(Clap)]
 struct PcapDumpArgs {
     path: String,
-    subject: Option<String>,
+
+    /// The IP address of the subject, to show relative information.
+    /// This is inferred automatically by the host of the first packet sent out.
+    #[clap(short, long)]
+    my_addr: Option<String>,
+
+    /// Only show packets related to this IP address.
+    #[clap(long)]
+    filter_addr: Option<String>,
+
+    #[clap(long)]
+    start: Option<usize>,
+
+    #[clap(long)]
+    end: Option<usize>,
+
+    /// Show packets over multiple lines.
+    #[clap(short, long)]
+    expanded: bool,
 }
 
 #[tokio::main]
@@ -38,11 +56,20 @@ async fn main() {
     let result = match opts.command {
         Command::Node(o) => node_with_single_peer(&o.address).await,
         Command::Pcap(o) => {
-            let subject = match o.subject {
-                Some(ip_addr) => Subject::Specified(Ipv4Addr::from_str(&ip_addr).unwrap()),
+            let subject = match o.my_addr {
+                Some(ip_addr) => {
+                    Subject::Specified(Ipv4Addr::from_str(&ip_addr).expect("a valid ip address"))
+                }
                 None => Subject::AutoFirstSource,
             };
             let mut p = PcapDump::new(subject);
+            p.expanded = o.expanded;
+            p.start_at = o.start;
+            p.end_at = o.end;
+            p.filter_addr = o
+                .filter_addr
+                .as_ref()
+                .map(|i| Ipv4Addr::from_str(i).expect("a valid ip address"));
             p.dump(&o.path)
         }
     };

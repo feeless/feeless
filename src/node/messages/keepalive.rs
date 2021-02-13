@@ -22,7 +22,11 @@ impl Wire for Keepalive {
         let mut s = Self(vec![]);
         let mut bytes = Bytes::new(data);
         for _ in 0..Keepalive::PEERS {
-            let peer = Peer::deserialize(header, bytes.slice(Peer::LEN)?)?;
+            let slice = bytes.slice(Peer::LEN)?;
+            if slice == [0u8; Peer::LEN] {
+                continue;
+            }
+            let peer = Peer::deserialize(header, slice)?;
             s.0.push(peer);
         }
         Ok(s)

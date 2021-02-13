@@ -130,7 +130,7 @@ impl Wire for StateBlock {
     where
         Self: Sized,
     {
-        warn!("TODO Wire::deserialize");
+        warn!("TODO StateBlock::deserialize");
         let mut data = Bytes::new(data);
 
         let account = Public::try_from(data.slice(Public::LEN)?)?;

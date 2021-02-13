@@ -22,12 +22,18 @@ impl<'a> Bytes<'a> {
         self.len() - self.offset()
     }
 
+    pub fn seek(&mut self, amount: i64) -> anyhow::Result<()> {
+        self.bounds_check(amount)?;
+        self.offset = (self.offset as i64 + amount) as usize;
+        Ok(())
+    }
+
     pub fn len(&self) -> usize {
         self.bytes.len()
     }
 
     pub fn slice(&mut self, size: usize) -> anyhow::Result<&[u8]> {
-        self.bounds_check(size)?;
+        self.bounds_check(size as i64)?;
         let bytes = &self.bytes[self.offset..self.offset + size];
         self.offset += size;
         Ok(bytes)
@@ -40,8 +46,8 @@ impl<'a> Bytes<'a> {
         Ok(b)
     }
 
-    fn bounds_check(&mut self, size: usize) -> anyhow::Result<()> {
-        if self.offset + size > self.bytes.len() {
+    fn bounds_check(&mut self, size: i64) -> anyhow::Result<()> {
+        if (self.offset as i64 + size) as usize > self.bytes.len() {
             Err(anyhow!(
                 "slice extended past end. offset: {} size: {} len: {}",
                 self.offset,
