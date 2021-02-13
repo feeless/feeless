@@ -159,7 +159,7 @@ impl PcapDump {
                 tcp.destination_port()
             );
 
-            trace!(
+            debug!(
                 "Packet: #{} size: {} {}",
                 &packet_idx,
                 packet.payload.len(),
@@ -175,9 +175,7 @@ impl PcapDump {
                         b.len(),
                         other_packet_idx
                     );
-                    trace!("Prepending: {}", to_hex(&b));
                     v.extend_from_slice(&b);
-                    trace!("  New data: {}", to_hex(&packet.payload));
                     v.extend_from_slice(&packet.payload);
                     self.stream_cont.remove(&stream_id);
                     v.as_slice()
@@ -229,7 +227,7 @@ impl PcapDump {
                     MessageType::ConfirmAck => payload::<ConfirmAck>,
                     MessageType::Keepalive => payload::<Keepalive>,
                     MessageType::TelemetryReq => payload::<TelemetryReq>,
-                    // MessageType::TelemetryAck => payload::<TelemetryAck>,
+                    MessageType::TelemetryAck => payload::<TelemetryAck>,
                     MessageType::Publish => payload::<Publish>,
                     _ => {
                         warn!("TODO {:?}", header);

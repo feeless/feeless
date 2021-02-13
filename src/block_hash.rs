@@ -8,6 +8,10 @@ pub struct BlockHash([u8; BlockHash::LEN]);
 impl BlockHash {
     pub const LEN: usize = 32;
 
+    pub fn zero() -> Self {
+        Self([0u8; BlockHash::LEN])
+    }
+
     pub fn from_hex(s: &str) -> anyhow::Result<Self> {
         BlockHash::try_from(hex::decode(s.as_bytes())?.as_slice())
     }
