@@ -6,29 +6,35 @@ use crate::node::messages::empty::Empty;
 use crate::node::messages::handshake::Handshake;
 use crate::node::messages::keepalive::Keepalive;
 use crate::node::messages::publish::Publish;
-use crate::node::wire::Wire;
-
 use crate::node::messages::telemetry_ack::TelemetryAck;
 use crate::node::messages::telemetry_req::TelemetryReq;
+use crate::node::wire::Wire;
 use crate::{to_hex, DEFAULT_PORT};
 use ansi_term;
 use ansi_term::Color;
 use anyhow::{anyhow, Context, Error};
-use etherparse::TransportSlice;
 use etherparse::{InternetSlice, SlicedPacket};
+use etherparse::{Ipv4HeaderSlice, TcpHeaderSlice, TransportSlice};
 use pcarp::Capture;
 use std::collections::HashMap;
 use std::fs::File;
 use std::io::{BufRead, BufReader};
-use std::net::IpAddr;
+use std::net::{IpAddr, Ipv4Addr};
 use std::str::FromStr;
 use tracing::{debug, error, info, trace, warn};
 
-#[derive(Debug)]
+/// Subject is the focused peer that we act as "us", when showing if we're sending or
+/// receiving.
+//
+// TODO: Infer peers or by valid header?
+// Might be nicer if it can learn peers from the dump in case there are other port used.
+// Another option is to just parse every packet and if the header is not valid, just
+// ignore it.
+// Or... just assume the first packet sent is from the subject.
+#[derive(Debug, PartialEq, Eq)]
 pub enum Subject {
     AutoFirstSource,
-    AutoMostSeen,
-    Specified(IpAddr),
+    Specified(Ipv4Addr),
 }
 
 enum Direction {
@@ -40,32 +46,25 @@ pub struct PcapDump {
     /// Storage to continue a TCP payload for the next packet in a stream.
     stream_cont: HashMap<String, Vec<u8>>,
 
-    /// Subject is the focused peer that we act as "us", when showing if we're sending or
-    /// receiving.
     subject: Subject,
+    found_subject: Option<Ipv4Addr>,
 }
 
 impl PcapDump {
     pub fn new(subject: Subject) -> Self {
+        let found_subject = match subject {
+            Subject::Specified(s) => Some(s),
+            _ => None,
+        };
+
         PcapDump {
             stream_cont: HashMap::new(),
             subject,
+            found_subject,
         }
     }
 
     pub fn dump(&mut self, path: &str) -> anyhow::Result<()> {
-        let subject = match self.subject {
-            Subject::Specified(s) => s,
-            _ => {
-                // TODO: Support automatic subject detection.
-                return Err(anyhow!("{:?} not supported yet!", self.subject));
-            }
-        };
-        if !subject.is_ipv4() {
-            // TODO: ipv6
-            return Err(anyhow!("specific source only supports ipv4"));
-        }
-
         info!("Loading dump: {}", path);
 
         let file = File::open(path)?;
@@ -87,40 +86,23 @@ impl PcapDump {
                 data.unwrap()
             };
             let data = packet.data;
-
             let packet = SlicedPacket::from_ethernet(&data)?;
-            // TODO: Support IPv6
-            let ip = if let Some(InternetSlice::Ipv4(ip)) = &packet.ip {
-                ip
-            } else {
-                continue;
+            let (ip, tcp) = match Self::process_packet(&packet) {
+                Some(r) => r,
+                None => continue,
             };
 
-            // Direction
-            // TODO: Infer peers or by valid header?
-            // Might be nicer if it can learn peers from the dump in case there are other port used.
-            // Another option is to just parse every packet and if the header is not valid, just
-            // ignore it.
-            // Or... just assume the first packet sent is from the subject.
-            let source = if let IpAddr::V4(v4_source) = subject {
-                v4_source
-            } else {
-                continue;
-            };
-
-            direction = if ip.destination_addr() == source {
+            if self.subject == Subject::AutoFirstSource && self.found_subject.is_none() {
+                self.found_subject = Some(ip.source_addr());
+            }
+            let subject = self.found_subject.expect("a subject to be set by now");
+            let direction = if ip.destination_addr() == subject {
                 Direction::Recv
-            } else if ip.source_addr() == source {
+            } else if ip.source_addr() == subject {
                 Direction::Send
             } else {
-                warn!("Unknown direction for {} and {:?}", source, ip);
+                warn!("Unknown direction for {} and {:?}", subject, ip);
                 Direction::Recv
-            };
-
-            let tcp = if let Some(TransportSlice::Tcp(tcp)) = &packet.transport {
-                tcp
-            } else {
-                continue;
             };
 
             // Only look at port 7075.
@@ -218,6 +200,25 @@ impl PcapDump {
                 // );
             }
         }
+    }
+
+    fn process_packet<'a>(
+        packet: &'a SlicedPacket,
+    ) -> Option<(&'a Ipv4HeaderSlice<'a>, &'a TcpHeaderSlice<'a>)> {
+        // TODO: Support IPv6
+        let ip = if let Some(InternetSlice::Ipv4(ip)) = &packet.ip {
+            ip
+        } else {
+            return None;
+        };
+
+        let tcp = if let Some(TransportSlice::Tcp(tcp)) = &packet.transport {
+            tcp
+        } else {
+            return None;
+        };
+
+        Some((ip, tcp))
     }
 }
 
