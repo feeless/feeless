@@ -1,9 +1,11 @@
 use crate::block::BlockType;
+use crate::bytes::Bytes;
 use crate::node::header::Header;
 use crate::node::wire::Wire;
-use crate::{expect_len, BlockHash};
-use anyhow::anyhow;
+use crate::{expect_len, BlockHash, StateBlock};
+use anyhow::{anyhow, Context};
 use std::convert::TryFrom;
+use tracing::info;
 
 /// Requests confirmation of the given block or list of root/hash pairs.
 //
@@ -17,11 +19,11 @@ use std::convert::TryFrom;
 #[derive(Debug)]
 pub enum ConfirmReq {
     ConfirmReqByHash(Vec<RootHashPair>),
-    BlockSelector,
+    BlockSelector(StateBlock),
 }
 
 impl ConfirmReq {
-    pub const LEN: usize = BlockHash::LEN * 2;
+    pub const CONFIRM_REQ_BY_HASH_LEN: usize = BlockHash::LEN * 2;
 }
 
 impl Wire for ConfirmReq {
@@ -36,6 +38,8 @@ impl Wire for ConfirmReq {
         debug_assert!(header.is_some());
         let header = header.unwrap();
 
+        let mut bytes = Bytes::new(data);
+
         if header.ext().block_type()? == BlockType::NotABlock {
             let count = header.ext().item_count() as usize;
             let expected_capacity = RootHashPair::LEN * count;
@@ -46,19 +50,38 @@ impl Wire for ConfirmReq {
             )?;
 
             let mut pairs = Vec::with_capacity(expected_capacity);
-            for idx in 0..count {
-                let offset = idx * RootHashPair::LEN;
-                let pair = RootHashPair::try_from(&data[offset..offset + RootHashPair::LEN])?;
+            for _ in 0..count {
+                let value = bytes
+                    .slice(RootHashPair::LEN)
+                    .context("confirm req slicing root hash pair")?;
+                let pair = RootHashPair::try_from(value).context("confirm req try from bytes")?;
                 pairs.push(pair);
             }
             Ok(Self::ConfirmReqByHash(pairs))
         } else {
-            Err(anyhow!("TODO unhandled HandleConfirmReq for BlockSelector"))
+            debug_assert_eq!(header.ext().block_type()?, BlockType::State);
+            info!("block type {:?}", header.ext().block_type());
+
+            let value = bytes
+                .slice(StateBlock::LEN)
+                .context("confirm req slice state block")?;
+            Ok(Self::BlockSelector(
+                StateBlock::deserialize(Some(header), value)
+                    .context("confirm req block selector state block deserialize")?,
+            ))
         }
     }
 
-    fn len(_: Option<&Header>) -> anyhow::Result<usize> {
-        Ok(BlockHash::LEN * 2)
+    fn len(header: Option<&Header>) -> anyhow::Result<usize> {
+        debug_assert!(header.is_some());
+        let header = header.unwrap();
+
+        if header.ext().block_type()? == BlockType::NotABlock {
+            Ok(Self::CONFIRM_REQ_BY_HASH_LEN)
+        } else {
+            debug_assert_eq!(header.ext().block_type()?, BlockType::State);
+            Ok(StateBlock::LEN)
+        }
     }
 }
 

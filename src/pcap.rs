@@ -3,6 +3,7 @@ use crate::node::header::{Header, MessageType};
 use crate::node::messages::confirm_ack::ConfirmAck;
 use crate::node::messages::confirm_req::ConfirmReq;
 use crate::node::messages::empty::Empty;
+use crate::node::messages::frontier_req::FrontierReq;
 use crate::node::messages::handshake::Handshake;
 use crate::node::messages::keepalive::Keepalive;
 use crate::node::messages::publish::Publish;
@@ -16,7 +17,7 @@ use anyhow::{anyhow, Context, Error};
 use etherparse::{InternetSlice, SlicedPacket};
 use etherparse::{Ipv4HeaderSlice, TcpHeaderSlice, TransportSlice};
 use pcarp::Capture;
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::fs::File;
 use std::io::{BufRead, BufReader};
 use std::net::{IpAddr, Ipv4Addr};
@@ -46,6 +47,9 @@ pub struct PcapDump {
     /// Storage to continue a TCP payload for the next packet in a stream.
     stream_cont: HashMap<String, (usize, Vec<u8>)>,
 
+    /// Frontier connections
+    frontiers: HashSet<String>,
+
     pub expanded: bool,
     pub start_at: Option<usize>,
     pub end_at: Option<usize>,
@@ -65,6 +69,7 @@ impl PcapDump {
 
         PcapDump {
             stream_cont: HashMap::new(),
+            frontiers: HashSet::new(),
             subject,
             found_subject,
             expanded: false,
@@ -159,6 +164,15 @@ impl PcapDump {
                 tcp.destination_port()
             );
 
+            let mut connection_id = vec![
+                ip.source_addr().to_string(),
+                tcp.source_port().to_string(),
+                ip.destination_addr().to_string(),
+                tcp.destination_port().to_string(),
+            ];
+            connection_id.sort();
+            let connection_id = connection_id.join("-");
+
             debug!(
                 "Packet: #{} size: {} {}",
                 &packet_idx,
@@ -186,6 +200,12 @@ impl PcapDump {
                 }
             };
 
+            if self.frontiers.contains(&connection_id) {
+                // Ignore these for now...
+                warn!("ignoring frontier connection");
+                continue;
+            }
+
             let mut bytes = Bytes::new(bytes);
             while !bytes.eof() {
                 let header_bytes = match bytes.slice(Header::LEN).context("slicing header") {
@@ -193,7 +213,7 @@ impl PcapDump {
                     Err(err) => {
                         error!("Error processing header: {}", err);
                         if self.abort_on_error {
-                            return Ok(());
+                            return Err(err);
                         }
                         continue 'next_packet;
                     }
@@ -205,7 +225,7 @@ impl PcapDump {
                         Err(err) => {
                             error!("Error processing header: {}", err);
                             if self.abort_on_error {
-                                return Ok(());
+                                return Err(err);
                             }
                             continue 'next_packet;
                         }
@@ -229,8 +249,9 @@ impl PcapDump {
                     MessageType::TelemetryReq => payload::<TelemetryReq>,
                     MessageType::TelemetryAck => payload::<TelemetryAck>,
                     MessageType::Publish => payload::<Publish>,
+                    MessageType::FrontierReq => payload::<FrontierReq>,
                     _ => {
-                        warn!("TODO {:?}", header);
+                        error!("TODO {:?}", header);
                         if self.abort_on_error {
                             return Ok(());
                         }
@@ -244,7 +265,7 @@ impl PcapDump {
                     Err(err) => {
                         error!("error decoding packet payload: {}", err);
                         if self.abort_on_error {
-                            return Ok(());
+                            return Err(err);
                         }
                         continue 'next_packet;
                     }
@@ -271,6 +292,10 @@ impl PcapDump {
                     direction_marker_color.paint(direction_text),
                     color.paint(dbg)
                 );
+
+                if header.message_type() == MessageType::FrontierReq {
+                    self.frontiers.insert(connection_id.clone());
+                }
             }
         }
     }

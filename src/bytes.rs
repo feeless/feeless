@@ -33,6 +33,7 @@ impl<'a> Bytes<'a> {
     }
 
     pub fn slice(&mut self, size: usize) -> anyhow::Result<&[u8]> {
+        // TODO: make this safer--maybe use replace usize with u32 so it's always smaller than i64.
         self.bounds_check(size as i64)?;
         let bytes = &self.bytes[self.offset..self.offset + size];
         self.offset += size;
@@ -49,10 +50,11 @@ impl<'a> Bytes<'a> {
     fn bounds_check(&mut self, size: i64) -> anyhow::Result<()> {
         if (self.offset as i64 + size) as usize > self.bytes.len() {
             Err(anyhow!(
-                "slice extended past end. offset: {} size: {} len: {}",
+                "slice extended past end. offset: {} requested size: {} bytes len: {} remain: {}",
                 self.offset,
                 size,
-                self.bytes.len()
+                self.bytes.len(),
+                self.remain(),
             ))
         } else {
             Ok(())

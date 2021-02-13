@@ -138,7 +138,7 @@ impl Wire for StateBlock {
         let representative = Public::try_from(data.slice(Public::LEN)?)?;
         let raw = Raw::try_from(data.slice(Raw::LEN)?)?;
 
-        let _link_data = data.slice(Public::LEN)?;
+        let link_data = data.slice(Public::LEN)?;
         // TODO: I think this only works once we have previous blocks in a database.
         // let link_data_is_zero = link_data == [0u8; Public::LEN];
         // let link = if diff < 0 {
@@ -157,7 +157,7 @@ impl Wire for StateBlock {
         //     info!("Changerepppppppppppppppp");
         //     Link::Nothing
         // };
-        let link = Link::Nothing;
+        let link = Link::Unsure(<[u8; 32]>::try_from(link_data)?);
 
         let signature = Signature::try_from(data.slice(Signature::LEN)?)?;
 
@@ -190,6 +190,7 @@ impl Wire for StateBlock {
 #[derive(Debug)]
 pub enum Link {
     Nothing,
+    Unsure([u8; Link::LEN]),
     PairingSendBlockHash(BlockHash),
     SendDestinationPublicKey(Public),
 }
@@ -202,6 +203,7 @@ impl Link {
             Link::Nothing => &[0u8; Self::LEN],
             Link::PairingSendBlockHash(hash) => hash.as_bytes(),
             Link::SendDestinationPublicKey(key) => key.as_bytes(),
+            Link::Unsure(b) => b.as_ref(),
         }
     }
 }

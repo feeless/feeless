@@ -138,9 +138,9 @@ A medium term task list:
       - [x] Validate response
     - [ ] Confirm Req
       - [ ] Serialize
-      - [ ] Deserialize
+      - [x] Deserialize
         - [x] Hash pairs
-        - [ ] Block selector
+        - [x] Block selector
       - [ ] Handle response
     - [ ] Confirm Ack
       - [ ] Serialize
@@ -169,6 +169,8 @@ A medium term task list:
         - [ ] Timestamp
         - [ ] Active difficulty
     - [ ] Frontier Req
+      - [ ] Serialize
+      - [x] Deserialize
   - [ ] Storage
     - [x] Basic KV store to file
     - [x] Basic cookie/peer storage
