@@ -1,9 +1,11 @@
 #![forbid(unsafe_code)]
 
+use ansi_term::Color;
+use anyhow::Context;
 use clap::Clap;
 use feeless::node::node_with_single_peer;
-use feeless::pcap;
 use feeless::pcap::{PcapDump, Subject};
+use feeless::{pcap, Public};
 use std::net::{IpAddr, Ipv4Addr};
 use std::str::FromStr;
 
@@ -16,12 +18,34 @@ struct Opts {
 #[derive(Clap)]
 enum Command {
     Node(NodeOpts),
+    Convert(ConvertFrom),
     Pcap(PcapDumpArgs),
 }
 
 #[derive(Clap)]
 struct NodeOpts {
     address: String,
+}
+
+// https://github.com/clap-rs/clap/issues/2005
+// This shim struct required until the issue is fixed.
+// It just temporarily adds another level to Opts.
+#[derive(Clap)]
+struct ConvertFrom {
+    #[clap(subcommand)]
+    command: ConvertFromCommand,
+}
+
+/// Conversions between types, e.g. public key to nano address.
+#[derive(Clap)]
+enum ConvertFromCommand {
+    Public(ConvertFromPublic),
+}
+
+/// Convert from a public key in hex.
+#[derive(Clap)]
+struct ConvertFromPublic {
+    public_key: String,
 }
 
 /// Read a pcapng file containing Nano packets, and print some information about each payload.
@@ -59,14 +83,20 @@ struct PcapDumpArgs {
 #[tokio::main]
 async fn main() {
     tracing_subscriber::fmt::init();
+    let result = option(Opts::parse()).await;
+    if let Err(err) = result {
+        eprintln!("{:?}", err);
+        std::process::exit(1);
+    }
+}
 
-    let opts: Opts = Opts::parse();
-    let result = match opts.command {
+async fn option(opts: Opts) -> anyhow::Result<()> {
+    match opts.command {
         Command::Node(o) => node_with_single_peer(&o.address).await,
         Command::Pcap(o) => {
             let subject = match o.my_addr {
                 Some(ip_addr) => {
-                    Subject::Specified(Ipv4Addr::from_str(&ip_addr).expect("a valid ip address"))
+                    Subject::Specified(Ipv4Addr::from_str(&ip_addr).context("Invalid IP address")?)
                 }
                 None => Subject::AutoFirstSource,
             };
@@ -77,12 +107,19 @@ async fn main() {
             p.filter_addr = o
                 .filter_addr
                 .as_ref()
-                .map(|i| Ipv4Addr::from_str(i).expect("a valid ip address"));
+                .map(|i| Ipv4Addr::from_str(i).context("Invalid IP address")?);
             p.abort_on_error = o.abort_on_error;
             p.dump(&o.path)
         }
-    };
-    if result.is_err() {
-        println!("{:#?}", result.unwrap());
+        Command::Convert(from) => match from.command {
+            ConvertFromCommand::Public(public) => {
+                let public = Public::from_hex(&public.public_key).context(
+                    "A valid public key is required, \
+                    e.g. 0E90A70364120708F7CE4D527E66A0FCB9CB90E81054C4ED329C58EFA469F6F7",
+                )?;
+                println!("{}", public.to_address().to_string());
+                Ok(())
+            }
+        },
     }
 }

@@ -147,7 +147,7 @@ impl TryFrom<u8> for MagicNumber {
 
     fn try_from(v: u8) -> Result<Self, Self::Error> {
         if v != Self::MAGIC {
-            return Err(anyhow!("invalid magic number: {}", v));
+            return Err(anyhow!("Invalid magic number: {}", v));
         }
         Ok(Self::new())
     }
@@ -170,7 +170,7 @@ impl TryFrom<u8> for Network {
             0x41 => Test,
             0x42 => Beta,
             0x43 => Live,
-            v => return Err(anyhow!("unknown network: {} ({:X})", v, v)),
+            v => return Err(anyhow!("Unknown network: {} ({:X})", v, v)),
         })
     }
 }
@@ -219,7 +219,7 @@ impl TryFrom<u8> for MessageType {
             11 => BulkPullAccount,
             12 => TelemetryReq,
             13 => TelemetryAck,
-            v => return Err(anyhow!("unknown message type: {}", v)),
+            v => return Err(anyhow!("Unknown message type: {}", v)),
         })
     }
 }

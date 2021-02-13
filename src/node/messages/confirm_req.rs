@@ -53,8 +53,8 @@ impl Wire for ConfirmReq {
             for _ in 0..count {
                 let value = bytes
                     .slice(RootHashPair::LEN)
-                    .context("confirm req slicing root hash pair")?;
-                let pair = RootHashPair::try_from(value).context("confirm req try from bytes")?;
+                    .context("Confirm req slicing root hash pair")?;
+                let pair = RootHashPair::try_from(value).context("Confirm req try from bytes")?;
                 pairs.push(pair);
             }
             Ok(Self::ConfirmReqByHash(pairs))
@@ -64,10 +64,10 @@ impl Wire for ConfirmReq {
 
             let value = bytes
                 .slice(StateBlock::LEN)
-                .context("confirm req slice state block")?;
+                .context("Confirm req slice state block")?;
             Ok(Self::BlockSelector(
                 StateBlock::deserialize(Some(header), value)
-                    .context("confirm req block selector state block deserialize")?,
+                    .context("Confirm req block selector state block deserialize")?,
             ))
         }
     }

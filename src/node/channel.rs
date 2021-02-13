@@ -192,7 +192,7 @@ impl Channel {
             let cookie = cookie.as_ref().unwrap();
 
             if !public.verify(&cookie.as_bytes(), &signature) {
-                return Err(anyhow!("invalid signature in node_id_handshake response"));
+                return Err(anyhow!("Invalid signature in node_id_handshake response"));
             }
         }
 

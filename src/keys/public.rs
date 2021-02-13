@@ -1,5 +1,6 @@
 use crate::encoding::hex_formatter;
 use crate::{encoding, expect_len, to_hex, Address, Signature};
+use anyhow::Context;
 use bitvec::prelude::*;
 use ed25519_dalek::Verifier;
 use std::convert::TryFrom;
@@ -15,7 +16,9 @@ impl Public {
 
     pub fn from_hex(s: &str) -> anyhow::Result<Self> {
         Ok(Self(ed25519_dalek::PublicKey::from_bytes(
-            hex::decode(s.as_bytes())?.as_slice(),
+            hex::decode(s.as_bytes())
+                .context("Could not decode hex")?
+                .as_slice(),
         )?))
     }
 

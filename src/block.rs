@@ -31,7 +31,7 @@ impl TryFrom<u8> for BlockType {
             4 => Open,
             5 => Change,
             6 => State,
-            _ => return Err(anyhow!("invalid block type: {}", value)),
+            _ => return Err(anyhow!("Invalid block type: {}", value)),
         })
     }
 }
@@ -152,7 +152,7 @@ impl Wire for StateBlock {
         // } else {
         //     // Change rep
         //     if !link_data_is_zero {
-        //         return Err(anyhow!("link data is zero but raw is not zero: {:?}", raw));
+        //         return Err(anyhow!("Link data is zero but raw is not zero: {:?}", raw));
         //     }
         //     info!("Changerepppppppppppppppp");
         //     Link::Nothing

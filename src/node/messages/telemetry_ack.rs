@@ -45,9 +45,9 @@ impl Wire for TelemetryAck {
 
         let mut s = Self {
             signature: Signature::try_from(bytes.slice(Signature::LEN)?)
-                .context("telemetry ack decoding signature")?,
+                .context("Telemetry ack decoding signature")?,
             node_id: Public::try_from(bytes.slice(Public::LEN)?)
-                .context("telemetry ack decoding node_id")?,
+                .context("Telemetry ack decoding node_id")?,
             block_count: 0,
             cemented_count: 0,
             unchecked_count: 0,
@@ -85,7 +85,7 @@ impl Wire for TelemetryAck {
         s.peer_count = u32::from_be_bytes(s32);
         s.protocol_version = bytes.u8()?;
         s.genesis_block = BlockHash::try_from(bytes.slice(BlockHash::LEN)?)
-            .context("telemetry ack decoding genesis block")?;
+            .context("Telemetry ack decoding genesis block")?;
 
         s.major_version = bytes.u8()?;
         s.minor_version = bytes.u8()?;

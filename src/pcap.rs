@@ -201,14 +201,15 @@ impl PcapDump {
             };
 
             if self.frontiers.contains(&connection_id) {
-                // Ignore these for now...
-                warn!("ignoring frontier connection");
+                // At this point we're only going to receive frontier messages which do not have a
+                // header.
+
                 continue;
             }
 
             let mut bytes = Bytes::new(bytes);
             while !bytes.eof() {
-                let header_bytes = match bytes.slice(Header::LEN).context("slicing header") {
+                let header_bytes = match bytes.slice(Header::LEN).context("Slicing header") {
                     Ok(h) => h,
                     Err(err) => {
                         error!("Error processing header: {}", err);
@@ -220,7 +221,7 @@ impl PcapDump {
                 };
 
                 let header =
-                    match Header::deserialize(None, header_bytes).context("deserializing header") {
+                    match Header::deserialize(None, header_bytes).context("Deserializing header") {
                         Ok(header) => header,
                         Err(err) => {
                             error!("Error processing header: {}", err);
@@ -336,6 +337,6 @@ pub fn payload<T: 'static + Wire>(
     }
 
     let data = bytes.slice(len)?;
-    let payload: T = T::deserialize(header, data).context("deserializing payload")?;
+    let payload: T = T::deserialize(header, data).context("Deserializing payload")?;
     Ok(Some(Box::new(payload)))
 }
