@@ -10,7 +10,6 @@ repository = "https://github.com/gak/feeless"
 [dependencies]
 async-trait = "*"
 hex = "0.4.2"
-ansi_term = "0.12"
 anyhow = "1.0.38"
 clap = "3.0.0-beta.2"
 tracing = "0.1"
@@ -34,6 +33,6 @@ ed25519-dalek = { version = "1.0.1", package = "ed25519-dalek-blake2-feeless" }
 sled = "*"
 
 # pcap only
-
 pcarp = "1.2.0"
 etherparse = "0.9.0"
+ansi_term = "0.12"

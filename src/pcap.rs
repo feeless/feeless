@@ -13,46 +13,45 @@ use crate::node::messages::telemetry_req::TelemetryReq;
 use crate::{to_hex, DEFAULT_PORT};
 use ansi_term;
 use ansi_term::Color;
-use anyhow::anyhow;
-use etherparse::SlicedPacket;
+use anyhow::{anyhow, Context, Error};
 use etherparse::TransportSlice;
-// use pcap_parser::traits::PcapReaderIterator;
-// use pcap_parser::{Block, PcapBlockOwned, PcapError, PcapNGReader};
+use etherparse::{InternetSlice, SlicedPacket};
 use pcarp::Capture;
+use std::collections::HashMap;
 use std::fs::File;
 use std::io::{BufRead, BufReader};
-use tracing::{debug, info, trace, warn};
+use std::net::IpAddr;
+use std::str::FromStr;
+use tracing::{debug, error, info, trace, warn};
 
 enum Direction {
     Send,
     Recv,
 }
 
-impl Direction {
-    fn swap(&mut self) {
-        *self = match self {
-            Direction::Send => Direction::Recv,
-            Direction::Recv => Direction::Send,
-        };
+/// source is the computer's IP address of the captured node.
+pub async fn pcap_dump(path: &str, source: &str) -> anyhow::Result<()> {
+    let source = IpAddr::from_str(source)?;
+    if !source.is_ipv4() {
+        return Err(anyhow!("only supports ipv4"));
     }
-}
 
-pub async fn pcap_dump(path: &str) -> anyhow::Result<()> {
     info!("Loading dump: {}", path);
 
     let mut direction = Direction::Send;
     let file = File::open(path)?;
 
+    // Continue a TCP payload for the next packet.
+    let mut stream_cont: HashMap<String, Vec<u8>> = HashMap::new();
+
     let recv_color = Color::Green.normal();
     let send_color = Color::Blue.bold();
-    let direction_marker_color = Color::Yellow.bold();
+    let direction_marker_color = Color::White.bold();
     let error_color = Color::Red;
 
-    // let mut reader = PcapNGReader::new(65536, file)?;
     let mut reader = Capture::new(file)?;
-
     let mut packet_idx = 0;
-    'packet: loop {
+    'next_packet: loop {
         packet_idx += 1; // 1 based packet numbering because wireshark uses it.
         let data = reader.next().transpose()?;
         let packet = if data.is_none() {
@@ -61,10 +60,37 @@ pub async fn pcap_dump(path: &str) -> anyhow::Result<()> {
         } else {
             data.unwrap()
         };
-        trace!("{}", packet.data.len());
         let data = packet.data;
 
         let packet = SlicedPacket::from_ethernet(&data)?;
+        // TODO: Support IPv6
+        let ip = if let Some(InternetSlice::Ipv4(ip)) = &packet.ip {
+            ip
+        } else {
+            continue;
+        };
+
+        // Direction
+        // TODO: Infer peers or by valid header?
+        // Might be nicer if it can learn peers from the dump in case there are other port used.
+        // Another option is to just parse every packet and if the header is not valid, just
+        // ignore it.
+        // Or... just assume the first packet sent is from the subject.
+        let source = if let IpAddr::V4(v4_source) = source {
+            v4_source
+        } else {
+            continue;
+        };
+
+        direction = if ip.destination_addr() == source {
+            Direction::Recv
+        } else if ip.source_addr() == source {
+            Direction::Send
+        } else {
+            warn!("Unknown direction for {} and {:?}", source, ip);
+            Direction::Recv
+        };
+
         let tcp = if let Some(TransportSlice::Tcp(tcp)) = &packet.transport {
             tcp
         } else {
@@ -72,35 +98,56 @@ pub async fn pcap_dump(path: &str) -> anyhow::Result<()> {
         };
 
         // Only look at port 7075.
-        // TODO: Infer peers or by valid header?
-        // Might be nicer if it can learn peers from the dump in case there are other port used.
-        // Another option is to just parse every packet and if the header is not valid, just
-        // ignore it.
         if tcp.destination_port() != DEFAULT_PORT && tcp.source_port() != DEFAULT_PORT {
             continue;
         }
 
-        let bytes = packet.payload;
-        // let real_len = data[46] as usize;
-        // let bytes = &data[54..54 + real_len];
+        let stream_id = format!(
+            "{}:{}->{}:{}",
+            ip.source_addr(),
+            tcp.source_port(),
+            ip.destination_addr(),
+            tcp.destination_port()
+        );
 
-        // TODO: WTF: packet.payload is giving two extra bytes at the end of every packet.
-        // let bytes = &bytes[0..bytes.len() - 2];
+        let mut v = vec![];
+        let bytes = match stream_cont.get(&stream_id) {
+            Some(b) => {
+                // We have some left over data from a previous packet.
+                trace!("Prepending {} bytes from a previous packet.", b.len());
+                v.extend_from_slice(&b);
+                v.extend_from_slice(&packet.payload);
+                stream_cont.remove(&stream_id);
+                v.as_slice()
+            }
+            None => packet.payload,
+        };
 
-        trace!("packet: {} size: {}", &packet_idx, bytes.len());
-        trace!("dump: {}", to_hex(&bytes));
+        trace!("packet: #{} size: {}", &packet_idx, bytes.len());
+        // trace!("dump: {}", to_hex(&bytes));
 
         let mut bytes = Bytes::new(bytes);
         while !bytes.eof() {
-            dbg!(bytes.remain());
-            let header = Header::deserialize(None, bytes.slice(Header::LEN)?)?;
-            let h = Some(&header);
-            let (direction_text, color) = match direction {
-                Direction::Send => (">>>", send_color),
-                Direction::Recv => ("<<<", recv_color),
+            let header_bytes = match bytes.slice(Header::LEN).context("slicing header") {
+                Ok(h) => h,
+                Err(err) => {
+                    error!("Error processing header, skipping packet: {}", err);
+                    continue 'next_packet;
+                }
             };
 
-            dbg!(&header);
+            let header =
+                match Header::deserialize(None, header_bytes).context("deserializing header") {
+                    Ok(header) => header,
+                    Err(err) => {
+                        error!("Error processing header, skipping packet: {}", err);
+                        continue 'next_packet;
+                    }
+                };
+            let (direction_text, color) = match direction {
+                Direction::Send => (format!(">>> {}", ip.destination_addr()), send_color),
+                Direction::Recv => (format!("<<< {}", ip.source_addr()), recv_color),
+            };
 
             let func = match header.message_type() {
                 MessageType::Handshake => payload::<Handshake>,
@@ -108,85 +155,60 @@ pub async fn pcap_dump(path: &str) -> anyhow::Result<()> {
                 MessageType::ConfirmAck => payload::<ConfirmAck>,
                 MessageType::Keepalive => payload::<Keepalive>,
                 MessageType::TelemetryReq => payload::<TelemetryReq>,
-                MessageType::TelemetryAck => payload::<TelemetryAck>,
+                // MessageType::TelemetryAck => payload::<TelemetryAck>,
                 MessageType::Publish => payload::<Publish>,
-                m => {
+                _ => {
                     println!("{}", error_color.paint(format!("TODO {:?}", header)));
-                    warn!("Aborting packet!");
-                    continue 'packet;
+                    continue 'next_packet;
                 }
             };
-            dbg!(bytes.remain());
-            let p = func(h, &mut bytes)?;
-            dbg!(bytes.remain());
-            let dbg = format!("{:#?}", p.as_ref());
-            println!(
-                "{} {}",
-                direction_marker_color.paint(direction_text),
-                color.paint(dbg)
-            );
-        }
+            let decoded_result = func(Some(&header), &mut bytes)
+                .with_context(|| format!("decoding packet {}", &packet_idx));
+            let maybe_decoded = match decoded_result {
+                Ok(m) => m,
+                Err(err) => {
+                    error!(
+                        "error decoding packet payload, skipping remaining data: {}",
+                        err
+                    );
+                    continue 'next_packet;
+                }
+            };
 
-        // TODO: This doesn't apply now that we're doing pcap capture. It should know the IP
-        // address of the network, and use that as the source. Maybe scan through it and work out
-        // the most used one.
-        //
-        // direction.swap();
+            let decoded = match maybe_decoded {
+                Some(p) => p,
+                None => {
+                    let remaining = Vec::from(bytes.slice(bytes.remain())?);
+                    stream_cont.insert(stream_id.clone(), remaining);
+                    continue 'next_packet;
+                }
+            };
+
+            // let dbg = format!("{:#?}", decoded.as_ref());
+            // println!(
+            //     "{} {}",
+            //     direction_marker_color.paint(direction_text),
+            //     color.paint(dbg)
+            // );
+        }
     }
 }
-
-/// Returns `Ok(None)` when EOF
-// TODO: I don't know how to return a reference slice. Lifetime problems.
-// fn next_packet(reader: &mut PcapNGReader<File>) -> anyhow::Result<Option<Vec<u8>>> {
-//     loop {
-//         let result = &reader.next();
-//         let (offset, block) = match result {
-//             Ok(ok) => ok,
-//             Err(err) => {
-//                 return match err {
-//                     PcapError::Eof => Ok(None),
-//                     err => Err(anyhow!("Pcap error: {:?}", err)),
-//                 };
-//             }
-//         };
-//         let ng = match block {
-//             PcapBlockOwned::NG(ng) => ng,
-//             _ => return Err(anyhow!("only ng blocks supported")),
-//         };
-//
-//         let data = match ng {
-//             Block::EnhancedPacket(ep) => ep.data,
-//             Block::SimplePacket(sp) => sp.data,
-//             _ => {
-//                 // Ignoring non packet data.
-//                 reader.consume(*offset);
-//                 continue;
-//             }
-//         };
-//
-//         dbg!("WTF", data.len());
-//
-//         let data = data.to_owned();
-//         reader.consume(*offset);
-//         return Ok(Some(data));
-//     }
-// }
 
 pub fn payload<T: 'static + Wire>(
     header: Option<&Header>,
     bytes: &mut Bytes,
-) -> anyhow::Result<Box<dyn Wire>> {
+) -> anyhow::Result<Option<Box<dyn Wire>>> {
     let len = T::len(header)?;
 
     if bytes.remain() < len {
-        return Err(anyhow!(
-            "not enough bytes left to process. want: {}, has: {}",
-            len,
+        trace!(
+            "Not enough bytes left to process. Will prepend {} bytes in next packet.",
             bytes.remain()
-        ));
+        );
+        return Ok(None);
     }
 
     let data = bytes.slice(len)?;
-    let payload: T = T::deserialize(header, data)?;
-    Ok(Box::new(payload))
+    let payload: T = T::deserialize(header, data).context("deserializing payload")?;
+    Ok(Some(Box::new(payload)))
 }

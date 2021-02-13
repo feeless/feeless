@@ -4,11 +4,14 @@ use crate::node::header::Header;
 use crate::node::wire::Wire;
 use crate::{BlockHash, Public, Signature, StateBlock};
 use std::convert::TryFrom;
+use tracing::trace;
 
 #[derive(Debug)]
 pub struct ConfirmAck {
+    // TODO: Make a signed public that's shared with handshake.
     account: Public,
     signature: Signature,
+
     sequence: [u8; ConfirmAck::SEQUENCE_LEN],
     confirm: Confirm,
 }
@@ -73,8 +76,10 @@ impl Wire for ConfirmAck {
         let header = header.unwrap();
 
         if header.ext().block_type()? == BlockType::NotABlock {
+            trace!("not a block");
             Ok(Self::VOTE_COMMON_LEN + header.ext().item_count() * BlockHash::LEN)
         } else {
+            trace!("a block");
             Ok(Self::VOTE_COMMON_LEN + StateBlock::LEN)
         }
     }

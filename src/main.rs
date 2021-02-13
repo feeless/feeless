@@ -24,6 +24,7 @@ struct NodeOpts {
 #[derive(Clap)]
 struct DumpArgs {
     path: String,
+    source: String,
 }
 
 #[tokio::main]
@@ -33,7 +34,7 @@ async fn main() {
     let opts: Opts = Opts::parse();
     let result = match opts.command {
         Command::Node(o) => node_with_single_peer(&o.address).await,
-        Command::Dump(o) => pcap::pcap_dump(&o.path).await,
+        Command::Dump(o) => pcap::pcap_dump(&o.path, &o.source).await,
     };
     if result.is_err() {
         println!("{:#?}", result.unwrap());

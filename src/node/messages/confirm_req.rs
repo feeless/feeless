@@ -2,6 +2,7 @@ use crate::block::BlockType;
 use crate::node::header::Header;
 use crate::node::wire::Wire;
 use crate::{expect_len, BlockHash};
+use anyhow::anyhow;
 use std::convert::TryFrom;
 
 /// Requests confirmation of the given block or list of root/hash pairs.
@@ -52,7 +53,7 @@ impl Wire for ConfirmReq {
             }
             Ok(Self::ConfirmReqByHash(pairs))
         } else {
-            todo!("unhandled HandleConfirmReq for BlockSelector")
+            Err(anyhow!("TODO unhandled HandleConfirmReq for BlockSelector"))
         }
     }
 
