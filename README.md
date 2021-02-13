@@ -127,6 +127,7 @@ A medium term task list:
     - [ ] Rebroadcasting
     - [ ] Representatives
     - [ ] Publish retries (difficulty changes)
+    - [ ] Respond to telemetry request
     - [ ] ...
   - [ ] Messages
     - [ ] Node ID Handshake
@@ -158,12 +159,15 @@ A medium term task list:
     - [ ] Bulk pull account
     - [ ] Bulk pull blocks
     - [ ] Bulk push
-    - [ ] Telemetry Req
+    - [x] Telemetry Req
+      - [x] Serialize
+      - [x] Deserialize
+    - [ ] Telemetry Ack
       - [ ] Serialize
       - [x] Deserialize
-      - [ ] Collect telemetry
-      - [ ] Handle response
-    - [ ] Telemetry Ack
+        - [x] Most fields
+        - [ ] Timestamp
+        - [ ] Active difficulty
     - [ ] Frontier Req
   - [ ] Storage
     - [x] Basic KV store to file
@@ -213,7 +217,7 @@ A medium term task list:
 * Prailude (Lua, C) https://github.com/slact/prailude
 * RaiSharp (C#) https://github.com/vardthomas/Aggrex.RaiSharp
 * Railroad (Rust) https://github.com/PlasmaPower/railroad
-  
+
 ## License
 
 Licensed under either of these at your option:
