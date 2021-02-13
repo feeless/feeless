@@ -251,7 +251,7 @@ impl PcapDump {
                     MessageType::Publish => payload::<Publish>,
                     MessageType::FrontierReq => payload::<FrontierReq>,
                     _ => {
-                        error!("TODO {:?}", header);
+                        error!("Unhandled message type {:?}", header);
                         if self.abort_on_error {
                             return Ok(());
                         }

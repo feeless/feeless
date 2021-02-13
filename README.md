@@ -63,7 +63,7 @@ Nano is also known as: Nano cryptocurrency, Nano coin, RaiBlocks.
 
 ## Non-goals
 
-* Only support protocol version 18+
+* Only support protocol v18+ (Maybe only v19+ depending on timing)
 * No UDP support
 * No user interface
 
@@ -182,7 +182,7 @@ A medium term task list:
   - [ ] Ask around for a code review
   - [ ] Use either `zerocopy` or make all core types zero-copy with storing `[u8]` and methods as accessors. `zerocopy`
     did work for most things when I tried but had problems with enums. Might revisit.
-  - [ ] Use `thiserror` instead of `anyhow`
+  - [ ] Use `thiserror` instead of `anyhow` in certain places.
   - [ ] Github actions CI (including `cargo clippy`)
 - [ ] Future things
   - [ ] Performance
