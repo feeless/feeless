@@ -10,7 +10,6 @@ pub use keys::phrase::{Language, MnemonicType, Phrase};
 pub use keys::private::Private;
 pub use keys::public::Public;
 pub use keys::seed::Seed;
-pub use pcap::pcap_dump;
 pub use pow::work::Work;
 pub use raw::Raw;
 pub use signature::Signature;

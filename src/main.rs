@@ -3,6 +3,9 @@
 use clap::Clap;
 use feeless::node::node_with_single_peer;
 use feeless::pcap;
+use feeless::pcap::{PcapDump, Subject};
+use std::net::IpAddr;
+use std::str::FromStr;
 
 #[derive(Clap)]
 struct Opts {
@@ -34,7 +37,11 @@ async fn main() {
     let opts: Opts = Opts::parse();
     let result = match opts.command {
         Command::Node(o) => node_with_single_peer(&o.address).await,
-        Command::Dump(o) => pcap::pcap_dump(&o.path, &o.source).await,
+        Command::Dump(o) => {
+            // TODO: unwrap
+            let mut p = PcapDump::new(Subject::Specified(IpAddr::from_str(&o.source).unwrap()));
+            p.dump(&o.path)
+        }
     };
     if result.is_err() {
         println!("{:#?}", result.unwrap());
