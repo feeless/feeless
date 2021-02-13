@@ -19,7 +19,7 @@ use etherparse::{Ipv4HeaderSlice, TcpHeaderSlice, TransportSlice};
 use pcarp::Capture;
 use std::collections::{HashMap, HashSet};
 use std::fs::File;
-use std::io::{BufRead, BufReader};
+use std::io::{BufRead, BufReader, Read};
 use std::net::{IpAddr, Ipv4Addr};
 use std::str::FromStr;
 use tracing::{debug, error, info, trace, warn};
@@ -55,6 +55,7 @@ pub struct PcapDump {
     pub end_at: Option<usize>,
     pub filter_addr: Option<Ipv4Addr>,
     pub abort_on_error: bool,
+    pub pause_on_error: bool,
 
     subject: Subject,
     found_subject: Option<Ipv4Addr>,
@@ -77,6 +78,7 @@ impl PcapDump {
             end_at: None,
             filter_addr: None,
             abort_on_error: false,
+            pause_on_error: false,
         }
     }
 
@@ -140,7 +142,7 @@ impl PcapDump {
             if !has_started {
                 match self.start_at {
                     Some(start_at) => {
-                        if start_at >= packet_idx {
+                        if start_at <= packet_idx {
                             has_started = true;
                         } else {
                             continue;
@@ -218,8 +220,6 @@ impl PcapDump {
                 // At this point we're only going to receive frontier messages which do not have a
                 // header.
 
-                todo!();
-
                 continue;
             }
 
@@ -242,6 +242,9 @@ impl PcapDump {
                             return Err(err);
                         } else {
                             error!("Error processing header: {:?}", err);
+                            if self.pause_on_error {
+                                std::io::stdin().read(&mut [0]).unwrap();
+                            }
                             continue 'next_packet;
                         }
                     }
@@ -256,6 +259,9 @@ impl PcapDump {
                             return Err(err);
                         } else {
                             error!("Error processing header: {:?}", err);
+                            if self.pause_on_error {
+                                std::io::stdin().read(&mut [0]).unwrap();
+                            }
                             continue 'next_packet;
                         }
                     }
@@ -285,6 +291,9 @@ impl PcapDump {
                         if self.abort_on_error {
                             return Ok(());
                         }
+                        if self.pause_on_error {
+                            std::io::stdin().read(&mut [0]).unwrap();
+                        }
                         continue 'next_packet;
                     }
                 };
@@ -297,6 +306,9 @@ impl PcapDump {
                             return Err(err);
                         } else {
                             error!("Error processing header: {:?}", err);
+                            if self.pause_on_error {
+                                std::io::stdin().read(&mut [0]).unwrap();
+                            }
                             continue 'next_packet;
                         }
                     }
