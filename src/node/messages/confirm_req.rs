@@ -60,7 +60,7 @@ impl Wire for ConfirmReq {
             Ok(Self::ConfirmReqByHash(pairs))
         } else {
             debug_assert_eq!(header.ext().block_type()?, BlockType::State);
-            info!("block type {:?}", header.ext().block_type());
+            info!("Block type {:?}", header.ext().block_type());
 
             let value = bytes
                 .slice(StateBlock::LEN)
@@ -77,7 +77,7 @@ impl Wire for ConfirmReq {
         let header = header.unwrap();
 
         if header.ext().block_type()? == BlockType::NotABlock {
-            Ok(Self::CONFIRM_REQ_BY_HASH_LEN)
+            Ok(Self::CONFIRM_REQ_BY_HASH_LEN * header.ext().item_count())
         } else {
             debug_assert_eq!(header.ext().block_type()?, BlockType::State);
             Ok(StateBlock::LEN)

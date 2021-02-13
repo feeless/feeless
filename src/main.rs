@@ -85,6 +85,8 @@ async fn main() {
     tracing_subscriber::fmt::init();
     let result = option(Opts::parse()).await;
     if let Err(err) = result {
+        eprintln!();
+        eprintln!("{}", Color::Red.paint("Exiting because of an error:"));
         eprintln!("{:?}", err);
         std::process::exit(1);
     }
@@ -107,7 +109,8 @@ async fn option(opts: Opts) -> anyhow::Result<()> {
             p.filter_addr = o
                 .filter_addr
                 .as_ref()
-                .map(|i| Ipv4Addr::from_str(i).context("Invalid IP address")?);
+                .map(|i| Ipv4Addr::from_str(i).context("Invalid IP address"))
+                .transpose()?;
             p.abort_on_error = o.abort_on_error;
             p.dump(&o.path)
         }

@@ -50,7 +50,7 @@ impl<'a> Bytes<'a> {
     fn bounds_check(&mut self, size: i64) -> anyhow::Result<()> {
         if (self.offset as i64 + size) as usize > self.bytes.len() {
             Err(anyhow!(
-                "slice extended past end. offset: {} requested size: {} bytes len: {} remain: {}",
+                "Slice extended past end. Offset: {} Requested size: {} Bytes len: {} Remain: {}",
                 self.offset,
                 size,
                 self.bytes.len(),
