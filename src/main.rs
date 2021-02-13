@@ -24,6 +24,7 @@ struct NodeOpts {
     address: String,
 }
 
+/// Read a pcapng file containing Nano packets, and print some information about each payload.
 #[derive(Clap)]
 struct PcapDumpArgs {
     path: String,
@@ -37,15 +38,22 @@ struct PcapDumpArgs {
     #[clap(long)]
     filter_addr: Option<String>,
 
+    /// Starting packet.
     #[clap(long)]
     start: Option<usize>,
 
+    /// Last packet to process.
     #[clap(long)]
     end: Option<usize>,
 
     /// Show packets over multiple lines.
     #[clap(short, long)]
     expanded: bool,
+
+    /// Stop the dump when there's an error. By default, the packet is ignored and the dump
+    /// continues.
+    #[clap(short, long)]
+    abort_on_error: bool,
 }
 
 #[tokio::main]
@@ -70,6 +78,7 @@ async fn main() {
                 .filter_addr
                 .as_ref()
                 .map(|i| Ipv4Addr::from_str(i).expect("a valid ip address"));
+            p.abort_on_error = o.abort_on_error;
             p.dump(&o.path)
         }
     };

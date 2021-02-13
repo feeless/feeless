@@ -50,6 +50,7 @@ pub struct PcapDump {
     pub start_at: Option<usize>,
     pub end_at: Option<usize>,
     pub filter_addr: Option<Ipv4Addr>,
+    pub abort_on_error: bool,
 
     subject: Subject,
     found_subject: Option<Ipv4Addr>,
@@ -70,6 +71,7 @@ impl PcapDump {
             start_at: None,
             end_at: None,
             filter_addr: None,
+            abort_on_error: false,
         }
     }
 
@@ -191,7 +193,10 @@ impl PcapDump {
                 let header_bytes = match bytes.slice(Header::LEN).context("slicing header") {
                     Ok(h) => h,
                     Err(err) => {
-                        error!("Error processing header, skipping packet: {}", err);
+                        error!("Error processing header: {}", err);
+                        if self.abort_on_error {
+                            return Ok(());
+                        }
                         continue 'next_packet;
                     }
                 };
@@ -200,7 +205,10 @@ impl PcapDump {
                     match Header::deserialize(None, header_bytes).context("deserializing header") {
                         Ok(header) => header,
                         Err(err) => {
-                            error!("Error processing header, skipping packet: {}", err);
+                            error!("Error processing header: {}", err);
+                            if self.abort_on_error {
+                                return Ok(());
+                            }
                             continue 'next_packet;
                         }
                     };
@@ -225,6 +233,9 @@ impl PcapDump {
                     MessageType::Publish => payload::<Publish>,
                     _ => {
                         warn!("TODO {:?}", header);
+                        if self.abort_on_error {
+                            return Ok(());
+                        }
                         continue 'next_packet;
                     }
                 };
@@ -233,10 +244,10 @@ impl PcapDump {
                 let maybe_decoded = match decoded_result {
                     Ok(m) => m,
                     Err(err) => {
-                        error!(
-                            "error decoding packet payload, skipping remaining data: {}",
-                            err
-                        );
+                        error!("error decoding packet payload: {}", err);
+                        if self.abort_on_error {
+                            return Ok(());
+                        }
                         continue 'next_packet;
                     }
                 };
