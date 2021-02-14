@@ -22,6 +22,7 @@ mod keys;
 pub mod node;
 pub mod pcap;
 mod pow;
+mod pretty;
 mod raw;
 mod signature;
 

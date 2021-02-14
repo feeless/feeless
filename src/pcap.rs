@@ -4,6 +4,7 @@ use crate::node::messages::confirm_ack::ConfirmAck;
 use crate::node::messages::confirm_req::ConfirmReq;
 use crate::node::messages::empty::Empty;
 use crate::node::messages::frontier_req::FrontierReq;
+use crate::node::messages::frontier_resp::FrontierResp;
 use crate::node::messages::handshake::Handshake;
 use crate::node::messages::keepalive::Keepalive;
 use crate::node::messages::publish::Publish;
@@ -217,15 +218,21 @@ impl PcapDump {
                 }
             };
 
+            let mut bytes = Bytes::new(bytes);
             if self.frontiers.contains(&connection_id) {
                 // At this point we're only going to receive frontier messages which do not have a
                 // header.
-                todo!();
+                // todo!();
+
+                while !bytes.eof() {
+                    let frontier =
+                        FrontierResp::deserialize(header, bytes.slice(FrontierResp::LEN)?)?;
+                    dbg!(frontier);
+                }
 
                 continue;
             }
 
-            let mut bytes = Bytes::new(bytes);
             while !bytes.eof() {
                 if bytes.remain() < Header::LEN {
                     let remaining = Vec::from(bytes.slice(bytes.remain())?);

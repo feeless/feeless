@@ -185,6 +185,7 @@ A medium term task list:
   - [ ] Use `thiserror` instead of `anyhow` in certain places.
   - [ ] Github actions CI (including `cargo clippy`)
 - [ ] Future things
+  - [ ] Fast bootstrapping related to the user's wallet
   - [ ] Performance
     - [ ] Automated comparison
   - [ ] Proof of work
