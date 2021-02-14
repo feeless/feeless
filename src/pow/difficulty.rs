@@ -1,5 +1,6 @@
 use crate::expect_len;
 use std::cmp::Ordering;
+use std::convert::TryFrom;
 
 #[derive(Debug, Eq, PartialEq)]
 pub struct Difficulty(u64);
@@ -23,9 +24,14 @@ impl Difficulty {
         Ok(Difficulty(u64::from_le_bytes(*s)))
     }
 
+    // pub fn from_be_slice(s: &[u8]) -> anyhow::Result<Self> {
+    //     let mut b = [0u8; Self::LEN];
+    //     b.copy_from_slice(s);
+    //     Ok(Difficulty(u64::from_be_bytes(b)))
+    // }
+
     pub fn from_be_slice(s: &[u8]) -> anyhow::Result<Self> {
-        let mut b = [0u8; Self::LEN];
-        b.copy_from_slice(s);
+        let b = <[u8; Self::LEN]>::try_from(s)?;
         Ok(Difficulty(u64::from_be_bytes(b)))
     }
 

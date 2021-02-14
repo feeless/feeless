@@ -7,7 +7,7 @@ use std::convert::TryFrom;
 
 #[derive(Debug)]
 pub struct FrontierResp {
-    account: Public,
+    account: [u8; Public::LEN],
     frontier_hash: BlockHash,
 }
 
@@ -20,17 +20,24 @@ impl Wire for FrontierResp {
         todo!()
     }
 
-    fn deserialize(_: Option<&Header>, data: &[u8]) -> Result<Self, anyhow::Error>
+    fn deserialize(header: Option<&Header>, data: &[u8]) -> Result<Self, anyhow::Error>
     where
         Self: Sized,
     {
+        debug_assert!(header.is_none());
         let mut bytes = Bytes::new(data);
 
+        // let account = bytes.sized_slice::<Public>.context("Slice account")?;
+        // let account =
+        //     Public::try_from(slice).with_context(|| format!("Decode account {:?}", &slice))?;
         let account =
-            Public::try_from(bytes.slice(Public::LEN).with_context("Public")?).context("Public")?;
-        let frontier_hash =
-            BlockHash::try_from(bytes.slice(BlockHash::LEN).with_context("FrontierHash")?)
-                .context("FrontierHash")?;
+            <[u8; Public::LEN]>::try_from(bytes.slice(Public::LEN)?).context("Decode account")?;
+        // let account = [0u8; Public::LEN];
+
+        // dbg!(2);
+        let slice = bytes.slice(BlockHash::LEN).context("Slice FrontierHash")?;
+        let frontier_hash = BlockHash::try_from(slice).context("Decode FrontierHash")?;
+        // dbg!(3);
 
         Ok(Self {
             account,

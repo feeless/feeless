@@ -15,11 +15,14 @@ impl Public {
     const ADDRESS_CHECKSUM_LEN: usize = 5;
 
     pub fn from_hex(s: &str) -> anyhow::Result<Self> {
-        Ok(Self(ed25519_dalek::PublicKey::from_bytes(
-            hex::decode(s.as_bytes())
-                .context("Could not decode hex")?
-                .as_slice(),
-        )?))
+        Ok(Self(
+            ed25519_dalek::PublicKey::from_bytes(
+                hex::decode(s.as_bytes())
+                    .context("Decoding hex public key")?
+                    .as_slice(),
+            )
+            .with_context(|| format!("Loading public key from hex: {}", &s))?,
+        ))
     }
 
     pub fn as_bytes(&self) -> &[u8] {

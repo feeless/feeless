@@ -23,6 +23,7 @@ use std::error::Error;
 use std::fs::File;
 use std::io::{BufRead, BufReader, Read};
 use std::net::{IpAddr, Ipv4Addr};
+use std::rc::Rc;
 use std::str::FromStr;
 use tracing::{debug, error, info, trace, warn};
 
@@ -45,7 +46,7 @@ enum Direction {
     Recv,
 }
 
-pub struct PcapDump {
+pub struct PcapDump<'a> {
     /// Storage to continue a TCP payload for the next packet in a stream.
     stream_cont: HashMap<String, (usize, Vec<u8>)>,
 
@@ -61,9 +62,13 @@ pub struct PcapDump {
 
     subject: Subject,
     found_subject: Option<Ipv4Addr>,
+
+    packet_idx: usize,
+    stream_id: String,
+    bytes: Bytes<'a>,
 }
 
-impl PcapDump {
+impl<'a> PcapDump<'a> {
     pub fn new(subject: Subject) -> Self {
         let found_subject = match subject {
             Subject::Specified(s) => Some(s),
@@ -75,16 +80,19 @@ impl PcapDump {
             frontiers: HashSet::new(),
             subject,
             found_subject,
+            packet_idx: 0,
+            stream_id: "".to_string(),
             expanded: false,
             start_at: None,
             end_at: None,
             filter_addr: None,
             abort_on_error: false,
             pause_on_error: false,
+            bytes: Bytes::new(&[]),
         }
     }
 
-    pub fn dump(&mut self, path: &str) -> anyhow::Result<()> {
+    pub fn dump(&'a mut self, path: &'a str) -> anyhow::Result<()> {
         info!("Loading dump: {}", path);
 
         let file = File::open(path).with_context(|| format!("Opening file {}", path))?;
@@ -96,15 +104,15 @@ impl PcapDump {
 
         let mut has_started = false;
         let mut reader =
-            Capture::new(&file).with_context(|| format!("Reading capture file {:?}", &file))?;
-        let mut packet_idx = 0;
+            Capture::new(file).with_context(|| format!("Reading capture file {:?}", &path))?;
+        self.packet_idx = 0;
         'next_packet: loop {
-            packet_idx += 1; // 1 based packet numbering because wireshark uses it.
+            self.packet_idx += 1; // 1 based packet numbering because wireshark uses it.
 
             let packet = reader
                 .next()
                 .transpose()
-                .with_context(|| format!("Reading next packet: {}", packet_idx))?;
+                .with_context(|| format!("Reading next packet: {}", self.packet_idx))?;
             let packet = if packet.is_none() {
                 // EOF
                 return Ok(());
@@ -112,7 +120,10 @@ impl PcapDump {
                 packet.unwrap()
             };
             let packet = match SlicedPacket::from_ethernet(&packet.data).with_context(|| {
-                format!("Parsing packet data to ethernet for packet {}", packet_idx)
+                format!(
+                    "Parsing packet data to ethernet for packet {}",
+                    self.packet_idx
+                )
             }) {
                 Ok(p) => p,
                 Err(err) => {
@@ -144,7 +155,7 @@ impl PcapDump {
             if !has_started {
                 match self.start_at {
                     Some(start_at) => {
-                        if start_at <= packet_idx {
+                        if start_at <= self.packet_idx {
                             has_started = true;
                         } else {
                             continue;
@@ -154,7 +165,7 @@ impl PcapDump {
                 }
             }
             if let Some(end_at) = self.end_at {
-                if packet_idx > end_at {
+                if self.packet_idx > end_at {
                     return Ok(());
                 }
             }
@@ -174,7 +185,7 @@ impl PcapDump {
                 }
             }
 
-            let stream_id = format!(
+            self.stream_id = format!(
                 "{}:{}->{}:{}",
                 ip.source_addr(),
                 tcp.source_port(),
@@ -193,13 +204,13 @@ impl PcapDump {
 
             debug!(
                 "Packet: #{} size: {} {}",
-                &packet_idx,
+                &self.packet_idx,
                 data.len(),
-                &stream_id
+                &self.stream_id
             );
 
             let mut v = vec![];
-            let bytes = match self.stream_cont.get(&stream_id) {
+            let slice = match self.stream_cont.get(&self.stream_id) {
                 Some((other_packet_idx, b)) => {
                     // We have some left over data from a previous packet.
                     trace!(
@@ -209,7 +220,7 @@ impl PcapDump {
                     );
                     v.extend_from_slice(&b);
                     v.extend_from_slice(data);
-                    self.stream_cont.remove(&stream_id);
+                    self.stream_cont.remove(&self.stream_id);
                     v.as_slice()
                 }
                 None => {
@@ -218,42 +229,43 @@ impl PcapDump {
                 }
             };
 
-            let mut bytes = Bytes::new(bytes);
+            let mut bytes = Bytes::new(slice);
             if self.frontiers.contains(&connection_id) {
                 // At this point we're only going to receive frontier messages which do not have a
                 // header.
-                // todo!();
-
                 while !bytes.eof() {
+                    if self.should_resume_stream_later(&mut bytes, FrontierResp::LEN)? {
+                        continue 'next_packet;
+                    }
+
                     let frontier =
-                        FrontierResp::deserialize(header, bytes.slice(FrontierResp::LEN)?)?;
+                        FrontierResp::deserialize(None, bytes.slice(FrontierResp::LEN)?)?;
                     dbg!(frontier);
                 }
-
-                continue;
+                continue 'next_packet;
             }
 
             while !bytes.eof() {
-                if bytes.remain() < Header::LEN {
-                    let remaining = Vec::from(bytes.slice(bytes.remain())?);
-                    self.stream_cont
-                        .insert(stream_id.clone(), (packet_idx, remaining));
+                if self
+                    .should_resume_stream_later(&mut bytes, Header::LEN)
+                    .context("Header")?
+                {
                     continue 'next_packet;
                 }
 
-                let header_bytes = match self.handle_error(
-                    bytes
-                        .slice(Header::LEN)
-                        .with_context(|| format!("Slicing header on packet #{}", packet_idx)),
-                )? {
-                    Some(x) => x,
-                    None => continue 'next_packet,
-                };
-
-                let header = match self
-                    .handle_error(Header::deserialize(None, header_bytes).with_context(|| {
-                        format!("Deserializing header on packet #{}", packet_idx)
+                let header_bytes =
+                    match self.handle_error(bytes.slice(Header::LEN).with_context(|| {
+                        format!("Slicing header on packet #{}", self.packet_idx)
                     }))? {
+                        Some(x) => x,
+                        None => continue 'next_packet,
+                    };
+
+                let header = match self.handle_error(
+                    Header::deserialize(None, header_bytes).with_context(|| {
+                        format!("Deserializing header on packet #{}", self.packet_idx)
+                    }),
+                )? {
                     Some(x) => x,
                     None => continue 'next_packet,
                 };
@@ -262,7 +274,7 @@ impl PcapDump {
                     Direction::Send => (
                         format!(
                             ">>> #{} {}:{}",
-                            packet_idx,
+                            self.packet_idx,
                             ip.destination_addr(),
                             tcp.destination_port()
                         ),
@@ -271,7 +283,7 @@ impl PcapDump {
                     Direction::Recv => (
                         format!(
                             "<<< #{} {}:{}",
-                            packet_idx,
+                            self.packet_idx,
                             ip.source_addr(),
                             tcp.source_port()
                         ),
@@ -300,7 +312,7 @@ impl PcapDump {
 
                 let maybe_decoded = match self.handle_error(
                     func(Some(&header), &mut bytes)
-                        .with_context(|| format!("Decoding packet #{}", &packet_idx)),
+                        .with_context(|| format!("Decoding packet #{}", &self.packet_idx)),
                 )? {
                     Some(x) => x,
                     None => continue 'next_packet,
@@ -309,9 +321,7 @@ impl PcapDump {
                     Some(p) => p,
                     None => {
                         bytes.seek(-(Header::LEN as i64))?;
-                        let remaining = Vec::from(bytes.slice(bytes.remain())?);
-                        self.stream_cont
-                            .insert(stream_id.clone(), (packet_idx, remaining));
+                        self.save_stream_for_later(&mut bytes).context("Header")?;
                         continue 'next_packet;
                     }
                 };
@@ -334,9 +344,9 @@ impl PcapDump {
         }
     }
 
-    fn process_packet<'a>(
-        packet: &'a SlicedPacket,
-    ) -> Option<(&'a Ipv4HeaderSlice<'a>, &'a TcpHeaderSlice<'a>, &'a [u8])> {
+    fn process_packet<'p>(
+        packet: &'p SlicedPacket,
+    ) -> Option<(&'p Ipv4HeaderSlice<'p>, &'p TcpHeaderSlice<'p>, &'p [u8])> {
         // TODO: Support IPv6
         let ip = if let Some(InternetSlice::Ipv4(ip)) = &packet.ip {
             ip
@@ -375,6 +385,30 @@ impl PcapDump {
                 Ok(None)
             }
         }
+    }
+
+    fn should_resume_stream_later(
+        &mut self,
+        bytes: &mut Bytes,
+        expected_len: usize,
+    ) -> anyhow::Result<bool> {
+        if bytes.remain() < expected_len {
+            self.save_stream_for_later(bytes)?;
+            Ok(true)
+        } else {
+            Ok(false)
+        }
+    }
+
+    fn save_stream_for_later(&mut self, bytes: &mut Bytes) -> anyhow::Result<()> {
+        let remaining = Vec::from(
+            bytes
+                .slice(bytes.remain())
+                .context("Slicing remaining stream for later")?,
+        );
+        self.stream_cont
+            .insert(self.stream_id.to_owned(), (self.packet_idx, remaining));
+        Ok(())
     }
 }
 

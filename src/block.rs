@@ -4,7 +4,7 @@ use crate::node::header::Header;
 use crate::node::wire::Wire;
 use crate::{Address, BlockHash, Public, Raw, Signature, Work};
 use anyhow::anyhow;
-use std::convert::TryFrom;
+use core::convert::TryFrom;
 use tracing::warn;
 
 #[derive(Debug, Eq, PartialEq)]
