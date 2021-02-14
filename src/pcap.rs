@@ -13,11 +13,12 @@ use crate::node::wire::Wire;
 use crate::{to_hex, DEFAULT_PORT};
 use ansi_term;
 use ansi_term::Color;
-use anyhow::{anyhow, Context, Error};
+use anyhow::{anyhow, Context};
 use etherparse::{InternetSlice, SlicedPacket};
 use etherparse::{Ipv4HeaderSlice, TcpHeaderSlice, TransportSlice};
 use pcarp::Capture;
 use std::collections::{HashMap, HashSet};
+use std::error::Error;
 use std::fs::File;
 use std::io::{BufRead, BufReader, Read};
 use std::net::{IpAddr, Ipv4Addr};
@@ -219,6 +220,7 @@ impl PcapDump {
             if self.frontiers.contains(&connection_id) {
                 // At this point we're only going to receive frontier messages which do not have a
                 // header.
+                todo!();
 
                 continue;
             }
@@ -232,47 +234,40 @@ impl PcapDump {
                     continue 'next_packet;
                 }
 
-                let header_bytes = match bytes
-                    .slice(Header::LEN)
-                    .with_context(|| format!("Slicing header on packet #{}", packet_idx))
-                {
-                    Ok(h) => h,
-                    Err(err) => {
-                        if self.abort_on_error {
-                            return Err(err);
-                        } else {
-                            error!("Error processing header: {:?}", err);
-                            if self.pause_on_error {
-                                std::io::stdin().read(&mut [0]).unwrap();
-                            }
-                            continue 'next_packet;
-                        }
-                    }
+                let header_bytes = match self.handle_error(
+                    bytes
+                        .slice(Header::LEN)
+                        .with_context(|| format!("Slicing header on packet #{}", packet_idx)),
+                )? {
+                    Some(x) => x,
+                    None => continue 'next_packet,
                 };
 
-                let header = match Header::deserialize(None, header_bytes)
-                    .with_context(|| format!("Deserializing header on packet #{}", packet_idx))
-                {
-                    Ok(header) => header,
-                    Err(err) => {
-                        if self.abort_on_error {
-                            return Err(err);
-                        } else {
-                            error!("Error processing header: {:?}", err);
-                            if self.pause_on_error {
-                                std::io::stdin().read(&mut [0]).unwrap();
-                            }
-                            continue 'next_packet;
-                        }
-                    }
+                let header = match self
+                    .handle_error(Header::deserialize(None, header_bytes).with_context(|| {
+                        format!("Deserializing header on packet #{}", packet_idx)
+                    }))? {
+                    Some(x) => x,
+                    None => continue 'next_packet,
                 };
+
                 let (direction_text, color) = match direction {
                     Direction::Send => (
-                        format!(">>> {}:{}", ip.destination_addr(), tcp.destination_port()),
+                        format!(
+                            ">>> #{} {}:{}",
+                            packet_idx,
+                            ip.destination_addr(),
+                            tcp.destination_port()
+                        ),
                         send_color,
                     ),
                     Direction::Recv => (
-                        format!("<<< {}:{}", ip.source_addr(), tcp.source_port()),
+                        format!(
+                            "<<< #{} {}:{}",
+                            packet_idx,
+                            ip.source_addr(),
+                            tcp.source_port()
+                        ),
                         recv_color,
                     ),
                 };
@@ -287,33 +282,22 @@ impl PcapDump {
                     MessageType::Publish => payload::<Publish>,
                     MessageType::FrontierReq => payload::<FrontierReq>,
                     _ => {
-                        error!("Unhandled message type {:?}", header);
-                        if self.abort_on_error {
-                            return Ok(());
-                        }
-                        if self.pause_on_error {
-                            std::io::stdin().read(&mut [0]).unwrap();
-                        }
+                        let o = self.handle_error::<anyhow::Result<()>>(Err(anyhow!(
+                            "Unhandled message type {:?}",
+                            header
+                        )))?;
+                        debug_assert!(o.is_none());
                         continue 'next_packet;
                     }
                 };
-                let decoded_result = func(Some(&header), &mut bytes)
-                    .with_context(|| format!("Decoding packet #{}", &packet_idx));
-                let maybe_decoded = match decoded_result {
-                    Ok(m) => m,
-                    Err(err) => {
-                        if self.abort_on_error {
-                            return Err(err);
-                        } else {
-                            error!("Error processing header: {:?}", err);
-                            if self.pause_on_error {
-                                std::io::stdin().read(&mut [0]).unwrap();
-                            }
-                            continue 'next_packet;
-                        }
-                    }
-                };
 
+                let maybe_decoded = match self.handle_error(
+                    func(Some(&header), &mut bytes)
+                        .with_context(|| format!("Decoding packet #{}", &packet_idx)),
+                )? {
+                    Some(x) => x,
+                    None => continue 'next_packet,
+                };
                 let decoded = match maybe_decoded {
                     Some(p) => p,
                     None => {
@@ -361,6 +345,29 @@ impl PcapDump {
 
         let data_len = ip.payload_len() as usize - tcp.slice().len() as usize;
         Some((ip, tcp, &packet.payload[..data_len]))
+    }
+
+    /// If theres an error, we either return the error, or optionally allow the user to continue.
+    /// Returning Ok(None) tells the caller the packet is bad and we want to try the next packet.
+    fn handle_error<T>(
+        &self,
+        result: Result<T, anyhow::Error>,
+    ) -> Result<Option<T>, anyhow::Error> {
+        match result {
+            Ok(m) => Ok(Some(m)),
+            Err(err) => {
+                if self.abort_on_error {
+                    return Err(err);
+                }
+
+                error!("{:?}", err);
+                if self.pause_on_error {
+                    println!("\nPress [enter] to resume");
+                    std::io::stdin().read(&mut [0]).unwrap();
+                }
+                Ok(None)
+            }
+        }
     }
 }
 
