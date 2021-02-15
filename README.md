@@ -41,6 +41,14 @@ Nano is also known as: Nano cryptocurrency, Nano coin, RaiBlocks.
 
 </sup>
 
+## Working Features
+
+* Can be used as a crate. No examples or documentation yet. The source code is fairly straightforward if you want to
+  take a look.
+* `feeless pcap [file.pcapng]` can dump a capture file and dissect the packets. There are additional arguments you can
+  see with `--help`. To do this as successfully as possible, capture with Wireshark, set the filter to `nano`, `File ->
+  Export Specified Packets`, make sure "Displayed" is selected.
+
 ## Goals
 
 ### General
@@ -195,6 +203,11 @@ A medium term task list:
     - [ ] Server
     - [ ] GPU
   - [ ] WASM
+
+## Installing
+
+Currently the only way to do this is to [install Rust](https://rustup.rs/), then run `cargo install feeless`. This will
+create a file in your rust's bin directory.
 
 ## Credits and references
 
