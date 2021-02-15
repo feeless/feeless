@@ -1,5 +1,5 @@
 use super::Block;
-use crate::blocks::BlockType;
+use crate::blocks::{hash_block, BlockType};
 use crate::encoding::blake2b;
 use crate::{expect_len, BlockHash, FullBlock, Public, Raw, Work};
 
@@ -36,23 +36,20 @@ impl StateBlock {
     }
 
     pub fn hash(&self) -> anyhow::Result<BlockHash> {
-        todo!()
-
-        // TODO: use hash_block()
-
-        // let mut v = Vec::new(); // TODO: with_capacity
-        //
-        // // Preamble: A u256 of the block type.
         // v.extend_from_slice(&[0u8; 31]);
         // v.push(BlockType::State as u8);
-        //
-        // v.extend_from_slice(self.account.as_bytes());
-        // v.extend_from_slice(self.previous.as_bytes());
-        // v.extend_from_slice(self.representative.as_bytes());
-        // v.extend_from_slice(self.balance.to_vec().as_slice());
-        // v.extend_from_slice(self.link.as_bytes());
-        //
-        // BlockHash::try_from(blake2b(BlockHash::LEN, &v).as_ref())
+
+        let mut preamble = [0u8; 32];
+        preamble[31] = BlockType::State as u8;
+
+        hash_block(&[
+            &preamble,
+            self.account.as_bytes(),
+            self.previous.as_bytes(),
+            self.representative.as_bytes(),
+            self.balance.to_vec().as_slice(),
+            self.link.as_bytes(),
+        ])
     }
 }
 
@@ -151,5 +148,44 @@ impl Link {
             Link::SendDestinationPublicKey(key) => key.as_bytes(),
             Link::Unsure(b) => b.as_ref(),
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{Block, FullBlock, StateBlock};
+    use super::{BlockHash, Raw};
+    use crate::{Address, Link, Signature, Work};
+    use std::convert::TryFrom;
+
+    #[test]
+    fn hash_a_real_state_block() {
+        let account =
+            Address::from_str("nano_34prihdxwz3u4ps8qjnn14p7ujyewkoxkwyxm3u665it8rg5rdqw84qrypzk")
+                .unwrap()
+                .to_public();
+        let parent =
+            BlockHash::from_hex("7837C80964CAD551DEABE162C7FC4BB58688A0C6EB6D9907C0D2A7C74A33C7EB")
+                .unwrap();
+        let representative = account.clone();
+        let balance = Raw::from_raw(2711469892748129430069222848295u128);
+        let link = Link::PairingSendBlockHash(
+            BlockHash::from_hex("0399B19B022D260F3DDFBA26D0306D423F1890D3AE06136FAB16802D1F2B87A7")
+                .unwrap(),
+        );
+        // Signature and work aren't hashed, but left them as the real data anyway.
+        let signature = Signature::from_hex("BCF9F123138355AE9E741912D319FF48E5FCCA39D9E5DD74411D32C69B1C7501A0BF001C45D4F68CB561B902A42711E6166B9018E76C50CC868EF2E32B78F200").unwrap();
+        let work = Work::from_hex("d4757052401b9e08").unwrap();
+
+        let mut block =
+            StateBlock::new(account, parent, representative, balance, link).into_full_block();
+        block.set_signature(signature);
+        block.set_work(work);
+
+        assert_eq!(
+            block.hash().unwrap(),
+            BlockHash::from_hex("6F050D3D0B19C2C206046AAE2D46661B57E1B7D890DE8398D203A025E29A4AD9")
+                .unwrap()
+        )
     }
 }
