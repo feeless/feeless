@@ -1,10 +1,12 @@
-use crate::block::BlockType;
+use std::convert::TryFrom;
+
+use tracing::trace;
+
+use crate::blocks::{BlockType, FullBlock};
 use crate::bytes::Bytes;
 use crate::node::header::Header;
 use crate::node::wire::Wire;
-use crate::{BlockHash, Public, Signature, StateBlock};
-use std::convert::TryFrom;
-use tracing::trace;
+use crate::{BlockHash, Public, Signature};
 
 #[derive(Debug)]
 pub struct ConfirmAck {
@@ -19,7 +21,7 @@ pub struct ConfirmAck {
 #[derive(Debug)]
 pub enum Confirm {
     VoteByHash(Vec<BlockHash>),
-    Block(StateBlock), // TODO: this variant is 704 bytes, use Box<>?
+    Block(FullBlock), // TODO: this variant is 704 bytes, use Box<>?
 }
 
 impl ConfirmAck {
@@ -64,7 +66,7 @@ impl Wire for ConfirmAck {
         } else {
             // let block = Block;
             dbg!("block!!!!!!!", header.ext().block_type().unwrap());
-            dbg!("{:X}", data.slice(StateBlock::LEN)?);
+            // dbg!("{:X}", data.slice(FullBlock::LEN)?);
             todo!()
         };
 
@@ -78,8 +80,9 @@ impl Wire for ConfirmAck {
         if header.ext().block_type()? == BlockType::NotABlock {
             Ok(Self::VOTE_COMMON_LEN + header.ext().item_count() * BlockHash::LEN)
         } else {
-            trace!("a block");
-            Ok(Self::VOTE_COMMON_LEN + StateBlock::LEN)
+            dbg!(header);
+            todo!("got a block in confirm ack");
+            // Ok(Self::VOTE_COMMON_LEN + FullBlock::LEN)
         }
     }
 }

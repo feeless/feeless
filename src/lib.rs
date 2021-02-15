@@ -2,8 +2,9 @@
 
 use anyhow::anyhow;
 
-pub use block::{Link, StateBlock};
-pub use block_hash::BlockHash;
+pub use blocks::block_hash::BlockHash;
+pub use blocks::state_block::Link;
+pub use blocks::FullBlock;
 pub use encoding::{hex_formatter, to_hex};
 pub use keys::address::Address;
 pub use keys::phrase::{Language, MnemonicType, Phrase};
@@ -14,8 +15,7 @@ pub use pow::work::Work;
 pub use raw::Raw;
 pub use signature::Signature;
 
-mod block;
-mod block_hash;
+mod blocks;
 mod bytes;
 mod encoding;
 mod keys;

@@ -1,6 +1,11 @@
-use crate::{Address, BlockHash, Link, Public, Raw, Signature, StateBlock, Work};
-use anyhow::anyhow;
 use std::convert::TryFrom;
+
+use anyhow::anyhow;
+
+use crate::blocks::open_block::OpenBlock;
+use crate::blocks::state_block::Link;
+use crate::blocks::FullBlock;
+use crate::{Address, BlockHash, Public, Raw, Signature, Work};
 
 #[derive(Debug, Clone, Copy, PartialEq)]
 #[repr(u8)]
@@ -10,24 +15,33 @@ pub enum Network {
     Live = 0x43,
 }
 
+fn live_genesis_block() -> FullBlock {
+    // No need for handling errors in here. These values are basically not going to change and
+    // are covered in tests.
+
+    let address =
+        Address::from_str("nano_3t6k35gi95xu6tergt6p69ck76ogmitsa8mnijtpxm9fkcm736xtoncuohr3")
+            .unwrap()
+            .to_public();
+    let signature = Signature::from_hex("9F0C933C8ADE004D808EA1985FA746A7E95BA2A38F867640F53EC8F180BDFE9E2C1268DEAD7C2664F356E37ABA362BC58E46DBA03E523A7B5A19E4B6EB12BB02").unwrap();
+    let work = Work::from_hex("62f05417dd3fb691").unwrap();
+    let mut block = OpenBlock::new(
+        address.clone(),
+        address,
+        Public::from_hex("E89208DD038FBB269987689621D52292AE9C35941A7484756ECCED92A65093BA")
+            .unwrap(),
+    )
+    .into_full_block();
+
+    block.set_signature(signature).unwrap();
+    block.set_work(work).unwrap();
+    block
+}
+
 impl Network {
-    fn genesis_block(&self) -> anyhow::Result<StateBlock> {
+    fn genesis_block(&self) -> anyhow::Result<FullBlock> {
         Ok(match self {
-            Self::Live => StateBlock::new(
-                Address::from_str(
-                    "nano_3t6k35gi95xu6tergt6p69ck76ogmitsa8mnijtpxm9fkcm736xtoncuohr3",
-                )?
-                    .to_public(),
-                BlockHash::zero(),
-                Address::from_str(
-                    "nano_3t6k35gi95xu6tergt6p69ck76ogmitsa8mnijtpxm9fkcm736xtoncuohr3",
-                )?
-                .to_public(),
-                Raw::zero(),
-                Link::unsure_from_hex("E89208DD038FBB269987689621D52292AE9C35941A7484756ECCED92A65093BA")?,
-                Signature::from_hex("9F0C933C8ADE004D808EA1985FA746A7E95BA2A38F867640F53EC8F180BDFE9E2C1268DEAD7C2664F356E37ABA362BC58E46DBA03E523A7B5A19E4B6EB12BB02")?,
-                Work::from_hex("62f05417dd3fb691")?,
-            ),
+            Self::Live => live_genesis_block(),
             _ => todo!(),
         })
     }
@@ -70,11 +84,10 @@ mod tests {
     use super::*;
 
     #[test]
-    fn live() {
+    fn hash_live_genesis_block() {
         let net = Network::Live;
         let block = net.genesis_block().unwrap();
-        dbg!(&block);
-        let hash = block.hash_as_open().unwrap();
+        let hash = block.hash().unwrap();
         assert_eq!(hash, net.genesis_hash());
     }
 }

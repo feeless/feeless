@@ -4,7 +4,7 @@ use std::result::Result;
 use anyhow::anyhow;
 use bitvec::prelude::*;
 
-use crate::block::BlockType;
+use crate::blocks::BlockType;
 use crate::expect_len;
 use crate::node::network::Network;
 use crate::node::state::BoxedState;

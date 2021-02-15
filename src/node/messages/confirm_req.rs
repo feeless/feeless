@@ -1,11 +1,13 @@
-use crate::block::BlockType;
+use std::convert::TryFrom;
+
+use anyhow::{anyhow, Context};
+use tracing::info;
+
+use crate::blocks::{BlockType, FullBlock};
 use crate::bytes::Bytes;
 use crate::node::header::Header;
 use crate::node::wire::Wire;
-use crate::{expect_len, BlockHash, StateBlock};
-use anyhow::{anyhow, Context};
-use std::convert::TryFrom;
-use tracing::info;
+use crate::{expect_len, BlockHash};
 
 /// Requests confirmation of the given block or list of root/hash pairs.
 //
@@ -19,7 +21,7 @@ use tracing::info;
 #[derive(Debug)]
 pub enum ConfirmReq {
     ConfirmReqByHash(Vec<RootHashPair>),
-    BlockSelector(StateBlock),
+    BlockSelector(FullBlock),
 }
 
 impl ConfirmReq {
@@ -62,13 +64,15 @@ impl Wire for ConfirmReq {
             debug_assert_eq!(header.ext().block_type()?, BlockType::State);
             info!("Block type {:?}", header.ext().block_type());
 
-            let value = bytes
-                .slice(StateBlock::LEN)
-                .context("Confirm req slice state block")?;
-            Ok(Self::BlockSelector(
-                StateBlock::deserialize(Some(header), value)
-                    .context("Confirm req block selector state block deserialize")?,
-            ))
+            todo!("handle state block")
+
+            // let value = bytes
+            //     .slice(FullBlock::LEN)
+            //     .context("Confirm req slice state block")?;
+            // Ok(Self::BlockSelector(
+            //     FullBlock::deserialize(Some(header), value)
+            //         .context("Confirm req block selector state block deserialize")?,
+            // ))
         }
     }
 
@@ -80,7 +84,8 @@ impl Wire for ConfirmReq {
             Ok(Self::CONFIRM_REQ_BY_HASH_LEN * header.ext().item_count())
         } else {
             debug_assert_eq!(header.ext().block_type()?, BlockType::State);
-            Ok(StateBlock::LEN)
+            todo!("handle state block")
+            // Ok(FullBlock::LEN)
         }
     }
 }

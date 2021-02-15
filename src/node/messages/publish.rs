@@ -1,9 +1,9 @@
+use crate::blocks::FullBlock;
 use crate::node::header::Header;
 use crate::node::wire::Wire;
-use crate::StateBlock;
 
 #[derive(Debug)]
-pub struct Publish(StateBlock);
+pub struct Publish(FullBlock);
 
 impl Wire for Publish {
     fn serialize(&self) -> Vec<u8> {
@@ -14,10 +14,12 @@ impl Wire for Publish {
     where
         Self: Sized,
     {
-        Ok(Self(StateBlock::deserialize(None, data)?))
+        todo!("handle full block")
+        // Ok(Self(FullBlock::deserialize(None, data)?))
     }
 
     fn len(_: Option<&Header>) -> Result<usize, anyhow::Error> {
-        Ok(StateBlock::LEN)
+        todo!("handle full block")
+        // Ok(FullBlock::LEN)
     }
 }
