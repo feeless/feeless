@@ -51,7 +51,7 @@ impl TryFrom<u8> for BlockType {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum Block {
     Send(SendBlock),
     Receive(ReceiveBlock),
@@ -63,7 +63,7 @@ pub enum Block {
 /// A FullBlock contains all block information needed for the network.
 ///
 /// It includes work and signature, as well as the block specific information based on its type.
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct FullBlock {
     block: Block,
     work: Option<Work>,
@@ -110,6 +110,14 @@ impl FullBlock {
     pub fn set_signature(&mut self, signature: Signature) -> anyhow::Result<()> {
         self.signature = Some(signature);
         Ok(())
+    }
+
+    pub fn open_block(&self) -> anyhow::Result<&OpenBlock> {
+        if let Block::Open(o) = &self.block() {
+            Ok(o)
+        } else {
+            Err(anyhow!("Not an open block"))
+        }
     }
 }
 

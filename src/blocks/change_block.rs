@@ -1,6 +1,6 @@
 use crate::{BlockHash, Public};
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct ChangeBlock {
     previous: BlockHash,
     representative: Public,

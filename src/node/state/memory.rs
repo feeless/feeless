@@ -1,19 +1,29 @@
 use std::net::SocketAddr;
 
+use crate::blocks::Block;
 use crate::node::cookie::Cookie;
 use crate::node::network::Network;
 use crate::node::state::State;
-use crate::{BlockHash, FullBlock};
+use crate::pow::work::Subject::Hash;
+use crate::{BlockHash, FullBlock, Public, Raw};
+use anyhow::Context;
 use async_trait::async_trait;
+use std::collections::HashMap;
 
 #[derive(Debug)]
 pub struct MemoryState {
     network: Network,
+    blocks: HashMap<BlockHash, FullBlock>,
+    account_balances: HashMap<Public, Raw>,
 }
 
 impl MemoryState {
     pub fn new(network: Network) -> Self {
-        Self { network }
+        Self {
+            network,
+            blocks: HashMap::new(),
+            account_balances: HashMap::new(),
+        }
     }
 }
 
@@ -23,15 +33,26 @@ impl State for MemoryState {
         self.network
     }
 
-    async fn add_block(&mut self, full_block: &FullBlock) -> Result<(), anyhow::Error> {
-        unimplemented!()
+    async fn add_block(&mut self, full_block: &FullBlock) -> anyhow::Result<()> {
+        self.blocks.insert(
+            full_block.hash().context("Add block")?,
+            full_block.to_owned(),
+        );
+        Ok(())
     }
 
-    async fn get_block_by_hash(
-        &mut self,
-        hash: &BlockHash,
-    ) -> Result<Option<FullBlock>, anyhow::Error> {
-        unimplemented!()
+    async fn get_block_by_hash(&mut self, hash: &BlockHash) -> anyhow::Result<Option<FullBlock>> {
+        Ok(self.blocks.get(hash).map(|b| b.to_owned()))
+    }
+
+    async fn account_balance(&mut self, account: &Public) -> Result<Option<Raw>, anyhow::Error> {
+        Ok(self.account_balances.get(account).map(|b| b.to_owned()))
+    }
+
+    async fn set_account_balance(&mut self, account: &Public, raw: &Raw) -> anyhow::Result<()> {
+        self.account_balances
+            .insert(account.to_owned(), raw.to_owned());
+        Ok(())
     }
 
     async fn set_cookie(

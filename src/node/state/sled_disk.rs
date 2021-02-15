@@ -3,7 +3,7 @@ use std::net::SocketAddr;
 use crate::node::cookie::Cookie;
 use crate::node::network::Network;
 use crate::node::state::State;
-use crate::{BlockHash, FullBlock};
+use crate::{BlockHash, FullBlock, Public, Raw};
 use async_trait::async_trait;
 use std::convert::TryFrom;
 
@@ -38,14 +38,19 @@ impl State for SledDiskState {
         self.network
     }
 
-    async fn add_block(&mut self, full_block: &FullBlock) -> Result<(), anyhow::Error> {
+    async fn add_block(&mut self, full_block: &FullBlock) -> anyhow::Result<()> {
         unimplemented!()
     }
 
-    async fn get_block_by_hash(
-        &mut self,
-        hash: &BlockHash,
-    ) -> Result<Option<FullBlock>, anyhow::Error> {
+    async fn get_block_by_hash(&mut self, hash: &BlockHash) -> anyhow::Result<Option<FullBlock>> {
+        unimplemented!()
+    }
+
+    async fn account_balance(&mut self, account: &Public) -> Result<Option<Raw>, anyhow::Error> {
+        unimplemented!()
+    }
+
+    async fn set_account_balance(&mut self, account: &Public, raw: &Raw) -> anyhow::Result<()> {
         unimplemented!()
     }
 

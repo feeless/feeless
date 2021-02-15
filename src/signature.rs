@@ -3,6 +3,7 @@ use crate::expect_len;
 
 use std::convert::TryFrom;
 
+#[derive(Clone)]
 pub struct Signature([u8; Signature::LEN]);
 
 impl Signature {

@@ -21,6 +21,7 @@ impl Subject {
     }
 }
 
+#[derive(Clone)]
 pub struct Work([u8; Work::LEN]);
 
 impl Work {

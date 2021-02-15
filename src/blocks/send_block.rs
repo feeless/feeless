@@ -1,6 +1,6 @@
 use crate::{BlockHash, Public, Raw};
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct SendBlock {
     previous: BlockHash,
     destination: Public,

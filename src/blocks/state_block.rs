@@ -3,7 +3,7 @@ use crate::blocks::{hash_block, BlockType};
 use crate::encoding::blake2b;
 use crate::{expect_len, BlockHash, FullBlock, Public, Raw, Work};
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct StateBlock {
     account: Public,
     previous: BlockHash,
@@ -119,7 +119,7 @@ impl StateBlock {
 //     }
 // }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum Link {
     Nothing,
     Unsure([u8; Link::LEN]),

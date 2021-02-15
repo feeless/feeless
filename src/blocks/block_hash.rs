@@ -2,7 +2,7 @@ use crate::encoding::hex_formatter;
 use crate::expect_len;
 use std::convert::TryFrom;
 
-#[derive(Clone, PartialEq, Eq)]
+#[derive(Clone, PartialEq, Eq, Hash)]
 pub struct BlockHash([u8; BlockHash::LEN]);
 
 impl BlockHash {

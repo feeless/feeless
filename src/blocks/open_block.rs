@@ -4,7 +4,7 @@ use crate::blocks::Block;
 use crate::encoding::blake2b;
 use crate::{blocks, Address, BlockHash, FullBlock, Public};
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct OpenBlock {
     pub source: Public,
     pub representative: Public,

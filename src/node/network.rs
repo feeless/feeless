@@ -78,7 +78,7 @@ mod tests {
     #[test]
     fn hash_live_genesis_block() {
         let net = Network::Live;
-        let block = net.genesis_block().unwrap();
+        let block = net.genesis_block();
         let hash = block.hash().unwrap();
         assert_eq!(hash, net.genesis_hash());
     }

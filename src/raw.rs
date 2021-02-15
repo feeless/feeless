@@ -9,7 +9,7 @@ use std::str::FromStr;
 const RAW_TO_MNANO: u128 = 1_000_000_000_000_000_000_000_000_000_000;
 const RAW_TO_NANO: u128 = 1_000_000_000_000_000_000_000_000;
 
-#[derive(Debug, Eq, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
 pub struct Raw(u128);
 
 impl Raw {

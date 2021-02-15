@@ -292,7 +292,7 @@ impl TryFrom<&[u8]> for Extensions {
 mod tests {
     use std::fmt::Debug;
 
-    use crate::node::state::memory::MemoryState;
+    use crate::node::state::MemoryState;
     use crate::node::state::State;
 
     use super::*;
