@@ -22,12 +22,10 @@ struct Opts {
 
 #[derive(Clap)]
 enum Command {
-    #[cfg(feature = "node")]
     Node(NodeOpts),
 
     Convert(ConvertFrom),
 
-    #[cfg(feature = "pcap")]
     Pcap(PcapDumpArgs),
 }
 
@@ -108,6 +106,8 @@ async fn option(opts: Opts) -> anyhow::Result<()> {
     match opts.command {
         #[cfg(feature = "node")]
         Command::Node(o) => node_with_single_peer(&o.address).await,
+        #[cfg(not(feature = "node"))]
+        Command::Node(_) => panic!("Compile with the `node` feature to enable this."),
 
         #[cfg(feature = "pcap")]
         Command::Pcap(o) => {
@@ -130,6 +130,8 @@ async fn option(opts: Opts) -> anyhow::Result<()> {
             p.pause_on_error = o.pause_on_error;
             p.dump(&o.path)
         }
+        #[cfg(not(feature = "pcap"))]
+        Command::Pcap(o) => panic!("Compile with the `pcap` feature to enable this."),
 
         Command::Convert(from) => match from.command {
             ConvertFromCommand::Public(public) => {

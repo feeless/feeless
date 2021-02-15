@@ -8,12 +8,15 @@ description = "A Nano (cryptocurrency) node and utilities such as nano addresses
 repository = "https://github.com/gak/feeless"
 
 [features]
-full = []
+full = ["pcap", "node"]
 node = ["sled"]
+
 # pcap needs node for all the messages.
 pcap = ["node", "pcarp", "etherparse"]
-tool = []
-client = []
+
+# client = [] # TODO: rpc client
+
+# By default just limit to the core functionality so that it can be used as a crate.
 default = []
 
 [dependencies]
