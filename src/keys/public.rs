@@ -1,6 +1,6 @@
 use crate::encoding::hex_formatter;
-use crate::{encoding, expect_len, to_hex, Address, Signature};
-use anyhow::Context;
+use crate::{encoding, expect_len, len_err_msg, to_hex, Address, Signature};
+use anyhow::{Context, Error};
 use bitvec::prelude::*;
 use ed25519_dalek::Verifier;
 use std::convert::TryFrom;
@@ -9,26 +9,26 @@ use std::iter::FromIterator;
 // TODO: Don't keep the key as a dalek newtype. Only the bytes, and lazily use the crate
 // when needed.
 #[derive(Clone, Eq, PartialEq, Hash)]
-pub struct Public(ed25519_dalek::PublicKey);
+pub struct Public([u8; Public::LEN]);
 
 impl Public {
     pub const LEN: usize = 32;
-
     const ADDRESS_CHECKSUM_LEN: usize = 5;
 
     pub fn from_hex(s: &str) -> anyhow::Result<Self> {
-        Ok(Self(
-            ed25519_dalek::PublicKey::from_bytes(
-                hex::decode(s.as_bytes())
-                    .context("Decoding hex public key")?
-                    .as_slice(),
-            )
-            .with_context(|| format!("Loading public key from hex: {}", &s))?,
-        ))
+        let vec = hex::decode(s.as_bytes()).context("Decoding hex public key")?;
+        let bytes = vec.as_slice();
+
+        let x = <[u8; Self::LEN]>::try_from(bytes).context("Bytes into slice")?;
+        Ok(Self(x))
+    }
+
+    fn dalek_key(&self) -> anyhow::Result<ed25519_dalek::PublicKey> {
+        ed25519_dalek::PublicKey::from_bytes(&self.0).context("Loading dalek key")
     }
 
     pub fn as_bytes(&self) -> &[u8] {
-        self.0.as_bytes()
+        &self.0
     }
 
     pub fn as_hex(&self) -> String {
@@ -41,13 +41,23 @@ impl Public {
 
     // Public key -> blake2(5) -> nano_base_32
     pub fn checksum(&self) -> String {
-        let result = encoding::blake2b(Self::ADDRESS_CHECKSUM_LEN, &self.as_bytes());
+        let result = encoding::blake2b(Self::ADDRESS_CHECKSUM_LEN, &self.0);
         let bits = BitVec::from_iter(result.iter().rev());
         encoding::encode_nano_base_32(&bits)
     }
 
     pub fn verify(&self, message: &[u8], signature: &Signature) -> bool {
-        self.0.verify(message, &signature.internal()).is_ok()
+        let result = self
+            .dalek_key()
+            .with_context(|| format!("Verify {:?} with {:?}", message, signature));
+
+        match result {
+            Ok(key) => key.verify(message, &signature.internal()).is_ok(),
+            // We're returning false here because someone we can be given a bad public key,
+            // but since we're not checking the key for how valid it is, only the signature,
+            // we just say that it does not pass validation.
+            Err(_) => false,
+        }
     }
 }
 
@@ -66,20 +76,21 @@ impl TryFrom<&[u8]> for Public {
     type Error = anyhow::Error;
 
     fn try_from(value: &[u8]) -> Result<Self, Self::Error> {
-        expect_len(value.len(), Self::LEN, "Public key")?;
-        Ok(Self(ed25519_dalek::PublicKey::from_bytes(value)?))
+        Ok(Self(<[u8; Self::LEN]>::try_from(value).with_context(
+            || len_err_msg(value.len(), Self::LEN, "Public key"),
+        )?))
     }
 }
 
 impl From<ed25519_dalek::PublicKey> for Public {
     fn from(v: ed25519_dalek::PublicKey) -> Self {
-        Self(v)
+        Self(*v.as_bytes())
     }
 }
 
 impl std::fmt::UpperHex for Public {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        crate::encoding::hex_formatter(f, &self.0.as_bytes().as_ref())
+        crate::encoding::hex_formatter(f, &self.0)
     }
 }
 

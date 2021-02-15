@@ -66,7 +66,7 @@ impl Controller {
             .with_context(context)?
             .is_some()
         {
-            return Ok(true);
+            return Ok(false);
         }
 
         let work = block.work();
@@ -87,7 +87,7 @@ impl Controller {
             .await
             .with_context(context)?;
 
-        Ok(false)
+        Ok(true)
     }
 
     /// Update the representative weights based on this block being added to the network.
@@ -129,7 +129,7 @@ mod tests {
                 .account_balance(&genesis_block.account)
                 .await
                 .unwrap()
-                .unwrap(),
+                .expect("A balance"),
             Raw::max()
         );
     }

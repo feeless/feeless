@@ -42,6 +42,13 @@ pub fn expect_len(got_len: usize, expected_len: usize, msg: &str) -> anyhow::Res
     Ok(())
 }
 
+pub fn len_err_msg(got_len: usize, expected_len: usize, msg: &str) -> String {
+    format!(
+        "{} is the wrong length: got: {} expected: {}",
+        msg, got_len, expected_len,
+    )
+}
+
 #[cfg(test)]
 mod tests {
     use std::convert::TryFrom;
