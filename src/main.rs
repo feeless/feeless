@@ -1,11 +1,16 @@
 #![forbid(unsafe_code)]
 
+#[cfg(feature = "node")]
+use feeless::node::node_with_single_peer;
+#[cfg(feature = "pcap")]
+use feeless::pcap;
+#[cfg(feature = "pcap")]
+use feeless::pcap::{PcapDump, Subject};
+
 use ansi_term::Color;
 use anyhow::Context;
 use clap::Clap;
-use feeless::node::node_with_single_peer;
-use feeless::pcap::{PcapDump, Subject};
-use feeless::{pcap, Public};
+use feeless::Public;
 use std::net::{IpAddr, Ipv4Addr};
 use std::str::FromStr;
 
@@ -17,8 +22,12 @@ struct Opts {
 
 #[derive(Clap)]
 enum Command {
+    #[cfg(feature = "node")]
     Node(NodeOpts),
+
     Convert(ConvertFrom),
+
+    #[cfg(feature = "pcap")]
     Pcap(PcapDumpArgs),
 }
 
@@ -97,7 +106,10 @@ async fn main() {
 
 async fn option(opts: Opts) -> anyhow::Result<()> {
     match opts.command {
+        #[cfg(feature = "node")]
         Command::Node(o) => node_with_single_peer(&o.address).await,
+
+        #[cfg(feature = "pcap")]
         Command::Pcap(o) => {
             let subject = match o.my_addr {
                 Some(ip_addr) => {
@@ -118,6 +130,7 @@ async fn option(opts: Opts) -> anyhow::Result<()> {
             p.pause_on_error = o.pause_on_error;
             p.dump(&o.path)
         }
+
         Command::Convert(from) => match from.command {
             ConvertFromCommand::Public(public) => {
                 let public = Public::from_hex(&public.public_key).context(

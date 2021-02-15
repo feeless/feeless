@@ -19,7 +19,9 @@ mod blocks;
 mod bytes;
 mod encoding;
 mod keys;
+#[cfg(feature = "node")]
 pub mod node;
+#[cfg(feature = "pcap")]
 pub mod pcap;
 mod pow;
 mod pretty;

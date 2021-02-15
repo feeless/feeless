@@ -7,7 +7,17 @@ license = "MIT OR Apache-2.0"
 description = "A Nano (cryptocurrency) node and utilities such as nano addresses, hashing blocks, signing, etc."
 repository = "https://github.com/gak/feeless"
 
+[features]
+full = []
+node = ["sled"]
+# pcap needs node for all the messages.
+pcap = ["node", "pcarp", "etherparse"]
+tool = []
+client = []
+default = []
+
 [dependencies]
+ansi_term = "0.12"
 async-trait = "*"
 hex = "0.4.2"
 anyhow = "1.0.38"
@@ -30,9 +40,8 @@ ed25519-dalek = { version = "1.0.1", package = "ed25519-dalek-blake2-feeless" }
 #ed25519-dalek = { git = "https://github.com/gak/ed25519-dalek.git", branch = "blake2b" }
 
 # node only
-sled = "*"
+sled = { version = "*", optional = true }
 
 # pcap only
-pcarp = "1.2.0"
-etherparse = "0.9.0"
-ansi_term = "0.12"
+pcarp = { version = "1.2.0", optional = true }
+etherparse = { version = "0.9.0", optional = true }

@@ -1,21 +1,20 @@
-use core::convert::TryFrom;
-use std::hash::Hash;
+#[cfg(feature = "node")]
+use crate::node::header::Header;
+#[cfg(feature = "node")]
+use crate::node::wire::Wire;
 
+use crate::bytes::Bytes;
+use crate::encoding::blake2b;
+use crate::{expect_len, Address, BlockHash, Public, Raw, Signature, Work};
 use anyhow::anyhow;
-use tracing::warn;
-
 use change_block::ChangeBlock;
+use core::convert::TryFrom;
 use open_block::OpenBlock;
 use receive_block::ReceiveBlock;
 use send_block::SendBlock;
 use state_block::{Link, StateBlock};
-
-use crate::bytes::Bytes;
-use crate::encoding::blake2b;
-use crate::node::header::Header;
-use crate::node::wire::Wire;
-use crate::{expect_len, Address, BlockHash, Public, Raw, Signature, Work};
-
+use std::hash::Hash;
+use tracing::warn;
 pub mod block_hash;
 pub mod change_block;
 pub mod open_block;
