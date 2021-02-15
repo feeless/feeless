@@ -12,7 +12,7 @@ default = ["full"]
 full = ["pcap", "node"]
 node = ["sled"]
 
-# pcap needs node for all the messages.
+# pcap needs node for all the messages. This could be moved outside of node in the future.
 pcap = ["node", "pcarp", "etherparse"]
 
 [dependencies]

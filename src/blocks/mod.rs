@@ -60,6 +60,9 @@ pub enum Block {
     State(StateBlock),
 }
 
+/// A FullBlock contains all block information needed for the network.
+///
+/// It includes work and signature, as well as the block specific information based on its type.
 #[derive(Debug)]
 pub struct FullBlock {
     block: Block,
@@ -76,6 +79,10 @@ impl FullBlock {
         }
     }
 
+    pub fn block(&self) -> &Block {
+        &self.block
+    }
+
     pub fn hash(&self) -> anyhow::Result<BlockHash> {
         match &self.block {
             // Block::Send(x) => x.hash(),
@@ -87,9 +94,17 @@ impl FullBlock {
         }
     }
 
+    pub fn work(&self) -> Option<&Work> {
+        self.work.as_ref()
+    }
+
     pub fn set_work(&mut self, work: Work) -> anyhow::Result<()> {
         self.work = Some(work);
         Ok(())
+    }
+
+    pub fn signature(&self) -> Option<&Signature> {
+        self.signature.as_ref()
     }
 
     pub fn set_signature(&mut self, signature: Signature) -> anyhow::Result<()> {

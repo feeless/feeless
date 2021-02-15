@@ -292,13 +292,14 @@ impl TryFrom<&[u8]> for Extensions {
 mod tests {
     use std::fmt::Debug;
 
-    use crate::node::state::{State, TestState};
+    use crate::node::state::memory::MemoryState;
+    use crate::node::state::State;
 
     use super::*;
 
     #[test]
     fn serialize() {
-        let state = TestState::new(Network::Live);
+        let state = MemoryState::new(Network::Live);
 
         let ext = *Extensions::new().query().response();
         let h1 = Header::new(state.network(), MessageType::Keepalive, ext);
@@ -317,7 +318,7 @@ mod tests {
 
     #[test]
     fn bad_length() {
-        let _state: BoxedState = Box::new(TestState::new(Network::Live));
+        let _state: BoxedState = Box::new(MemoryState::new(Network::Live));
         let err = "Header is the wrong length";
         let s = vec![];
         assert_contains_err(Header::deserialize(None, &s), err);
@@ -327,14 +328,14 @@ mod tests {
 
     #[test]
     fn bad_magic() {
-        let _state: BoxedState = Box::new(TestState::new(Network::Live));
+        let _state: BoxedState = Box::new(MemoryState::new(Network::Live));
         let s = vec![0xFF, 0x43, 18, 18, 18, 2, 3, 0];
         assert_contains_err(Header::deserialize(None, &s), "magic number");
     }
 
     #[test]
     fn bad_network() {
-        let state: BoxedState = Box::new(TestState::new(Network::Test));
+        let state: BoxedState = Box::new(MemoryState::new(Network::Test));
         let s = vec![0x52, 0x43, 18, 18, 18, 2, 3, 0];
         let header = Header::deserialize(None, &s).unwrap();
         let result = header.validate(&state);
@@ -343,7 +344,7 @@ mod tests {
 
     #[test]
     fn bad_message_type() {
-        let _state: BoxedState = Box::new(TestState::new(Network::Live));
+        let _state: BoxedState = Box::new(MemoryState::new(Network::Live));
         let s = vec![0x52, 0x43, 18, 18, 18, 100, 3, 0];
         assert_contains_err(Header::deserialize(None, &s), "message type");
     }

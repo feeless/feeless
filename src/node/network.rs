@@ -39,14 +39,14 @@ fn live_genesis_block() -> FullBlock {
 }
 
 impl Network {
-    fn genesis_block(&self) -> anyhow::Result<FullBlock> {
-        Ok(match self {
+    pub fn genesis_block(&self) -> FullBlock {
+        match self {
             Self::Live => live_genesis_block(),
             _ => todo!(),
-        })
+        }
     }
 
-    fn genesis_hash(&self) -> BlockHash {
+    pub fn genesis_hash(&self) -> BlockHash {
         match self {
             Self::Live => BlockHash::from_hex(
                 "991CF190094C00F0B68E2E5F75F6BEE95A2E0BD93CEAA4A6734DB9F19B728948",
@@ -54,14 +54,6 @@ impl Network {
             .unwrap(),
             _ => todo!(),
         }
-    }
-
-    fn preconfigured_representatives(&self) -> anyhow::Result<Vec<Public>> {
-        todo!()
-        // match Network {
-        //     case Self::Live => {},
-        //     _ => todo!(),
-        // }
     }
 }
 

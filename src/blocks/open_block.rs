@@ -6,9 +6,9 @@ use crate::{blocks, Address, BlockHash, FullBlock, Public};
 
 #[derive(Debug)]
 pub struct OpenBlock {
-    source: Public,
-    representative: Public,
-    account: Public,
+    pub source: Public,
+    pub representative: Public,
+    pub account: Public,
 }
 
 impl OpenBlock {
