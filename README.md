@@ -21,8 +21,8 @@ The main features of **Nano** are:
 * Extremely fast to send money--less than 1 second for 100% confirmation.
 
   <sup>
-    Nano is more asynchronous than Bitcoin--individual transactions are voted on separately from the rest of the network.
     Bitcoin takes 10 minutes on average for ~80%<sup>1</sup> confirmation.
+    Nano is more asynchronous than Bitcoin--individual transactions are voted on separately from the rest of the network.
   </sup>
 * Highly decentralized.
 
