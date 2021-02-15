@@ -2,3 +2,5 @@
 /.idea
 /*.db
 node/*.db
+*.pcapng
+Makefile
