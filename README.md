@@ -229,13 +229,14 @@ A medium term task list:
 ## Other implementations
 
 * nano-rs (Rust) https://github.com/termhn/nano-rs
+* Railroad (Rust) https://github.com/PlasmaPower/railroad
 * nano-python (Python) https://github.com/orhanhenrik/nano-python-node
 * gonano (Go) https://github.com/alexbakker/gonano
+* Go Nano (Go)  https://github.com/frankh/nano
 * Node.js Nano Node (JavaScript) https://github.com/numtel/node-nano-node
 * nanocurrency-node (TypeScript) https://github.com/pRizz/nanocurrency-node
 * Prailude (Lua, C) https://github.com/slact/prailude
 * RaiSharp (C#) https://github.com/vardthomas/Aggrex.RaiSharp
-* Railroad (Rust) https://github.com/PlasmaPower/railroad
 
 ## License
 
