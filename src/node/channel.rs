@@ -5,6 +5,8 @@ use crate::node::messages::confirm_req::ConfirmReq;
 use crate::node::messages::empty::Empty;
 use crate::node::messages::handshake::{Handshake, HandshakeQuery, HandshakeResponse};
 use crate::node::messages::publish::Publish;
+use crate::node::messages::telemetry_ack::TelemetryAck;
+use crate::node::messages::telemetry_req::TelemetryReq;
 use crate::node::state::BoxedState;
 use crate::node::wire::Wire;
 use crate::{expect_len, to_hex, Public, Seed, Signature};
@@ -112,7 +114,7 @@ impl Channel {
                 MessageType::Handshake => self.recv_node_id_handshake(header).await?,
                 // MessageType::BulkPullAccount => todo!(),
                 MessageType::TelemetryReq => self.recv_telemetry_req(header).await?,
-                // MessageType::TelemetryAck => todo!(),
+                MessageType::TelemetryAck => self.recv_telemetry_ack(header).await?,
                 _ => todo!("{:?}", header),
             }
         }
@@ -225,14 +227,21 @@ impl Channel {
 
     #[instrument(skip(self))]
     async fn recv_telemetry_req(&mut self, header: Header) -> anyhow::Result<()> {
-        self.recv::<Empty>(Some(&header)).await?;
-        warn!("TODO telemetry_req");
+        // Nothing else to receive!
         Ok(())
     }
+
     #[instrument(skip(self))]
     async fn send_telemetry_req(&mut self) -> anyhow::Result<()> {
         self.send_header(MessageType::TelemetryReq, Extensions::new())
             .await?;
+        Ok(())
+    }
+
+    #[instrument(skip(self))]
+    async fn recv_telemetry_ack(&mut self, header: Header) -> anyhow::Result<()> {
+        let telemetry = self.recv::<TelemetryAck>(Some(&header)).await?;
+        dbg!(telemetry);
         Ok(())
     }
 }

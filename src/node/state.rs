@@ -1,5 +1,5 @@
 use crate::node::cookie::Cookie;
-use crate::node::header::Network;
+use crate::node::network::Network;
 use async_trait::async_trait;
 use std::convert::TryFrom;
 use std::fmt::Debug;

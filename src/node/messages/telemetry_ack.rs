@@ -69,6 +69,7 @@ impl Wire for TelemetryAck {
         let mut s32 = [0u8; 4];
         let mut s64 = [0u8; 8];
 
+        // TODO s.block_count = bytes.read_be_u64() ?
         s64.copy_from_slice(bytes.slice(8)?);
         s.block_count = u64::from_be_bytes(s64);
         s64.copy_from_slice(bytes.slice(8)?);

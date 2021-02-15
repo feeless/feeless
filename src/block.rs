@@ -2,7 +2,7 @@ use crate::bytes::Bytes;
 use crate::encoding::blake2b;
 use crate::node::header::Header;
 use crate::node::wire::Wire;
-use crate::{Address, BlockHash, Public, Raw, Signature, Work};
+use crate::{expect_len, Address, BlockHash, Public, Raw, Signature, Work};
 use anyhow::anyhow;
 use core::convert::TryFrom;
 use tracing::warn;
@@ -104,7 +104,7 @@ impl StateBlock {
         }
     }
 
-    fn hash(&self) -> anyhow::Result<BlockHash> {
+    pub fn hash(&self) -> anyhow::Result<BlockHash> {
         let mut v = Vec::new(); // TODO: with_capacity
 
         // Preamble: A u256 of the block type.
@@ -117,6 +117,14 @@ impl StateBlock {
         v.extend_from_slice(self.balance.to_vec().as_slice());
         v.extend_from_slice(self.link.as_bytes());
 
+        BlockHash::try_from(blake2b(BlockHash::LEN, &v).as_ref())
+    }
+
+    pub fn hash_as_open(&self) -> anyhow::Result<BlockHash> {
+        let mut v = Vec::new(); // TODO: with_capacity
+        v.extend_from_slice(self.link.as_bytes());
+        v.extend_from_slice(self.representative.as_bytes());
+        v.extend_from_slice(self.account.as_bytes());
         BlockHash::try_from(blake2b(BlockHash::LEN, &v).as_ref())
     }
 }
@@ -198,6 +206,17 @@ pub enum Link {
 impl Link {
     pub const LEN: usize = 32;
 
+    pub fn nothing() -> Self {
+        Self::Nothing
+    }
+
+    pub fn unsure_from_hex(s: &str) -> anyhow::Result<Self> {
+        expect_len(s.len(), Self::LEN * 2, "Link")?;
+        let mut slice = [0u8; Self::LEN];
+        hex::decode_to_slice(s, &mut slice)?;
+        Ok(Link::Unsure(slice))
+    }
+
     pub fn as_bytes(&self) -> &[u8] {
         match self {
             Link::Nothing => &[0u8; Self::LEN],
@@ -216,7 +235,7 @@ mod tests {
     #[test]
     fn hash() {
         let account =
-            Address::try_from("nano_34prihdxwz3u4ps8qjnn14p7ujyewkoxkwyxm3u665it8rg5rdqw84qrypzk")
+            Address::from_str("nano_34prihdxwz3u4ps8qjnn14p7ujyewkoxkwyxm3u665it8rg5rdqw84qrypzk")
                 .unwrap()
                 .to_public();
         let parent =

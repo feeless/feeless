@@ -26,6 +26,21 @@ impl Address {
     /// 4 bits of padding in the front of the public key when encoding.
     pub const ENCODED_PADDED_BITS: usize = 4;
 
+    pub fn from_str(value: &str) -> anyhow::Result<Self> {
+        // TODO: Lazy
+        let re = Regex::new("^nano_[13][13456789abcdefghijkmnopqrstuwxyz]{59}$")
+            .expect("could not build regexp for nano address");
+        if !re.is_match(value) {
+            return Err(anyhow!("Not a valid nano address: {}", value));
+        }
+
+        let address = Address(value.into());
+        let public = address.extract_public_key()?;
+        address.validate_checksum(&public)?;
+
+        Ok(address)
+    }
+
     pub fn to_public(&self) -> Public {
         // We don't need to check the checksum because we assume if it's already stored, it's valid.
         self.extract_public_key().unwrap()
@@ -87,25 +102,6 @@ impl From<&Public> for Address {
         debug_assert_eq!(s.len(), Self::LEN);
         debug_assert_eq!(s.capacity(), Self::LEN);
         Address(s)
-    }
-}
-
-impl TryFrom<&str> for Address {
-    type Error = anyhow::Error;
-
-    fn try_from(value: &str) -> Result<Self, Self::Error> {
-        // TODO: Lazy
-        let re = Regex::new("^nano_[13][13456789abcdefghijkmnopqrstuwxyz]{59}$")
-            .expect("could not build regexp for nano address");
-        if !re.is_match(value) {
-            return Err(anyhow!("Not a valid nano address: {}", value));
-        }
-
-        let address = Address(value.into());
-        let public = address.extract_public_key()?;
-        address.validate_checksum(&public)?;
-
-        Ok(address)
     }
 }
 

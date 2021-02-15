@@ -19,6 +19,10 @@ impl Raw {
         Self(0)
     }
 
+    pub fn max() -> Self {
+        Self(u128::MAX)
+    }
+
     pub fn from_raw<T: Into<u128>>(v: T) -> Self {
         Self(v.into())
     }

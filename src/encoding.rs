@@ -95,7 +95,7 @@ mod tests {
             "nano_1ebq356ex7n5efth49o1p31r4fmuuoara5tmwduarg7b9jphyxsatr3ja6g8",
         ];
         for s in good_addresses {
-            assert!(Address::try_from(s).is_ok());
+            assert!(Address::from_str(s).is_ok());
         }
     }
 
@@ -110,7 +110,7 @@ mod tests {
             "nano_1ebq356ex7n5efth49o1p31r4fmuuoara5tmwduarg7b9jphyxsatr35a6g8",
         ];
         for s in bad_checksums {
-            assert!(Address::try_from(s).is_err());
+            assert!(Address::from_str(s).is_err());
         }
     }
 
@@ -125,7 +125,7 @@ mod tests {
         ];
 
         for s in bad_addresses {
-            let result = Address::try_from(s);
+            let result = Address::from_str(s);
             dbg!(&result);
             assert!(result.is_err())
         }

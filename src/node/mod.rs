@@ -1,14 +1,16 @@
 use tokio::net::TcpStream;
 
-use header::Network;
+use network::Network;
 
 use crate::node::channel::Channel;
 use crate::node::state::SledState;
 
 mod channel;
+mod controller;
 pub mod cookie;
 pub mod header;
 pub mod messages;
+pub mod network;
 pub mod peer;
 pub mod state;
 pub mod wire;

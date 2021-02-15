@@ -1,11 +1,14 @@
-use crate::block::BlockType;
-use crate::expect_len;
-use crate::node::state::BoxedState;
-use crate::node::wire::Wire;
-use anyhow::anyhow;
-use bitvec::prelude::*;
 use std::convert::{TryFrom, TryInto};
 use std::result::Result;
+
+use anyhow::anyhow;
+use bitvec::prelude::*;
+
+use crate::block::BlockType;
+use crate::expect_len;
+use crate::node::network::Network;
+use crate::node::state::BoxedState;
+use crate::node::wire::Wire;
 
 // TODO: Have header internally only contain [u8; 8] and use accessors, so that the header doesn't
 //       have to be encoded/decoded when sending/receiving.
@@ -155,28 +158,6 @@ impl TryFrom<u8> for MagicNumber {
 
 #[derive(Debug, Clone, Copy, PartialEq)]
 #[repr(u8)]
-pub enum Network {
-    Test = 0x41,
-    Beta = 0x42,
-    Live = 0x43,
-}
-
-impl TryFrom<u8> for Network {
-    type Error = anyhow::Error;
-
-    fn try_from(v: u8) -> Result<Self, Self::Error> {
-        use Network::*;
-        Ok(match v {
-            0x41 => Test,
-            0x42 => Beta,
-            0x43 => Live,
-            v => return Err(anyhow!("Unknown network: {} ({:X})", v, v)),
-        })
-    }
-}
-
-#[derive(Debug, Clone, Copy, PartialEq)]
-#[repr(u8)]
 pub enum Version {
     V18 = 18,
     V19 = 19,
@@ -309,9 +290,11 @@ impl TryFrom<&[u8]> for Extensions {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
-    use crate::node::state::{State, TestState};
     use std::fmt::Debug;
+
+    use crate::node::state::{State, TestState};
+
+    use super::*;
 
     #[test]
     fn serialize() {
