@@ -36,9 +36,6 @@ impl StateBlock {
     }
 
     pub fn hash(&self) -> anyhow::Result<BlockHash> {
-        // v.extend_from_slice(&[0u8; 31]);
-        // v.push(BlockType::State as u8);
-
         let mut preamble = [0u8; 32];
         preamble[31] = BlockType::State as u8;
 
@@ -179,8 +176,8 @@ mod tests {
 
         let mut block =
             StateBlock::new(account, parent, representative, balance, link).into_full_block();
-        block.set_signature(signature);
-        block.set_work(work);
+        block.set_signature(signature).unwrap();
+        block.set_work(work).unwrap();
 
         assert_eq!(
             block.hash().unwrap(),

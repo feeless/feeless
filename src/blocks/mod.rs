@@ -5,22 +5,24 @@ use crate::node::wire::Wire;
 
 use crate::bytes::Bytes;
 use crate::encoding::blake2b;
-use crate::{expect_len, Address, BlockHash, Public, Raw, Signature, Work};
+use crate::{expect_len, Address, Private, Public, Raw, Signature, Work};
 use anyhow::anyhow;
-use change_block::ChangeBlock;
+pub use block_hash::BlockHash;
+pub use change_block::ChangeBlock;
 use core::convert::TryFrom;
-use open_block::OpenBlock;
-use receive_block::ReceiveBlock;
-use send_block::SendBlock;
-use state_block::{Link, StateBlock};
+pub use open_block::OpenBlock;
+pub use receive_block::ReceiveBlock;
+pub use send_block::SendBlock;
+pub use state_block::{Link, StateBlock};
 use std::hash::Hash;
 use tracing::warn;
-pub mod block_hash;
-pub mod change_block;
-pub mod open_block;
-pub mod receive_block;
-pub mod send_block;
-pub mod state_block;
+
+mod block_hash;
+mod change_block;
+mod open_block;
+mod receive_block;
+mod send_block;
+mod state_block;
 
 #[derive(Debug, Eq, PartialEq)]
 pub enum BlockType {
@@ -83,9 +85,10 @@ impl FullBlock {
         &self.block
     }
 
+    // TODO: Can this ever fail?
     pub fn hash(&self) -> anyhow::Result<BlockHash> {
         match &self.block {
-            // Block::Send(x) => x.hash(),
+            Block::Send(x) => x.hash(),
             // Block::Receive(x) => x.hash(),
             Block::Open(x) => x.hash(),
             // Block::Change(x) => x.hash(),
@@ -112,11 +115,42 @@ impl FullBlock {
         Ok(())
     }
 
+    pub fn sign(&mut self, private: Private) -> anyhow::Result<()> {
+        let hash = self.hash()?;
+        let signature = private.sign(hash.as_bytes())?;
+        self.set_signature(signature)
+    }
+
+    /// If it's an open block, return it.
     pub fn open_block(&self) -> anyhow::Result<&OpenBlock> {
         if let Block::Open(o) = &self.block() {
             Ok(o)
         } else {
             Err(anyhow!("Not an open block"))
+        }
+    }
+
+    /// If it's a send block, return it.
+    pub fn send_block(&self) -> anyhow::Result<&SendBlock> {
+        if let Block::Send(o) = &self.block() {
+            Ok(o)
+        } else {
+            Err(anyhow!("Not an open block"))
+        }
+    }
+
+    pub fn balance(&self) -> Option<&Raw> {
+        match &self.block {
+            Block::Send(b) => Some(&b.balance),
+            _ => todo!(),
+        }
+    }
+
+    pub fn previous(&self) -> Option<BlockHash> {
+        match &self.block {
+            Block::Open(b) => None,
+            Block::Send(b) => Some(b.previous.to_owned()),
+            _ => todo!(),
         }
     }
 }

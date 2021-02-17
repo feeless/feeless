@@ -2,9 +2,9 @@ use std::convert::TryFrom;
 
 use anyhow::anyhow;
 
-use crate::blocks::open_block::OpenBlock;
-use crate::blocks::state_block::Link;
 use crate::blocks::FullBlock;
+use crate::blocks::Link;
+use crate::blocks::OpenBlock;
 use crate::{Address, BlockHash, Public, Raw, Signature, Work};
 
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -54,6 +54,12 @@ impl Network {
             .unwrap(),
             _ => todo!(),
         }
+    }
+
+    pub fn genesis_account(&self) -> Public {
+        let block = self.genesis_block();
+        let open = block.open_block().unwrap();
+        open.account.to_owned()
     }
 }
 

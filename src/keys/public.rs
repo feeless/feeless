@@ -6,8 +6,6 @@ use ed25519_dalek::Verifier;
 use std::convert::TryFrom;
 use std::iter::FromIterator;
 
-// TODO: Don't keep the key as a dalek newtype. Only the bytes, and lazily use the crate
-// when needed.
 #[derive(Clone, Eq, PartialEq, Hash)]
 pub struct Public([u8; Public::LEN]);
 

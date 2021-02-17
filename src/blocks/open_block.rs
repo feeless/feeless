@@ -1,6 +1,6 @@
 use std::convert::TryFrom;
 
-use crate::blocks::Block;
+use crate::blocks::{hash_block, Block};
 use crate::encoding::blake2b;
 use crate::{blocks, Address, BlockHash, FullBlock, Public};
 
@@ -20,15 +20,15 @@ impl OpenBlock {
         }
     }
 
+    pub fn into_full_block(self) -> FullBlock {
+        FullBlock::new(Block::Open(self))
+    }
+
     pub fn hash(&self) -> anyhow::Result<BlockHash> {
-        blocks::hash_block(&[
+        hash_block(&[
             self.source.as_bytes(),
             self.representative.as_bytes(),
             self.account.as_bytes(),
         ])
-    }
-
-    pub fn into_full_block(self) -> FullBlock {
-        FullBlock::new(Block::Open(self))
     }
 }

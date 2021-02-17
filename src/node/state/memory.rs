@@ -15,6 +15,7 @@ pub struct MemoryState {
     network: Network,
     blocks: HashMap<BlockHash, FullBlock>,
     account_balances: HashMap<Public, Raw>,
+    block_hash_to_account: HashMap<BlockHash, Public>,
 }
 
 impl MemoryState {
@@ -23,6 +24,7 @@ impl MemoryState {
             network,
             blocks: HashMap::new(),
             account_balances: HashMap::new(),
+            block_hash_to_account: HashMap::new(),
         }
     }
 }
@@ -33,11 +35,13 @@ impl State for MemoryState {
         self.network
     }
 
-    async fn add_block(&mut self, full_block: &FullBlock) -> anyhow::Result<()> {
+    async fn add_block(&mut self, account: &Public, full_block: &FullBlock) -> anyhow::Result<()> {
         self.blocks.insert(
             full_block.hash().context("Add block")?,
             full_block.to_owned(),
         );
+        self.block_hash_to_account
+            .insert(full_block.hash()?, account.to_owned());
         Ok(())
     }
 
@@ -53,6 +57,16 @@ impl State for MemoryState {
         self.account_balances
             .insert(account.to_owned(), raw.to_owned());
         Ok(())
+    }
+
+    async fn account_for_block_hash(
+        &mut self,
+        block_hash: &BlockHash,
+    ) -> Result<Option<Public>, anyhow::Error> {
+        Ok(self
+            .block_hash_to_account
+            .get(block_hash)
+            .map(|a| a.to_owned()))
     }
 
     async fn set_cookie(

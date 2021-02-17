@@ -2,9 +2,9 @@
 
 use anyhow::anyhow;
 
-pub use blocks::block_hash::BlockHash;
-pub use blocks::state_block::Link;
+pub use blocks::BlockHash;
 pub use blocks::FullBlock;
+pub use blocks::Link;
 pub use encoding::{hex_formatter, to_hex};
 pub use keys::address::Address;
 pub use keys::phrase::{Language, MnemonicType, Phrase};
