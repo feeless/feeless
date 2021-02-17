@@ -3,10 +3,11 @@ use crate::{encoding, expect_len, len_err_msg, to_hex, Address, Signature};
 use anyhow::{Context, Error};
 use bitvec::prelude::*;
 use ed25519_dalek::Verifier;
+use serde::{Deserialize, Serialize};
 use std::convert::TryFrom;
 use std::iter::FromIterator;
 
-#[derive(Clone, Eq, PartialEq, Hash)]
+#[derive(Clone, Eq, PartialEq, Hash, Serialize, Deserialize)]
 pub struct Public([u8; Public::LEN]);
 
 impl Public {

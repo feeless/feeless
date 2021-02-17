@@ -13,6 +13,7 @@ use core::convert::TryFrom;
 pub use open_block::OpenBlock;
 pub use receive_block::ReceiveBlock;
 pub use send_block::SendBlock;
+use serde::{Deserialize, Serialize};
 pub use state_block::{Link, StateBlock};
 use std::hash::Hash;
 use tracing::warn;
@@ -53,7 +54,7 @@ impl TryFrom<u8> for BlockType {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub enum Block {
     Send(SendBlock),
     Receive(ReceiveBlock),
@@ -65,7 +66,7 @@ pub enum Block {
 /// A FullBlock contains all block information needed for the network.
 ///
 /// It includes work and signature, as well as the block specific information based on its type.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct FullBlock {
     block: Block,
     work: Option<Work>,
@@ -161,4 +162,35 @@ pub fn hash_block(parts: &[&[u8]]) -> anyhow::Result<BlockHash> {
         v.extend_from_slice(b);
     }
     BlockHash::try_from(blake2b(BlockHash::LEN, &v).as_ref())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::node::network::Network;
+
+    #[test]
+    fn json() {
+        let genesis = r#"
+        {
+            "amount": "340282366920938463463374607431768211455",
+            "balance": "340282366920938463463374607431768211455",
+            "block_account": "nano_3t6k35gi95xu6tergt6p69ck76ogmitsa8mnijtpxm9fkcm736xtoncuohr3",
+            "confirmed": "true",
+            "contents": {
+                "account": "nano_3t6k35gi95xu6tergt6p69ck76ogmitsa8mnijtpxm9fkcm736xtoncuohr3",
+                "representative": "nano_3t6k35gi95xu6tergt6p69ck76ogmitsa8mnijtpxm9fkcm736xtoncuohr3",
+                "signature": "9F0C933C8ADE004D808EA1985FA746A7E95BA2A38F867640F53EC8F180BDFE9E2C1268DEAD7C2664F356E37ABA362BC58E46DBA03E523A7B5A19E4B6EB12BB02",
+                "source": "E89208DD038FBB269987689621D52292AE9C35941A7484756ECCED92A65093BA",
+                "type": "open",
+                "work": "62f05417dd3fb691"
+            },
+            "height": "1",
+            "local_timestamp": "0"
+        }
+        "#;
+
+        let block: FullBlock = serde_json::from_str(genesis).unwrap();
+        assert_eq!(block, Network::Live.genesis_block());
+    }
 }

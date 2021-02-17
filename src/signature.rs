@@ -1,9 +1,9 @@
 use crate::encoding::hex_formatter;
 use crate::expect_len;
-
+use serde::{Deserialize, Serialize};
 use std::convert::TryFrom;
 
-#[derive(Clone)]
+#[derive(Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct Signature([u8; Signature::LEN]);
 
 impl Signature {

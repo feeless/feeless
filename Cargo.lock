@@ -405,6 +405,7 @@ dependencies = [
  "rand 0.8.3",
  "regex",
  "serde",
+ "serde_json",
  "sled",
  "tiny-bip39",
  "tokio",

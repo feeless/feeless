@@ -2,8 +2,9 @@ use super::Block;
 use crate::blocks::{hash_block, BlockType};
 use crate::encoding::blake2b;
 use crate::{expect_len, BlockHash, FullBlock, Public, Raw, Work};
+use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct StateBlock {
     account: Public,
     previous: BlockHash,
@@ -116,7 +117,7 @@ impl StateBlock {
 //     }
 // }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub enum Link {
     Nothing,
     Unsure([u8; Link::LEN]),

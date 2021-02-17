@@ -1,8 +1,9 @@
 use crate::encoding::hex_formatter;
 use crate::expect_len;
+use serde::{Deserialize, Serialize};
 use std::convert::TryFrom;
 
-#[derive(Clone, PartialEq, Eq, Hash)]
+#[derive(Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub struct BlockHash([u8; BlockHash::LEN]);
 
 impl BlockHash {

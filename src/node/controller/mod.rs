@@ -84,13 +84,9 @@ mod tests {
     async fn send_to_new_account() -> anyhow::Result<()> {
         let network = Network::Live;
         let genesis_full_block = network.genesis_block();
-        let genesis_block = genesis_full_block.open_block()?;
         let new_key = Seed::random().derive(0);
         let new_account = new_key.to_public();
-
         let mut controller = empty_lattice(network).await;
-
-        dbg!(&controller.state);
 
         // Send some Nano from the genesis account to the new one.
         let mut block = SendBlock::new(

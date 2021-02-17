@@ -1,9 +1,9 @@
-use std::convert::TryFrom;
-
 use crate::encoding::blake2b;
 use crate::pow::difficulty::Difficulty;
 use crate::{expect_len, hex_formatter, BlockHash, Public};
 use rand::RngCore;
+use serde::{Deserialize, Serialize};
+use std::convert::TryFrom;
 use std::fmt::Debug;
 
 #[derive(Debug)]
@@ -21,7 +21,7 @@ impl Subject {
     }
 }
 
-#[derive(Clone)]
+#[derive(Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct Work([u8; Work::LEN]);
 
 impl Work {

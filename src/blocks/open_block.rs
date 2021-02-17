@@ -1,10 +1,10 @@
-use std::convert::TryFrom;
-
 use crate::blocks::{hash_block, Block};
 use crate::encoding::blake2b;
 use crate::{blocks, Address, BlockHash, FullBlock, Public};
+use serde::{Deserialize, Serialize};
+use std::convert::TryFrom;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct OpenBlock {
     pub source: Public,
     pub representative: Public,

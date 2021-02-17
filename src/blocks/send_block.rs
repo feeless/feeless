@@ -1,7 +1,8 @@
 use crate::blocks::{hash_block, Block};
 use crate::{BlockHash, FullBlock, Public, Raw};
+use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize, Eq, PartialEq)]
 pub struct SendBlock {
     pub previous: BlockHash,
     pub destination: Public,
