@@ -1,9 +1,5 @@
 #[cfg(feature = "node")]
-
 #[cfg(feature = "node")]
-
-
-
 use crate::encoding::blake2b;
 use crate::{expect_len, Address, Private, Public, Raw, Signature, Work};
 use anyhow::anyhow;
@@ -16,7 +12,6 @@ pub use send_block::SendBlock;
 use serde::{Deserialize, Serialize};
 pub use state_block::{Link, StateBlock};
 use std::hash::Hash;
-
 
 mod block_hash;
 mod change_block;
@@ -117,6 +112,12 @@ impl FullBlock {
     pub fn set_signature(&mut self, signature: Signature) -> anyhow::Result<()> {
         self.signature = Some(signature);
         Ok(())
+    }
+
+    pub fn verify_signature(&self, account: &Public) -> anyhow::Result<bool> {
+        let hash = self.hash()?;
+        let signature = self.signature().ok_or(anyhow!("Signature missing"))?;
+        Ok(account.verify(hash.as_bytes(), signature))
     }
 
     pub fn sign(&mut self, private: Private) -> anyhow::Result<()> {

@@ -37,9 +37,12 @@ impl Controller {
             return Ok(false);
         }
 
-        let signature = block.signature();
-        if signature.is_none() {
-            return Err(anyhow!("Signature is missing from block")).with_context(context);
+        let account = self.account_for_block(&block).await?;
+        dbg!(&account);
+
+        let context = || format!("Block {:?} Account: {:?}", block, &account);
+        if !block.verify_signature(&account).with_context(context)? {
+            return Err(anyhow!("Incorrect signature")).with_context(context);
         }
 
         let work = block.work();
@@ -53,9 +56,6 @@ impl Controller {
         // // TODO: dont unwrap
         // let parent = parent.unwrap();
         // TODO: Verify work and signature
-
-        let account = self.account_for_block(&block).await?;
-        dbg!(&account);
 
         // TODO: For now just assume this is a send block
         if let Ok(send_block) = block.send_block() {
