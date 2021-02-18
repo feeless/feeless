@@ -1,6 +1,6 @@
 use crate::blocks::Block;
 use crate::node::controller::Controller;
-use crate::{BlockHash, FullBlock, Public};
+use crate::{FullBlock, Public};
 use anyhow::{anyhow, Context};
 use tracing::debug;
 
@@ -99,7 +99,7 @@ impl Controller {
     /// This might need a few hits in the database, depending on the block.
     pub async fn find_parent_block(
         &mut self,
-        block: &FullBlock,
+        _block: &FullBlock,
     ) -> anyhow::Result<Option<FullBlock>> {
         // let maybe_block = if let Some(block_hash) = block.parent_hash() {
         //     self.find_block_by_hash(block_hash).await?

@@ -1,5 +1,5 @@
-use crate::encoding::{deserialize_hex, hex_formatter, FromHex};
-use crate::{encoding, expect_len, len_err_msg, to_hex, Address, Signature};
+use crate::encoding::{deserialize_hex, FromHex};
+use crate::{encoding, len_err_msg, to_hex, Address, Signature};
 use anyhow::Context;
 use bitvec::prelude::*;
 use ed25519_dalek::Verifier;

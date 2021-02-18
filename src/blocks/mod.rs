@@ -1,9 +1,9 @@
 #[cfg(feature = "node")]
-use crate::node::header::Header;
-#[cfg(feature = "node")]
-use crate::node::wire::Wire;
 
-use crate::bytes::Bytes;
+#[cfg(feature = "node")]
+
+
+
 use crate::encoding::blake2b;
 use crate::{expect_len, Address, Private, Public, Raw, Signature, Work};
 use anyhow::anyhow;
@@ -16,7 +16,7 @@ pub use send_block::SendBlock;
 use serde::{Deserialize, Serialize};
 pub use state_block::{Link, StateBlock};
 use std::hash::Hash;
-use tracing::warn;
+
 
 mod block_hash;
 mod change_block;
@@ -152,7 +152,7 @@ impl FullBlock {
 
     pub fn previous(&self) -> Option<BlockHash> {
         match &self.block {
-            Block::Open(b) => None,
+            Block::Open(_b) => None,
             Block::Send(b) => Some(b.previous.to_owned()),
             _ => todo!(),
         }

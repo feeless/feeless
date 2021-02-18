@@ -1,7 +1,7 @@
 use super::Block;
 use crate::blocks::{hash_block, BlockType};
-use crate::encoding::blake2b;
-use crate::{expect_len, BlockHash, FullBlock, Public, Raw, Work};
+
+use crate::{expect_len, BlockHash, FullBlock, Public, Raw};
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
@@ -151,11 +151,11 @@ impl Link {
 
 #[cfg(test)]
 mod tests {
-    use super::{Block, FullBlock, StateBlock};
+    use super::{StateBlock};
     use super::{BlockHash, Raw};
     use crate::encoding::FromHex;
     use crate::{Address, Link, Signature, Work};
-    use std::convert::TryFrom;
+    
 
     #[test]
     fn hash_a_real_state_block() {

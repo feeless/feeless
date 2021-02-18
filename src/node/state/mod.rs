@@ -4,7 +4,7 @@ use crate::{BlockHash, FullBlock, Public, Raw};
 use async_trait::async_trait;
 pub use memory::MemoryState;
 pub use sled_disk::SledDiskState;
-use std::convert::TryFrom;
+
 use std::fmt::Debug;
 use std::net::SocketAddr;
 

@@ -3,8 +3,8 @@ use std::convert::TryFrom;
 use anyhow::anyhow;
 
 use crate::blocks::FullBlock;
-use crate::blocks::Link;
-use crate::blocks::OpenBlock;
+
+
 use crate::encoding::FromHex;
 use crate::{Address, BlockHash, Public, Raw, Signature, Work};
 

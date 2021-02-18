@@ -4,8 +4,8 @@ mod genesis;
 use crate::blocks::Block;
 use crate::node::network::Network;
 use crate::node::state::BoxedState;
-use crate::{BlockHash, FullBlock, Public, Raw};
-use anyhow::{anyhow, Context};
+use crate::{FullBlock, Public, Raw};
+use anyhow::Context;
 
 /// The controller handles the logic with handling and emitting messages, as well as time based
 /// actions, peer management, etc.
@@ -32,7 +32,7 @@ impl Controller {
                 // TODO: Balance rep for send block
             }
             // Block::Receive(_) => {}
-            Block::Open(b) => {
+            Block::Open(_b) => {
                 // Open blocks don't change in balance.
             }
             // Block::Change(_) => {}
@@ -50,12 +50,9 @@ impl Controller {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::blocks::OpenBlock;
-    use crate::blocks::SendBlock;
-    use crate::encoding::FromHex;
+
     use crate::node::state::MemoryState;
-    use crate::{Address, Seed, Work};
-    use std::sync::Arc;
+    use crate::Address;
 
     async fn empty_lattice(network: Network) -> Controller {
         let state = Box::new(MemoryState::new(network));
@@ -84,7 +81,7 @@ mod tests {
     #[tokio::test]
     async fn send_to_new_account() -> anyhow::Result<()> {
         let network = Network::Live;
-        let genesis_full_block = network.genesis_block();
+        let _genesis_full_block = network.genesis_block();
         let genesis_account =
             Address::from_str("nano_3t6k35gi95xu6tergt6p69ck76ogmitsa8mnijtpxm9fkcm736xtoncuohr3")?
                 .to_public();
@@ -116,10 +113,8 @@ mod tests {
             controller.account_balance(&genesis_account).await?.unwrap(),
             Raw::max().checked_sub(&given).unwrap()
         );
-        assert_eq!(
-            controller.account_balance(&dest_account).await?.unwrap(),
-            given
-        );
+        // The receive block doesn't exist yet so the account should have no balance.
+        assert!(controller.account_balance(&dest_account).await?.is_none());
 
         Ok(())
     }

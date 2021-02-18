@@ -1,6 +1,6 @@
 use std::convert::TryFrom;
 
-use anyhow::{anyhow, Context};
+use anyhow::{Context};
 use tracing::info;
 
 use crate::blocks::{BlockType, FullBlock};

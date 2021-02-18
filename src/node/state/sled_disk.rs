@@ -38,26 +38,26 @@ impl State for SledDiskState {
         self.network
     }
 
-    async fn add_block(&mut self, account: &Public, full_block: &FullBlock) -> anyhow::Result<()> {
+    async fn add_block(&mut self, _account: &Public, _full_block: &FullBlock) -> anyhow::Result<()> {
         unimplemented!()
     }
 
-    async fn get_block_by_hash(&mut self, hash: &BlockHash) -> anyhow::Result<Option<FullBlock>> {
+    async fn get_block_by_hash(&mut self, _hash: &BlockHash) -> anyhow::Result<Option<FullBlock>> {
         unimplemented!()
     }
 
-    async fn account_balance(&mut self, account: &Public) -> Result<Option<Raw>, anyhow::Error> {
+    async fn account_balance(&mut self, _account: &Public) -> Result<Option<Raw>, anyhow::Error> {
         unimplemented!()
     }
 
     async fn account_for_block_hash(
         &mut self,
-        block_hash: &BlockHash,
+        _block_hash: &BlockHash,
     ) -> Result<Option<Public>, anyhow::Error> {
         unimplemented!()
     }
 
-    async fn set_account_balance(&mut self, account: &Public, raw: &Raw) -> anyhow::Result<()> {
+    async fn set_account_balance(&mut self, _account: &Public, _raw: &Raw) -> anyhow::Result<()> {
         unimplemented!()
     }
 

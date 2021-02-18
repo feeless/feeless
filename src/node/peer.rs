@@ -1,6 +1,6 @@
 use crate::node::header::Header;
 use crate::node::wire::Wire;
-use crate::{expect_len, hex_formatter};
+use crate::{expect_len};
 use std::net::{Ipv6Addr, SocketAddrV6};
 use std::str::FromStr;
 

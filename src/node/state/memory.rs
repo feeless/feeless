@@ -1,10 +1,10 @@
 use std::net::SocketAddr;
 
-use crate::blocks::Block;
+
 use crate::node::cookie::Cookie;
 use crate::node::network::Network;
 use crate::node::state::State;
-use crate::pow::work::Subject::Hash;
+
 use crate::{BlockHash, FullBlock, Public, Raw};
 use anyhow::Context;
 use async_trait::async_trait;

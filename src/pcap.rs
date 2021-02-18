@@ -2,7 +2,7 @@ use crate::bytes::Bytes;
 use crate::node::header::{Header, MessageType};
 use crate::node::messages::confirm_ack::ConfirmAck;
 use crate::node::messages::confirm_req::ConfirmReq;
-use crate::node::messages::empty::Empty;
+
 use crate::node::messages::frontier_req::FrontierReq;
 use crate::node::messages::frontier_resp::FrontierResp;
 use crate::node::messages::handshake::Handshake;
@@ -19,12 +19,12 @@ use etherparse::{InternetSlice, SlicedPacket};
 use etherparse::{Ipv4HeaderSlice, TcpHeaderSlice, TransportSlice};
 use pcarp::Capture;
 use std::collections::{HashMap, HashSet};
-use std::error::Error;
+
 use std::fs::File;
-use std::io::{BufRead, BufReader, Read};
-use std::net::{IpAddr, Ipv4Addr};
-use std::rc::Rc;
-use std::str::FromStr;
+use std::io::{Read};
+use std::net::{Ipv4Addr};
+
+
 use tracing::{debug, error, info, trace, warn};
 
 /// Subject is the focused peer that we act as "us", when showing if we're sending or
@@ -100,7 +100,7 @@ impl<'a> PcapDump<'a> {
         let recv_color = Color::Green.normal();
         let send_color = Color::Blue.bold();
         let direction_marker_color = Color::White.bold();
-        let error_color = Color::Red;
+        let _error_color = Color::Red;
 
         let mut has_started = false;
         let mut reader =

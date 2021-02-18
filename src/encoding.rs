@@ -2,9 +2,9 @@ use anyhow::anyhow;
 use bitvec::prelude::*;
 use blake2::digest::{Update, VariableOutput};
 use blake2::VarBlake2b;
-use serde::de::{Error, Expected};
+use serde::de::{Error};
 use serde::{Deserialize, Deserializer};
-use std::fmt::Formatter;
+
 
 pub trait FromHex
 where
@@ -81,7 +81,7 @@ pub fn decode_nano_base_32(s: &str) -> anyhow::Result<BitVec<Msb0, u8>> {
 mod tests {
     use super::*;
     use crate::Address;
-    use std::convert::TryFrom;
+    
 
     #[test]
     fn encode_decode() {

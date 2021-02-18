@@ -1,6 +1,6 @@
 use std::convert::TryFrom;
 
-use tracing::trace;
+
 
 use crate::blocks::{BlockType, FullBlock};
 use crate::bytes::Bytes;

@@ -37,7 +37,7 @@ impl Wire for TelemetryAck {
         unimplemented!()
     }
 
-    fn deserialize(header: Option<&Header>, data: &[u8]) -> Result<Self, anyhow::Error>
+    fn deserialize(_header: Option<&Header>, data: &[u8]) -> Result<Self, anyhow::Error>
     where
         Self: Sized,
     {
@@ -100,7 +100,7 @@ impl Wire for TelemetryAck {
         Ok(s)
     }
 
-    fn len(header: Option<&Header>) -> Result<usize, anyhow::Error>
+    fn len(_header: Option<&Header>) -> Result<usize, anyhow::Error>
     where
         Self: Sized,
     {

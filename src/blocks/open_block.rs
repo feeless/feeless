@@ -1,9 +1,9 @@
 use crate::blocks::{hash_block, Block};
-use crate::encoding::blake2b;
+
 use crate::keys::public::{from_address, to_address};
-use crate::{blocks, Address, BlockHash, FullBlock, Public};
-use serde::{Deserialize, Serialize, Serializer};
-use std::convert::TryFrom;
+use crate::{BlockHash, FullBlock, Public};
+use serde::{Deserialize, Serialize};
+
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct OpenBlock {

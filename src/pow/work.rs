@@ -2,7 +2,7 @@ use crate::encoding::{blake2b, deserialize_hex, FromHex};
 use crate::pow::difficulty::Difficulty;
 use crate::{expect_len, hex_formatter, to_hex, BlockHash, Public};
 use rand::RngCore;
-use serde::de::{Error, Unexpected};
+
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use std::convert::TryFrom;
 use std::fmt::Debug;

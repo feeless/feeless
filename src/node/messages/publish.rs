@@ -10,7 +10,7 @@ impl Wire for Publish {
         unimplemented!()
     }
 
-    fn deserialize(_: Option<&Header>, data: &[u8]) -> Result<Self, anyhow::Error>
+    fn deserialize(_: Option<&Header>, _data: &[u8]) -> Result<Self, anyhow::Error>
     where
         Self: Sized,
     {

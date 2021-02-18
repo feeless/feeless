@@ -1,6 +1,6 @@
 use crate::encoding::{deserialize_hex, hex_formatter, FromHex};
 use crate::{expect_len, to_hex};
-use serde::de::Unexpected;
+
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use std::convert::TryFrom;
 
