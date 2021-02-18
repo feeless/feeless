@@ -52,8 +52,9 @@ mod tests {
     use super::*;
     use crate::blocks::OpenBlock;
     use crate::blocks::SendBlock;
+    use crate::encoding::FromHex;
     use crate::node::state::MemoryState;
-    use crate::{Seed, Work};
+    use crate::{Address, Seed, Work};
     use std::sync::Arc;
 
     async fn empty_lattice(network: Network) -> Controller {
@@ -84,30 +85,42 @@ mod tests {
     async fn send_to_new_account() -> anyhow::Result<()> {
         let network = Network::Live;
         let genesis_full_block = network.genesis_block();
-        let new_key = Seed::random().derive(0);
-        let new_account = new_key.to_public();
+        let genesis_account =
+            Address::from_str("nano_3t6k35gi95xu6tergt6p69ck76ogmitsa8mnijtpxm9fkcm736xtoncuohr3")?
+                .to_public();
+        let dest_account =
+            Address::from_str("nano_13ezf4od79h1tgj9aiu4djzcmmguendtjfuhwfukhuucboua8cpoihmh8byo")?
+                .to_public();
+
         let mut controller = empty_lattice(network).await;
 
-        // Send some Nano from the genesis account to the new one.
-        let mut block = SendBlock::new(
-            genesis_full_block.hash()?,
-            new_account,
-            Raw::from_mnano(1u128),
+        let send_block: FullBlock = serde_json::from_str(
+            r#"
+            {
+                "type": "send",
+                "previous": "991CF190094C00F0B68E2E5F75F6BEE95A2E0BD93CEAA4A6734DB9F19B728948",
+                "destination": "nano_13ezf4od79h1tgj9aiu4djzcmmguendtjfuhwfukhuucboua8cpoihmh8byo",
+                "balance": "FD89D89D89D89D89D89D89D89D89D89D",
+                "work": "3c82cc724905ee95",
+                "signature": "5B11B17DB9C8FE0CC58CAC6A6EECEF9CB122DA8A81C6D3DB1B5EE3AB065AA8F8CB1D6765C8EB91B58530C5FF5987AD95E6D34BB57F44257E20795EE412E61600"
+            }
+        "#,
         )
-        .into_full_block();
+        .unwrap();
 
+        controller.add_elected_block(&send_block).await?;
         dbg!(&controller.state);
 
-        block.set_work(Work::zero()).unwrap(); // TODO: Real work
-        block.sign(new_key).unwrap();
-        controller.add_elected_block(&block).await?;
+        let given = Raw::from(3271945835778254456378601994536232802u128);
+        assert_eq!(
+            controller.account_balance(&genesis_account).await?.unwrap(),
+            Raw::max().checked_sub(&given).unwrap()
+        );
+        assert_eq!(
+            controller.account_balance(&dest_account).await?.unwrap(),
+            given
+        );
 
-        dbg!(controller.state);
-
-        // let new_account = OpenBlock::new()
-
-        // let send_block = SendBlock::new()
-        // controller.add_elected_block()
         Ok(())
     }
 }

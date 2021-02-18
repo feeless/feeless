@@ -1,15 +1,18 @@
-use crate::expect_len;
+use crate::encoding::FromHex;
+use crate::{expect_len, to_hex};
+use anyhow::Context;
 use bigdecimal::BigDecimal;
-use serde::{Deserialize, Serialize};
+use serde::{de, Deserialize, Deserializer, Serialize, Serializer};
 use std::cmp::Ordering;
 use std::convert::TryFrom;
 use std::fmt::Display;
+use std::ops::Sub;
 use std::str::FromStr;
 
 const RAW_TO_MNANO: u128 = 1_000_000_000_000_000_000_000_000_000_000;
 const RAW_TO_NANO: u128 = 1_000_000_000_000_000_000_000_000;
 
-#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub struct Raw(u128);
 
 impl Raw {
@@ -47,6 +50,10 @@ impl Raw {
         self.0.to_string()
     }
 
+    pub fn to_hex_string(&self) -> String {
+        to_hex(self.0.to_be_bytes().as_ref())
+    }
+
     pub fn to_raw_u128(&self) -> u128 {
         self.0
     }
@@ -73,6 +80,49 @@ impl Raw {
     pub fn to_mnano_string(&self) -> String {
         self.to_mnano_bigdecimal().to_string()
     }
+
+    pub fn checked_sub(&self, rhs: &Self) -> Option<Self> {
+        self.0.checked_sub(rhs.0).map(Raw::from)
+    }
+}
+
+/// This serializer and deserializer are for strings with decimal numbers. See serialize_to_hex
+/// and deserialize_from_hex if you expect your strings to be hex.
+impl Serialize for Raw {
+    fn serialize<S>(&self, serializer: S) -> Result<<S as Serializer>::Ok, <S as Serializer>::Error>
+    where
+        S: Serializer,
+    {
+        serializer.serialize_str(self.to_raw_string().as_str())
+    }
+}
+
+impl<'de> Deserialize<'de> for Raw {
+    fn deserialize<D>(deserializer: D) -> Result<Self, <D as Deserializer<'de>>::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        let s: &str = Deserialize::deserialize(deserializer)?;
+        Ok(Raw::from_raw_str(s).map_err(de::Error::custom)?)
+    }
+}
+
+pub fn serialize_to_hex<S>(
+    raw: &Raw,
+    serializer: S,
+) -> Result<<S as Serializer>::Ok, <S as Serializer>::Error>
+where
+    S: Serializer,
+{
+    serializer.serialize_str(raw.to_hex_string().as_str())
+}
+
+pub fn deserialize_from_hex<'de, D>(deserializer: D) -> Result<Raw, <D as Deserializer<'de>>::Error>
+where
+    D: Deserializer<'de>,
+{
+    let s: &str = Deserialize::deserialize(deserializer)?;
+    Ok(Raw::from_hex(s).map_err(de::Error::custom)?)
 }
 
 impl Display for Raw {
@@ -96,6 +146,14 @@ impl TryFrom<&[u8]> for Raw {
         b.copy_from_slice(value);
         let amount = u128::from_be_bytes(b);
         Ok(Raw(amount))
+    }
+}
+
+impl FromHex for Raw {
+    fn from_hex(s: &str) -> anyhow::Result<Self> {
+        expect_len(s.len(), Raw::LEN * 2, "Hex raw")?;
+        let vec = hex::decode(s.as_bytes()).context("Decoding hex raw")?;
+        Ok(Raw::try_from(vec.as_slice())?)
     }
 }
 
@@ -225,5 +283,36 @@ mod tests {
         let bytes = raw1.to_vec();
         let raw2 = Raw::try_from(bytes.as_slice()).unwrap();
         assert_eq!(raw1, raw2);
+    }
+
+    #[test]
+    fn decimal_json() -> anyhow::Result<()> {
+        let raw = Raw::from_mnano(1u128);
+        let json = serde_json::to_string(&raw).unwrap();
+        assert_eq!(json, r#""1000000000000000000000000000000""#);
+        assert_eq!(serde_json::from_str::<Raw>(&json)?, raw);
+        Ok(())
+    }
+
+    #[test]
+    fn hex_json() -> anyhow::Result<()> {
+        #[derive(Serialize, Deserialize)]
+        struct HexRaw {
+            #[serde(
+                serialize_with = "serialize_to_hex",
+                deserialize_with = "deserialize_from_hex"
+            )]
+            hex_raw: Raw,
+        }
+        let hex_raw = HexRaw {
+            hex_raw: Raw::from_mnano(1u128),
+        };
+        let json = serde_json::to_string(&hex_raw).unwrap();
+        assert_eq!(json, r#"{"hex_raw":"0000000C9F2C9CD04674EDEA40000000"}"#);
+        assert_eq!(
+            serde_json::from_str::<HexRaw>(&json)?.hex_raw,
+            hex_raw.hex_raw
+        );
+        Ok(())
     }
 }

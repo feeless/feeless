@@ -17,26 +17,18 @@ pub enum Network {
 }
 
 fn live_genesis_block() -> FullBlock {
-    // No need for handling errors in here. These values are basically not going to change and
-    // are covered in tests.
-
-    let address =
-        Address::from_str("nano_3t6k35gi95xu6tergt6p69ck76ogmitsa8mnijtpxm9fkcm736xtoncuohr3")
-            .unwrap()
-            .to_public();
-    let signature = Signature::from_hex("9F0C933C8ADE004D808EA1985FA746A7E95BA2A38F867640F53EC8F180BDFE9E2C1268DEAD7C2664F356E37ABA362BC58E46DBA03E523A7B5A19E4B6EB12BB02").unwrap();
-    let work = Work::from_hex("62f05417dd3fb691").unwrap();
-    let mut block = OpenBlock::new(
-        address.clone(),
-        address,
-        Public::from_hex("E89208DD038FBB269987689621D52292AE9C35941A7484756ECCED92A65093BA")
-            .unwrap(),
-    )
-    .into_full_block();
-
-    block.set_signature(signature).unwrap();
-    block.set_work(work).unwrap();
-    block
+    serde_json::from_str(
+    r#"
+        {
+            "type": "open",
+            "source": "E89208DD038FBB269987689621D52292AE9C35941A7484756ECCED92A65093BA",
+            "representative": "nano_3t6k35gi95xu6tergt6p69ck76ogmitsa8mnijtpxm9fkcm736xtoncuohr3",
+            "account": "nano_3t6k35gi95xu6tergt6p69ck76ogmitsa8mnijtpxm9fkcm736xtoncuohr3",
+            "work": "62F05417DD3FB691",
+            "signature": "9F0C933C8ADE004D808EA1985FA746A7E95BA2A38F867640F53EC8F180BDFE9E2C1268DEAD7C2664F356E37ABA362BC58E46DBA03E523A7B5A19E4B6EB12BB02"
+        }
+        "#
+    ).unwrap()
 }
 
 impl Network {

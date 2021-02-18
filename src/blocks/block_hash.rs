@@ -1,9 +1,9 @@
-use crate::encoding::hex_formatter;
+use crate::encoding::{deserialize_hex, hex_formatter, FromHex};
 use crate::{expect_len, to_hex};
-use serde::{Deserialize, Serialize, Serializer};
+use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use std::convert::TryFrom;
 
-#[derive(Clone, PartialEq, Eq, Hash, Deserialize)]
+#[derive(Clone, PartialEq, Eq, Hash)]
 pub struct BlockHash([u8; BlockHash::LEN]);
 
 impl BlockHash {
@@ -13,12 +13,14 @@ impl BlockHash {
         Self([0u8; BlockHash::LEN])
     }
 
-    pub fn from_hex(s: &str) -> anyhow::Result<Self> {
-        BlockHash::try_from(hex::decode(s.as_bytes())?.as_slice())
-    }
-
     pub fn as_bytes(&self) -> &[u8] {
         &self.0
+    }
+}
+
+impl FromHex for BlockHash {
+    fn from_hex(s: &str) -> anyhow::Result<Self> {
+        BlockHash::try_from(hex::decode(s.as_bytes())?.as_slice())
     }
 }
 
@@ -61,5 +63,14 @@ impl Serialize for BlockHash {
         S: Serializer,
     {
         serializer.serialize_str(to_hex(&self.0).as_str())
+    }
+}
+
+impl<'de> Deserialize<'de> for BlockHash {
+    fn deserialize<D>(deserializer: D) -> Result<Self, <D as Deserializer<'de>>::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        deserialize_hex(deserializer)
     }
 }
