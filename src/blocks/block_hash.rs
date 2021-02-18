@@ -1,9 +1,9 @@
 use crate::encoding::hex_formatter;
-use crate::expect_len;
-use serde::{Deserialize, Serialize};
+use crate::{expect_len, to_hex};
+use serde::{Deserialize, Serialize, Serializer};
 use std::convert::TryFrom;
 
-#[derive(Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[derive(Clone, PartialEq, Eq, Hash, Deserialize)]
 pub struct BlockHash([u8; BlockHash::LEN]);
 
 impl BlockHash {
@@ -52,5 +52,14 @@ impl std::fmt::Debug for BlockHash {
 impl std::fmt::UpperHex for BlockHash {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         hex_formatter(f, &self.0.as_ref())
+    }
+}
+
+impl Serialize for BlockHash {
+    fn serialize<S>(&self, serializer: S) -> Result<<S as Serializer>::Ok, <S as Serializer>::Error>
+    where
+        S: Serializer,
+    {
+        serializer.serialize_str(to_hex(&self.0).as_str())
     }
 }

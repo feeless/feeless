@@ -5,12 +5,12 @@ use anyhow::anyhow;
 use crate::blocks::FullBlock;
 use crate::blocks::Link;
 use crate::blocks::OpenBlock;
+use crate::encoding::FromHex;
 use crate::{Address, BlockHash, Public, Raw, Signature, Work};
 
 #[derive(Debug, Clone, Copy, PartialEq)]
 #[repr(u8)]
 pub enum Network {
-    Feeless = 0x46,
     Test = 0x41,
     Beta = 0x42,
     Live = 0x43,

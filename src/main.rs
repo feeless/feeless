@@ -10,6 +10,7 @@ use feeless::pcap::{PcapDump, Subject};
 use ansi_term::Color;
 use anyhow::Context;
 use clap::Clap;
+use feeless::encoding::FromHex;
 use feeless::Public;
 use std::net::{IpAddr, Ipv4Addr};
 use std::str::FromStr;

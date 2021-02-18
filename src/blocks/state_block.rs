@@ -153,6 +153,7 @@ impl Link {
 mod tests {
     use super::{Block, FullBlock, StateBlock};
     use super::{BlockHash, Raw};
+    use crate::encoding::FromHex;
     use crate::{Address, Link, Signature, Work};
     use std::convert::TryFrom;
 

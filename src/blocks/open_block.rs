@@ -1,13 +1,16 @@
 use crate::blocks::{hash_block, Block};
 use crate::encoding::blake2b;
+use crate::keys::public::{from_address, to_address};
 use crate::{blocks, Address, BlockHash, FullBlock, Public};
-use serde::{Deserialize, Serialize};
+use serde::{Deserialize, Serialize, Serializer};
 use std::convert::TryFrom;
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct OpenBlock {
     pub source: Public,
+    #[serde(serialize_with = "to_address", deserialize_with = "from_address")]
     pub representative: Public,
+    #[serde(serialize_with = "to_address", deserialize_with = "from_address")]
     pub account: Public,
 }
 

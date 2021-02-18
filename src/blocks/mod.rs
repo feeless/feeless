@@ -55,6 +55,8 @@ impl TryFrom<u8> for BlockType {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(tag = "type")]
+#[serde(rename_all = "snake_case")]
 pub enum Block {
     Send(SendBlock),
     Receive(ReceiveBlock),
@@ -68,6 +70,7 @@ pub enum Block {
 /// It includes work and signature, as well as the block specific information based on its type.
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct FullBlock {
+    #[serde(flatten)]
     block: Block,
     work: Option<Work>,
     signature: Option<Signature>,
@@ -171,26 +174,29 @@ mod tests {
 
     #[test]
     fn json() {
-        let genesis = r#"
+        let genesis_json = r#"
         {
-            "amount": "340282366920938463463374607431768211455",
-            "balance": "340282366920938463463374607431768211455",
-            "block_account": "nano_3t6k35gi95xu6tergt6p69ck76ogmitsa8mnijtpxm9fkcm736xtoncuohr3",
-            "confirmed": "true",
-            "contents": {
-                "account": "nano_3t6k35gi95xu6tergt6p69ck76ogmitsa8mnijtpxm9fkcm736xtoncuohr3",
-                "representative": "nano_3t6k35gi95xu6tergt6p69ck76ogmitsa8mnijtpxm9fkcm736xtoncuohr3",
-                "signature": "9F0C933C8ADE004D808EA1985FA746A7E95BA2A38F867640F53EC8F180BDFE9E2C1268DEAD7C2664F356E37ABA362BC58E46DBA03E523A7B5A19E4B6EB12BB02",
-                "source": "E89208DD038FBB269987689621D52292AE9C35941A7484756ECCED92A65093BA",
-                "type": "open",
-                "work": "62f05417dd3fb691"
-            },
-            "height": "1",
-            "local_timestamp": "0"
+            "type": "open",
+            "source": "E89208DD038FBB269987689621D52292AE9C35941A7484756ECCED92A65093BA",
+            "representative": "nano_3t6k35gi95xu6tergt6p69ck76ogmitsa8mnijtpxm9fkcm736xtoncuohr3",
+            "account": "nano_3t6k35gi95xu6tergt6p69ck76ogmitsa8mnijtpxm9fkcm736xtoncuohr3",
+            "work": "62F05417DD3FB691",
+            "signature": "9F0C933C8ADE004D808EA1985FA746A7E95BA2A38F867640F53EC8F180BDFE9E2C1268DEAD7C2664F356E37ABA362BC58E46DBA03E523A7B5A19E4B6EB12BB02"
         }
         "#;
 
-        let block: FullBlock = serde_json::from_str(genesis).unwrap();
-        assert_eq!(block, Network::Live.genesis_block());
+        let genesis = Network::Live.genesis_block();
+
+        let block: FullBlock = serde_json::from_str(genesis_json).unwrap();
+        assert_eq!(&block, &genesis);
+
+        let a = serde_json::to_string_pretty(&genesis).unwrap();
+        dbg!(&a);
+        assert!(a.contains(r#"type": "open""#));
+        assert!(a.contains(r#"source": "E8"#));
+        assert!(a.contains(r#"representative": "nano_3t"#));
+        assert!(a.contains(r#"account": "nano_3t"#));
+        assert!(a.contains(r#"work": "62F"#));
+        assert!(a.contains(r#"signature": "9F"#));
     }
 }

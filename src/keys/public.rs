@@ -1,26 +1,19 @@
-use crate::encoding::hex_formatter;
+use crate::encoding::{deserialize_hex, hex_formatter, FromHex};
 use crate::{encoding, expect_len, len_err_msg, to_hex, Address, Signature};
-use anyhow::{Context, Error};
+use anyhow::Context;
 use bitvec::prelude::*;
 use ed25519_dalek::Verifier;
-use serde::{Deserialize, Serialize};
+use serde::de::Error;
+use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use std::convert::TryFrom;
 use std::iter::FromIterator;
 
-#[derive(Clone, Eq, PartialEq, Hash, Serialize, Deserialize)]
+#[derive(Clone, Eq, PartialEq, Hash)]
 pub struct Public([u8; Public::LEN]);
 
 impl Public {
     pub const LEN: usize = 32;
     const ADDRESS_CHECKSUM_LEN: usize = 5;
-
-    pub fn from_hex(s: &str) -> anyhow::Result<Self> {
-        let vec = hex::decode(s.as_bytes()).context("Decoding hex public key")?;
-        let bytes = vec.as_slice();
-
-        let x = <[u8; Self::LEN]>::try_from(bytes).context("Bytes into slice")?;
-        Ok(Self(x))
-    }
 
     fn dalek_key(&self) -> anyhow::Result<ed25519_dalek::PublicKey> {
         ed25519_dalek::PublicKey::from_bytes(&self.0).context("Loading dalek key")
@@ -57,6 +50,16 @@ impl Public {
             // we just say that it does not pass validation.
             Err(_) => false,
         }
+    }
+}
+
+impl FromHex for Public {
+    fn from_hex(s: &str) -> anyhow::Result<Self> {
+        let vec = hex::decode(s.as_bytes()).context("Decoding hex public key")?;
+        let bytes = vec.as_slice();
+
+        let x = <[u8; Self::LEN]>::try_from(bytes).context("Bytes into slice")?;
+        Ok(Self(x))
     }
 }
 
@@ -99,9 +102,46 @@ impl std::fmt::Display for Public {
     }
 }
 
+impl Serialize for Public {
+    fn serialize<S>(&self, serializer: S) -> Result<<S as Serializer>::Ok, <S as Serializer>::Error>
+    where
+        S: Serializer,
+    {
+        serializer.serialize_str(to_hex(&self.0).as_str())
+    }
+}
+
+impl<'de> Deserialize<'de> for Public {
+    fn deserialize<D>(deserializer: D) -> Result<Self, <D as Deserializer<'de>>::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        deserialize_hex(deserializer)
+    }
+}
+
+/// A serde serializer that converts to an address instead of public key hexes.
+///
+/// Use with #[serde(serialize_with = "to_address")] on the field that needs it.
+pub fn to_address<S>(public: &Public, serializer: S) -> Result<S::Ok, S::Error>
+where
+    S: Serializer,
+{
+    serializer.serialize_str(public.to_address().to_string().as_str())
+}
+
+pub fn from_address<'de, D>(deserializer: D) -> Result<Public, <D as Deserializer<'de>>::Error>
+where
+    D: Deserializer<'de>,
+{
+    let s: &str = Deserialize::deserialize(deserializer)?;
+    Ok(Address::from_str(s).map_err(D::Error::custom)?.to_public())
+}
+
 #[cfg(test)]
 mod tests {
     use super::Public;
+    use crate::encoding::FromHex;
     use crate::Private;
     use std::convert::TryFrom;
 

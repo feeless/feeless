@@ -1,8 +1,9 @@
-use crate::encoding::blake2b;
+use crate::encoding::{blake2b, deserialize_hex, FromHex};
 use crate::pow::difficulty::Difficulty;
-use crate::{expect_len, hex_formatter, BlockHash, Public};
+use crate::{expect_len, hex_formatter, to_hex, BlockHash, Public};
 use rand::RngCore;
-use serde::{Deserialize, Serialize};
+use serde::de::{Error, Unexpected};
+use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use std::convert::TryFrom;
 use std::fmt::Debug;
 
@@ -21,7 +22,7 @@ impl Subject {
     }
 }
 
-#[derive(Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[derive(Clone, PartialEq, Eq)]
 pub struct Work([u8; Work::LEN]);
 
 impl Work {
@@ -35,12 +36,6 @@ impl Work {
         let mut s = Self([0u8; Self::LEN]);
         rand::thread_rng().fill_bytes(&mut s.0);
         s
-    }
-
-    pub fn from_hex(s: &str) -> anyhow::Result<Self> {
-        let value = hex::decode(s)?;
-        let value = value.as_slice();
-        Work::try_from(value)
     }
 
     /// Block and generate forever until we find a solution.
@@ -97,6 +92,14 @@ impl std::fmt::Debug for Work {
     }
 }
 
+impl FromHex for Work {
+    fn from_hex(s: &str) -> anyhow::Result<Self> {
+        let value = hex::decode(s)?;
+        let value = value.as_slice();
+        Work::try_from(value)
+    }
+}
+
 impl TryFrom<&[u8]> for Work {
     type Error = anyhow::Error;
 
@@ -106,6 +109,24 @@ impl TryFrom<&[u8]> for Work {
         let mut s = Work::zero();
         s.0.copy_from_slice(value);
         Ok(s)
+    }
+}
+
+impl Serialize for Work {
+    fn serialize<S>(&self, serializer: S) -> Result<<S as Serializer>::Ok, <S as Serializer>::Error>
+    where
+        S: Serializer,
+    {
+        serializer.serialize_str(to_hex(&self.0).as_str())
+    }
+}
+
+impl<'de> Deserialize<'de> for Work {
+    fn deserialize<D>(deserializer: D) -> Result<Self, <D as Deserializer<'de>>::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        deserialize_hex(deserializer)
     }
 }
 

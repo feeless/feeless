@@ -17,7 +17,7 @@ pub use signature::Signature;
 
 mod blocks;
 mod bytes;
-mod encoding;
+pub mod encoding;
 mod keys;
 #[cfg(feature = "node")]
 pub mod node;
