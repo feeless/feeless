@@ -4,10 +4,8 @@ use crate::{BlockHash, FullBlock, Public, Raw};
 use async_trait::async_trait;
 pub use memory::MemoryState;
 pub use sled_disk::SledDiskState;
-
 use std::fmt::Debug;
 use std::net::SocketAddr;
-
 mod memory;
 mod sled_disk;
 
@@ -22,8 +20,15 @@ pub trait State: Debug {
 
     async fn get_block_by_hash(&mut self, hash: &BlockHash) -> anyhow::Result<Option<FullBlock>>;
 
+    /// Balance of an account that ignores if the receive block exists.
+    ///
     /// Returns None if there is no opened account.
-    async fn account_balance(&mut self, account: &Public) -> anyhow::Result<Option<Raw>>;
+    async fn sent_account_balance(&mut self, account: &Public) -> anyhow::Result<Option<Raw>>;
+
+    /// Balance of an account including receive blocks.
+    ///
+    /// Returns None if there is no opened account.
+    async fn received_account_balance(&mut self, account: &Public) -> anyhow::Result<Option<Raw>>;
 
     async fn set_account_balance(&mut self, account: &Public, raw: &Raw) -> anyhow::Result<()>;
 

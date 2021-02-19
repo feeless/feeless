@@ -42,8 +42,15 @@ impl Controller {
         Ok(())
     }
 
-    pub async fn account_balance(&mut self, account: &Public) -> anyhow::Result<Option<Raw>> {
-        self.state.account_balance(account).await
+    pub async fn sent_account_balance(&mut self, account: &Public) -> anyhow::Result<Option<Raw>> {
+        self.state.sent_account_balance(account).await
+    }
+
+    pub async fn received_account_balance(
+        &mut self,
+        account: &Public,
+    ) -> anyhow::Result<Option<Raw>> {
+        self.state.received_account_balance(account).await
     }
 }
 
@@ -103,11 +110,13 @@ mod tests {
         .unwrap();
 
         controller.add_elected_block(&send_block).await?;
-        dbg!(&controller.state);
 
         let given = Raw::from(3271945835778254456378601994536232802u128);
         assert_eq!(
-            controller.account_balance(&genesis_account).await?.unwrap(),
+            controller
+                .recveived_account_balance(&genesis_account)
+                .await?
+                .unwrap(),
             Raw::max().checked_sub(&given).unwrap()
         );
 
