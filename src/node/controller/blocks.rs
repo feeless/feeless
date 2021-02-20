@@ -1,8 +1,14 @@
 use crate::blocks::Block;
 use crate::node::controller::Controller;
-use crate::{FullBlock, Public};
+use crate::{FullBlock, Public, Raw};
 use anyhow::{anyhow, Context};
 use tracing::debug;
+
+struct AccountDelta {
+    from: Public,
+    to: Public,
+    amount: Raw,
+}
 
 impl Controller {
     /// Add a block that has been deemed valid by ORV.
@@ -39,11 +45,14 @@ impl Controller {
             return Ok(false);
         }
 
-        let account = self.account_for_block(&block).await?;
-        dbg!(&account);
+        let from_account = self.account_for_block(&block).await?;
+        dbg!(&from_account);
 
-        let context = || format!("Block {:?} Account: {:?}", block, &account);
-        if !block.verify_signature(&account).with_context(context)? {
+        let context = || format!("Block {:?} Account: {:?}", block, &from_account);
+        if !block
+            .verify_signature(&from_account)
+            .with_context(context)?
+        {
             return Err(anyhow!("Incorrect signature")).with_context(context);
         }
 
@@ -51,27 +60,46 @@ impl Controller {
         if work.is_none() {
             return Err(anyhow!("Work is missing from block")).with_context(context);
         }
-
-        // // TODO: Check if the sender block exists and has enough funds.
-        // let parent = self.find_parent_block(block).await.with_context(context)?;
-        // // if parent.is_none() &&
-        // // TODO: dont unwrap
-        // let parent = parent.unwrap();
-        // TODO: Verify work and signature
+        // TODO: Verify work
 
         // TODO: For now just assume this is a send block
         if let Ok(send_block) = block.send_block() {
+            let to_account = &send_block.destination;
+
+            let old_balance = match self.state.recv_account_balance(&from_account).await? {
+                Some(a) => a,
+                None => {
+                    return Err(anyhow!("No balance when trying to send a block"))
+                        .with_context(context)
+                }
+            };
+            let new_balance = &send_block.balance;
+            if new_balance >= &old_balance {
+                return Err(anyhow!("Can not increase balance in a send block"))
+                    .with_context(context);
+            }
+            let amount = match old_balance.checked_sub(new_balance) {
+                Some(a) => a,
+                None => return Err(anyhow!("Subtraction overflow")).with_context(context),
+            };
+
             // The account is lowering its balance on both sent and recv balances.
             self.state
-                .set_sent_account_balance(&account, &send_block.balance)
+                .set_sent_account_balance(&from_account, &new_balance)
                 .await?;
             self.state
-                .set_recv_account_balance(&account, &send_block.balance)
+                .set_recv_account_balance(&from_account, &new_balance)
+                .await?;
+
+            // The receiving "sent account" is reduced, but not the "recv account" until a recv
+            // block is confirmed.
+            self.state
+                .set_sent_account_balance(&to_account, amount)
                 .await?;
         }
 
         self.state
-            .add_block(&account, block)
+            .add_block(&from_account, block)
             .await
             .with_context(context)?;
 
