@@ -65,37 +65,51 @@ impl Controller {
         // TODO: For now just assume this is a send block
         if let Ok(send_block) = block.send_block() {
             let to_account = &send_block.destination;
+            let to_balance = self
+                .state
+                .recv_account_balance(&to_account)
+                .await
+                .with_context(context)?;
 
-            let old_balance = match self.state.recv_account_balance(&from_account).await? {
-                Some(a) => a,
-                None => {
-                    return Err(anyhow!("No balance when trying to send a block"))
-                        .with_context(context)
-                }
-            };
-            let new_balance = &send_block.balance;
-            if new_balance >= &old_balance {
+            let old_balance = self.state.recv_account_balance(&from_account).await?;
+            let from_new_balance = &send_block.balance;
+            if from_new_balance >= &old_balance {
                 return Err(anyhow!("Can not increase balance in a send block"))
                     .with_context(context);
             }
-            let amount = match old_balance.checked_sub(new_balance) {
-                Some(a) => a,
-                None => return Err(anyhow!("Subtraction overflow")).with_context(context),
-            };
+            let amount = old_balance
+                .checked_sub(from_new_balance)
+                .ok_or_else(|| {
+                    anyhow!(
+                        "Subtracting old_balance {:?} and from_new_balance {:?}",
+                        old_balance,
+                        from_new_balance
+                    )
+                })
+                .with_context(context)?;
 
             // The account is lowering its balance on both sent and recv balances.
             self.state
-                .set_sent_account_balance(&from_account, &new_balance)
+                .set_sent_account_balance(&from_account, &from_new_balance)
                 .await?;
             self.state
-                .set_recv_account_balance(&from_account, &new_balance)
+                .set_recv_account_balance(&from_account, &from_new_balance)
                 .await?;
 
             // The receiving "sent account" is reduced, but not the "recv account" until a recv
             // block is confirmed.
+            let to_new_balance = to_balance
+                .checked_add(&amount)
+                .ok_or_else(|| {
+                    anyhow!("Adding to_balance {:?} and amount {:?}", to_balance, amount)
+                })
+                .with_context(context)?;
+
             self.state
-                .set_sent_account_balance(&to_account, amount)
+                .set_sent_account_balance(&to_account, &to_new_balance)
                 .await?;
+        } else {
+            todo!();
         }
 
         self.state

@@ -50,24 +50,20 @@ impl State for MemoryState {
         Ok(self.blocks.get(hash).map(|b| b.to_owned()))
     }
 
-    async fn sent_account_balance(
-        &mut self,
-        account: &Public,
-    ) -> Result<Option<Raw>, anyhow::Error> {
+    async fn sent_account_balance(&mut self, account: &Public) -> anyhow::Result<Raw> {
         Ok(self
             .sent_account_balances
             .get(account)
-            .map(|b| b.to_owned()))
+            .map(|b| b.to_owned())
+            .unwrap_or(Raw::zero()))
     }
 
-    async fn recv_account_balance(
-        &mut self,
-        account: &Public,
-    ) -> Result<Option<Raw>, anyhow::Error> {
+    async fn recv_account_balance(&mut self, account: &Public) -> anyhow::Result<Raw> {
         Ok(self
             .recv_account_balances
             .get(account)
-            .map(|b| b.to_owned()))
+            .map(|b| b.to_owned())
+            .unwrap_or(Raw::zero()))
     }
 
     async fn set_sent_account_balance(

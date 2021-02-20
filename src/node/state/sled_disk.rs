@@ -50,13 +50,13 @@ impl State for SledDiskState {
         unimplemented!()
     }
 
-    async fn account_for_block_hash(
-        &mut self,
-        _block_hash: &BlockHash,
-    ) -> Result<Option<Public>, anyhow::Error> {
+    async fn sent_account_balance(&mut self, account: &Public) -> Result<Raw, anyhow::Error> {
         unimplemented!()
     }
 
+    async fn recv_account_balance(&mut self, account: &Public) -> Result<Raw, anyhow::Error> {
+        unimplemented!()
+    }
     async fn set_sent_account_balance(
         &mut self,
         _account: &Public,
@@ -64,11 +64,19 @@ impl State for SledDiskState {
     ) -> anyhow::Result<()> {
         unimplemented!()
     }
+
     async fn set_recv_account_balance(
         &mut self,
         _account: &Public,
         _raw: &Raw,
     ) -> anyhow::Result<()> {
+        unimplemented!()
+    }
+
+    async fn account_for_block_hash(
+        &mut self,
+        _block_hash: &BlockHash,
+    ) -> Result<Option<Public>, anyhow::Error> {
         unimplemented!()
     }
 
@@ -87,19 +95,5 @@ impl State for SledDiskState {
             None => None,
             Some(c) => Some(Cookie::try_from(c.as_ref())?),
         })
-    }
-
-    async fn sent_account_balance(
-        &mut self,
-        account: &Public,
-    ) -> Result<Option<Raw>, anyhow::Error> {
-        unimplemented!()
-    }
-
-    async fn recv_account_balance(
-        &mut self,
-        account: &Public,
-    ) -> Result<Option<Raw>, anyhow::Error> {
-        unimplemented!()
     }
 }

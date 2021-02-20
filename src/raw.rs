@@ -81,6 +81,10 @@ impl Raw {
         self.to_mnano_bigdecimal().to_string()
     }
 
+    pub fn checked_add(&self, rhs: &Self) -> Option<Self> {
+        self.0.checked_add(rhs.0).map(Raw::from)
+    }
+
     pub fn checked_sub(&self, rhs: &Self) -> Option<Self> {
         self.0.checked_sub(rhs.0).map(Raw::from)
     }

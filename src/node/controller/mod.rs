@@ -42,12 +42,20 @@ impl Controller {
         Ok(())
     }
 
-    pub async fn sent_account_balance(&mut self, account: &Public) -> anyhow::Result<Option<Raw>> {
-        self.state.sent_account_balance(account).await
+    pub async fn sent_account_balance(&mut self, account: &Public) -> anyhow::Result<Raw> {
+        Ok(self
+            .state
+            .sent_account_balance(account)
+            .await
+            .unwrap_or(Raw::zero()))
     }
 
-    pub async fn recv_account_balance(&mut self, account: &Public) -> anyhow::Result<Option<Raw>> {
-        self.state.recv_account_balance(account).await
+    pub async fn recv_account_balance(&mut self, account: &Public) -> anyhow::Result<Raw> {
+        Ok(self
+            .state
+            .recv_account_balance(account)
+            .await
+            .unwrap_or(Raw::zero()))
     }
 }
 
@@ -67,21 +75,13 @@ mod tests {
 
     async fn assert_sent_balance(controller: &mut Controller, account: &Public, raw: &Raw) {
         assert_eq!(
-            &controller
-                .sent_account_balance(&account)
-                .await
-                .unwrap()
-                .unwrap(),
+            &controller.sent_account_balance(&account).await.unwrap(),
             raw
         );
     }
     async fn assert_recv_balance(controller: &mut Controller, account: &Public, raw: &Raw) {
         assert_eq!(
-            &controller
-                .recv_account_balance(&account)
-                .await
-                .unwrap()
-                .unwrap(),
+            &controller.recv_account_balance(&account).await.unwrap(),
             raw
         );
     }
@@ -134,10 +134,10 @@ mod tests {
         assert_sent_balance(&mut controller, &dest_account, &given).await;
 
         // The account has no receive funds because there is no open/receive block added yet.
-        assert!(controller
-            .recv_account_balance(&dest_account)
-            .await?
-            .is_none());
+        assert_eq!(
+            controller.recv_account_balance(&dest_account).await?,
+            Raw::zero()
+        );
 
         let open_block: FullBlock = serde_json::from_str(
             r#"{

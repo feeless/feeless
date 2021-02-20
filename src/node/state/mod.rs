@@ -21,14 +21,10 @@ pub trait State: Debug {
     async fn get_block_by_hash(&mut self, hash: &BlockHash) -> anyhow::Result<Option<FullBlock>>;
 
     /// Balance of an account that ignores if the receive block exists.
-    ///
-    /// Returns None if there is no opened account.
-    async fn sent_account_balance(&mut self, account: &Public) -> anyhow::Result<Option<Raw>>;
+    async fn sent_account_balance(&mut self, account: &Public) -> anyhow::Result<Raw>;
 
     /// Balance of an account including receive blocks.
-    ///
-    /// Returns None if there is no opened account.
-    async fn recv_account_balance(&mut self, account: &Public) -> anyhow::Result<Option<Raw>>;
+    async fn recv_account_balance(&mut self, account: &Public) -> anyhow::Result<Raw>;
 
     async fn set_sent_account_balance(&mut self, account: &Public, raw: &Raw)
         -> anyhow::Result<()>;
