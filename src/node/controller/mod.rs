@@ -46,11 +46,8 @@ impl Controller {
         self.state.sent_account_balance(account).await
     }
 
-    pub async fn received_account_balance(
-        &mut self,
-        account: &Public,
-    ) -> anyhow::Result<Option<Raw>> {
-        self.state.received_account_balance(account).await
+    pub async fn recv_account_balance(&mut self, account: &Public) -> anyhow::Result<Option<Raw>> {
+        self.state.recv_account_balance(account).await
     }
 }
 
@@ -68,6 +65,27 @@ mod tests {
         controller
     }
 
+    async fn assert_sent_balance(controller: &mut Controller, account: &Public, raw: &Raw) {
+        assert_eq!(
+            &controller
+                .sent_account_balance(&account)
+                .await
+                .unwrap()
+                .unwrap(),
+            raw
+        );
+    }
+    async fn assert_recv_balance(controller: &mut Controller, account: &Public, raw: &Raw) {
+        assert_eq!(
+            &controller
+                .recv_account_balance(&account)
+                .await
+                .unwrap()
+                .unwrap(),
+            raw
+        );
+    }
+
     #[tokio::test]
     async fn genesis() {
         let network = Network::Live;
@@ -75,14 +93,8 @@ mod tests {
         let genesis_block = genesis_full_block.open_block().unwrap();
 
         let mut controller = empty_lattice(network).await;
-        assert_eq!(
-            controller
-                .account_balance(&genesis_block.account)
-                .await
-                .unwrap()
-                .expect("A balance"),
-            Raw::max()
-        );
+        assert_sent_balance(&mut controller, &genesis_block.account, &Raw::max()).await;
+        assert_recv_balance(&mut controller, &genesis_block.account, &Raw::max()).await;
     }
 
     #[tokio::test]
@@ -112,17 +124,20 @@ mod tests {
         controller.add_elected_block(&send_block).await?;
 
         let given = Raw::from(3271945835778254456378601994536232802u128);
-        assert_eq!(
-            controller
-                .recveived_account_balance(&genesis_account)
-                .await?
-                .unwrap(),
-            Raw::max().checked_sub(&given).unwrap()
-        );
 
-        // The receive block doesn't exist yet so the account should have no balance. (?)
-        // TODO: Is this actually true?
-        assert!(controller.account_balance(&dest_account).await?.is_none());
+        // Check the sender's account on both received and sent balances.
+        let genesis_balance = Raw::max().checked_sub(&given).unwrap();
+        assert_sent_balance(&mut controller, &genesis_account, &genesis_balance).await;
+        assert_recv_balance(&mut controller, &genesis_account, &genesis_balance).await;
+
+        // Only the sent block exists.
+        assert_sent_balance(&mut controller, &dest_account, &given).await;
+
+        // The account has no receive funds because there is no open/receive block added yet.
+        assert!(controller
+            .recv_account_balance(&dest_account)
+            .await?
+            .is_none());
 
         let open_block: FullBlock = serde_json::from_str(
             r#"{
@@ -137,6 +152,9 @@ mod tests {
 
         controller.add_elected_block(&send_block).await?;
         dbg!(&controller.state);
+
+        assert_sent_balance(&mut controller, &dest_account, &given).await;
+        assert_recv_balance(&mut controller, &dest_account, &given).await;
 
         Ok(())
     }

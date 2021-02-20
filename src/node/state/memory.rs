@@ -1,6 +1,5 @@
 use std::net::SocketAddr;
 
-
 use crate::node::cookie::Cookie;
 use crate::node::network::Network;
 use crate::node::state::State;
@@ -14,7 +13,8 @@ use std::collections::HashMap;
 pub struct MemoryState {
     network: Network,
     blocks: HashMap<BlockHash, FullBlock>,
-    account_balances: HashMap<Public, Raw>,
+    sent_account_balances: HashMap<Public, Raw>,
+    recv_account_balances: HashMap<Public, Raw>,
     block_hash_to_account: HashMap<BlockHash, Public>,
 }
 
@@ -23,7 +23,8 @@ impl MemoryState {
         Self {
             network,
             blocks: HashMap::new(),
-            account_balances: HashMap::new(),
+            sent_account_balances: HashMap::new(),
+            recv_account_balances: HashMap::new(),
             block_hash_to_account: HashMap::new(),
         }
     }
@@ -49,12 +50,42 @@ impl State for MemoryState {
         Ok(self.blocks.get(hash).map(|b| b.to_owned()))
     }
 
-    async fn account_balance(&mut self, account: &Public) -> Result<Option<Raw>, anyhow::Error> {
-        Ok(self.account_balances.get(account).map(|b| b.to_owned()))
+    async fn sent_account_balance(
+        &mut self,
+        account: &Public,
+    ) -> Result<Option<Raw>, anyhow::Error> {
+        Ok(self
+            .sent_account_balances
+            .get(account)
+            .map(|b| b.to_owned()))
     }
 
-    async fn set_account_balance(&mut self, account: &Public, raw: &Raw) -> anyhow::Result<()> {
-        self.account_balances
+    async fn recv_account_balance(
+        &mut self,
+        account: &Public,
+    ) -> Result<Option<Raw>, anyhow::Error> {
+        Ok(self
+            .recv_account_balances
+            .get(account)
+            .map(|b| b.to_owned()))
+    }
+
+    async fn set_sent_account_balance(
+        &mut self,
+        account: &Public,
+        raw: &Raw,
+    ) -> anyhow::Result<()> {
+        self.sent_account_balances
+            .insert(account.to_owned(), raw.to_owned());
+        Ok(())
+    }
+
+    async fn set_recv_account_balance(
+        &mut self,
+        account: &Public,
+        raw: &Raw,
+    ) -> anyhow::Result<()> {
+        self.recv_account_balances
             .insert(account.to_owned(), raw.to_owned());
         Ok(())
     }

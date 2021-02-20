@@ -28,9 +28,13 @@ pub trait State: Debug {
     /// Balance of an account including receive blocks.
     ///
     /// Returns None if there is no opened account.
-    async fn received_account_balance(&mut self, account: &Public) -> anyhow::Result<Option<Raw>>;
+    async fn recv_account_balance(&mut self, account: &Public) -> anyhow::Result<Option<Raw>>;
 
-    async fn set_account_balance(&mut self, account: &Public, raw: &Raw) -> anyhow::Result<()>;
+    async fn set_sent_account_balance(&mut self, account: &Public, raw: &Raw)
+        -> anyhow::Result<()>;
+
+    async fn set_recv_account_balance(&mut self, account: &Public, raw: &Raw)
+        -> anyhow::Result<()>;
 
     async fn account_for_block_hash(
         &mut self,

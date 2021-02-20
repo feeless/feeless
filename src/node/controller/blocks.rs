@@ -27,6 +27,8 @@ impl Controller {
         let block_hash = block.hash().with_context(context)?;
 
         // Block already exists, we can ignore this.
+        // In reality this shouldn't even happen so it should be a panic.
+        // This function should only have the chance to be called once per block.
         if self
             .state
             .get_block_by_hash(&block_hash)
@@ -59,8 +61,12 @@ impl Controller {
 
         // TODO: For now just assume this is a send block
         if let Ok(send_block) = block.send_block() {
+            // The account is lowering its balance on both sent and recv balances.
             self.state
-                .set_account_balance(&account, &send_block.balance)
+                .set_sent_account_balance(&account, &send_block.balance)
+                .await?;
+            self.state
+                .set_recv_account_balance(&account, &send_block.balance)
                 .await?;
         }
 

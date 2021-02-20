@@ -19,7 +19,11 @@ impl Controller {
 
             // The genesis block is an open block and we need to give it all the raw.
             self.state
-                .set_account_balance(&block.account, &Raw::max())
+                .set_sent_account_balance(&block.account, &Raw::max())
+                .await
+                .context("Genesis account balance")?;
+            self.state
+                .set_recv_account_balance(&block.account, &Raw::max())
                 .await
                 .context("Genesis account balance")?;
         }
