@@ -19,14 +19,9 @@ impl Controller {
     /// * Doesn't already exist.
     /// * Verify the work.
     /// * Verify the signature.
+    /// * Handle the specific block type appropriately.
     ///
     /// After adding we need to update any representative weights.
-    ///
-    /// Thinking out loud:
-    ///
-    /// * A send block:
-    ///   * Grab the parent
-    ///   * Check the balance is lower than before from the parent
     pub async fn add_elected_block(&mut self, block: &FullBlock) -> anyhow::Result<bool> {
         debug!("Adding elected block {:?}", block);
         let context = || format!("Block {:?}", block);
@@ -72,6 +67,7 @@ impl Controller {
                 .with_context(context)?;
 
             let old_balance = self.state.recv_account_balance(&from_account).await?;
+
             let from_new_balance = &send_block.balance;
             if from_new_balance >= &old_balance {
                 return Err(anyhow!("Can not increase balance in a send block"))
@@ -108,6 +104,31 @@ impl Controller {
             self.state
                 .set_sent_account_balance(&to_account, &to_new_balance)
                 .await?;
+        } else if let Ok(open_block) = block.open_block() {
+            dbg!(open_block);
+
+            let to_account = &open_block.account;
+
+            // If the block is the genesis block, we give Raw::max instead of the amount from the
+            // previous block.
+            let add_amount = if block == self.network.genesis_block() {
+                Raw::max()
+            } else {
+                let send_block = self
+                    .state
+                    .get_block_by_hash(&open_block.source)
+                    .await
+                    .with_context(context)?
+                    .ok_or_else(|| anyhow!("Open block has a reference to a non existent block"))?
+                    .send_block()
+                    .context("Open block is referencing a block that is not a send block")?;
+
+                let to_balance = self
+                    .state
+                    .recv_account_balance(&to_account)
+                    .await
+                    .with_context(context)?;
+            };
         } else {
             todo!();
         }
@@ -126,7 +147,7 @@ impl Controller {
 
     pub async fn account_for_block(&mut self, block: &FullBlock) -> anyhow::Result<Public> {
         let account = match block.block() {
-            Block::Open(o) => o.source.to_owned(),
+            Block::Open(o) => o.account.to_owned(),
             _ => {
                 let previous = block
                     .previous()

@@ -63,8 +63,9 @@ impl Controller {
 mod tests {
     use super::*;
 
+    use crate::encoding::FromHex;
     use crate::node::state::MemoryState;
-    use crate::Address;
+    use crate::{Address, BlockHash};
 
     async fn empty_lattice(network: Network) -> Controller {
         let state = Box::new(MemoryState::new(network));
@@ -98,13 +99,15 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn send_then_recv_to_new_account() -> anyhow::Result<()> {
+    async fn send_then_recv_to_new_account() {
         let network = Network::Live;
         let genesis_account =
-            Address::from_str("nano_3t6k35gi95xu6tergt6p69ck76ogmitsa8mnijtpxm9fkcm736xtoncuohr3")?
+            Address::from_str("nano_3t6k35gi95xu6tergt6p69ck76ogmitsa8mnijtpxm9fkcm736xtoncuohr3")
+                .unwrap()
                 .to_public();
         let dest_account =
-            Address::from_str("nano_13ezf4od79h1tgj9aiu4djzcmmguendtjfuhwfukhuucboua8cpoihmh8byo")?
+            Address::from_str("nano_13ezf4od79h1tgj9aiu4djzcmmguendtjfuhwfukhuucboua8cpoihmh8byo")
+                .unwrap()
                 .to_public();
 
         let mut controller = empty_lattice(network).await;
@@ -121,7 +124,7 @@ mod tests {
         )
         .unwrap();
 
-        controller.add_elected_block(&send_block).await?;
+        controller.add_elected_block(&send_block).await.unwrap();
 
         let given = Raw::from(3271945835778254456378601994536232802u128);
 
@@ -135,10 +138,14 @@ mod tests {
 
         // The account has no receive funds because there is no open/receive block added yet.
         assert_eq!(
-            controller.recv_account_balance(&dest_account).await?,
+            controller
+                .recv_account_balance(&dest_account)
+                .await
+                .unwrap(),
             Raw::zero()
         );
 
+        // A real open block to the "Landing" account.
         let open_block: FullBlock = serde_json::from_str(
             r#"{
                 "type": "open",
@@ -148,14 +155,17 @@ mod tests {
                 "work": "e997c097a452a1b1",
                 "signature": "E950FFDF0C9C4DAF43C27AE3993378E4D8AD6FA591C24497C53E07A3BC80468539B0A467992A916F0DDA6F267AD764A3C1A5BDBD8F489DFAE8175EEE0E337402"
             }"#,
-        )?;
+        ).unwrap();
+        assert_eq!(
+            open_block.hash().unwrap(),
+            BlockHash::from_hex("90D0C16AC92DD35814E84BFBCC739A039615D0A42A76EF44ADAEF1D99E9F8A35")
+                .unwrap()
+        );
 
-        controller.add_elected_block(&send_block).await?;
+        controller.add_elected_block(&open_block).await.unwrap();
         dbg!(&controller.state);
 
         assert_sent_balance(&mut controller, &dest_account, &given).await;
         assert_recv_balance(&mut controller, &dest_account, &given).await;
-
-        Ok(())
     }
 }

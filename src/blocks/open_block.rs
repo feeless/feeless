@@ -4,10 +4,9 @@ use crate::keys::public::{from_address, to_address};
 use crate::{BlockHash, FullBlock, Public};
 use serde::{Deserialize, Serialize};
 
-
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct OpenBlock {
-    pub source: Public,
+    pub source: BlockHash,
     #[serde(serialize_with = "to_address", deserialize_with = "from_address")]
     pub representative: Public,
     #[serde(serialize_with = "to_address", deserialize_with = "from_address")]
@@ -15,7 +14,7 @@ pub struct OpenBlock {
 }
 
 impl OpenBlock {
-    pub fn new(source: Public, representative: Public, account: Public) -> Self {
+    pub fn new(source: BlockHash, representative: Public, account: Public) -> Self {
         Self {
             source,
             representative,
