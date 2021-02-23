@@ -1,7 +1,7 @@
-use crate::blocks::{hash_block, Block};
+use crate::blocks::hash_block;
 use crate::keys::public::{from_address, to_address};
 use crate::raw::{deserialize_from_hex, serialize_to_hex};
-use crate::{BlockHash, FullBlock, Public, Raw};
+use crate::{Block, BlockHash, Public, Raw};
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Serialize, Deserialize, Eq, PartialEq)]
@@ -23,10 +23,6 @@ impl SendBlock {
             destination,
             balance,
         }
-    }
-
-    pub fn into_full_block(self) -> FullBlock {
-        FullBlock::new(Block::Send(self))
     }
 
     pub fn hash(&self) -> anyhow::Result<BlockHash> {

@@ -4,7 +4,7 @@ use crate::node::cookie::Cookie;
 use crate::node::network::Network;
 use crate::node::state::State;
 
-use crate::{BlockHash, FullBlock, Public, Raw};
+use crate::{Block, BlockHash, Public, Raw};
 use anyhow::Context;
 use async_trait::async_trait;
 use std::collections::HashMap;
@@ -12,10 +12,9 @@ use std::collections::HashMap;
 #[derive(Debug)]
 pub struct MemoryState {
     network: Network,
-    blocks: HashMap<BlockHash, FullBlock>,
-    sent_account_balances: HashMap<Public, Raw>,
-    recv_account_balances: HashMap<Public, Raw>,
+    blocks: HashMap<BlockHash, Block>,
     block_hash_to_account: HashMap<BlockHash, Public>,
+    latest_block_hash: HashMap<Public, BlockHash>,
 }
 
 impl MemoryState {
@@ -23,9 +22,8 @@ impl MemoryState {
         Self {
             network,
             blocks: HashMap::new(),
-            sent_account_balances: HashMap::new(),
-            recv_account_balances: HashMap::new(),
             block_hash_to_account: HashMap::new(),
+            latest_block_hash: HashMap::new(),
         }
     }
 }
@@ -36,54 +34,27 @@ impl State for MemoryState {
         self.network
     }
 
-    async fn add_block(&mut self, account: &Public, full_block: &FullBlock) -> anyhow::Result<()> {
+    async fn add_block(&mut self, account: &Public, full_block: &Block) -> anyhow::Result<()> {
         self.blocks.insert(
-            full_block.hash().context("Add block")?,
+            full_block.hash().context("Add block")?.to_owned(),
             full_block.to_owned(),
         );
         self.block_hash_to_account
-            .insert(full_block.hash()?, account.to_owned());
+            .insert(full_block.hash()?.to_owned(), account.to_owned());
+        self.latest_block_hash
+            .insert(account.to_owned(), full_block.hash()?.to_owned());
         Ok(())
     }
 
-    async fn get_block_by_hash(&mut self, hash: &BlockHash) -> anyhow::Result<Option<FullBlock>> {
+    async fn get_block_by_hash(&mut self, hash: &BlockHash) -> anyhow::Result<Option<Block>> {
         Ok(self.blocks.get(hash).map(|b| b.to_owned()))
     }
 
-    async fn sent_account_balance(&mut self, account: &Public) -> anyhow::Result<Raw> {
-        Ok(self
-            .sent_account_balances
-            .get(account)
-            .map(|b| b.to_owned())
-            .unwrap_or(Raw::zero()))
-    }
-
-    async fn recv_account_balance(&mut self, account: &Public) -> anyhow::Result<Raw> {
-        Ok(self
-            .recv_account_balances
-            .get(account)
-            .map(|b| b.to_owned())
-            .unwrap_or(Raw::zero()))
-    }
-
-    async fn set_sent_account_balance(
-        &mut self,
+    async fn get_latest_block_hash_for_account(
+        &self,
         account: &Public,
-        raw: &Raw,
-    ) -> anyhow::Result<()> {
-        self.sent_account_balances
-            .insert(account.to_owned(), raw.to_owned());
-        Ok(())
-    }
-
-    async fn set_recv_account_balance(
-        &mut self,
-        account: &Public,
-        raw: &Raw,
-    ) -> anyhow::Result<()> {
-        self.recv_account_balances
-            .insert(account.to_owned(), raw.to_owned());
-        Ok(())
+    ) -> anyhow::Result<Option<BlockHash>> {
+        Ok(self.latest_block_hash.get(account).map(|b| b.to_owned()))
     }
 
     async fn account_for_block_hash(

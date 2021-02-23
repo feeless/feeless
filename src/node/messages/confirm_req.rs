@@ -1,9 +1,9 @@
 use std::convert::TryFrom;
 
-use anyhow::{Context};
+use anyhow::Context;
 use tracing::info;
 
-use crate::blocks::{BlockType, FullBlock};
+use crate::blocks::{Block, BlockType};
 use crate::bytes::Bytes;
 use crate::node::header::Header;
 use crate::node::wire::Wire;
@@ -21,7 +21,7 @@ use crate::{expect_len, BlockHash};
 #[derive(Debug)]
 pub enum ConfirmReq {
     ConfirmReqByHash(Vec<RootHashPair>),
-    BlockSelector(FullBlock),
+    BlockSelector(Block),
 }
 
 impl ConfirmReq {

@@ -2,8 +2,7 @@ use std::convert::TryFrom;
 
 use anyhow::anyhow;
 
-use crate::blocks::FullBlock;
-
+use crate::blocks::{Block, OpenBlock};
 
 use crate::encoding::FromHex;
 use crate::{Address, BlockHash, Public, Raw, Signature, Work};
@@ -16,7 +15,7 @@ pub enum Network {
     Live = 0x43,
 }
 
-fn live_genesis_block() -> FullBlock {
+fn live_genesis_block() -> OpenBlock {
     serde_json::from_str(
     r#"
         {
@@ -32,11 +31,19 @@ fn live_genesis_block() -> FullBlock {
 }
 
 impl Network {
-    pub fn genesis_block(&self) -> FullBlock {
-        match self {
+    pub fn genesis_block(&self) -> Block {
+        let open_block = match self {
             Self::Live => live_genesis_block(),
             _ => todo!(),
-        }
+        };
+
+        // Give the genesis block the maximum u128 value.
+        let balance = Raw::max();
+
+        let previous = BlockHash::zero();
+        let mut block = Block::from_open_block(&open_block, previous, balance);
+        block.calc_hash().unwrap();
+        block
     }
 
     pub fn genesis_hash(&self) -> BlockHash {
@@ -47,12 +54,6 @@ impl Network {
             .unwrap(),
             _ => todo!(),
         }
-    }
-
-    pub fn genesis_account(&self) -> Public {
-        let block = self.genesis_block();
-        let open = block.open_block().unwrap();
-        open.account.to_owned()
     }
 }
 
@@ -77,8 +78,9 @@ mod tests {
     #[test]
     fn hash_live_genesis_block() {
         let net = Network::Live;
-        let block = net.genesis_block();
+        let mut block = net.genesis_block();
+        block.calc_hash().unwrap();
         let hash = block.hash().unwrap();
-        assert_eq!(hash, net.genesis_hash());
+        assert_eq!(hash, &net.genesis_hash());
     }
 }

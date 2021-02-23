@@ -1,6 +1,6 @@
 use crate::node::cookie::Cookie;
 use crate::node::network::Network;
-use crate::{BlockHash, FullBlock, Public, Raw};
+use crate::{Block, BlockHash, Public, Raw};
 use async_trait::async_trait;
 pub use memory::MemoryState;
 pub use sled_disk::SledDiskState;
@@ -16,21 +16,14 @@ pub type BoxedState = Box<dyn State + Send + Sync>;
 pub trait State: Debug {
     fn network(&self) -> Network;
 
-    async fn add_block(&mut self, account: &Public, full_block: &FullBlock) -> anyhow::Result<()>;
+    async fn add_block(&mut self, account: &Public, full_block: &Block) -> anyhow::Result<()>;
 
-    async fn get_block_by_hash(&mut self, hash: &BlockHash) -> anyhow::Result<Option<FullBlock>>;
+    async fn get_block_by_hash(&mut self, hash: &BlockHash) -> anyhow::Result<Option<Block>>;
 
-    /// Balance of an account that ignores if the receive block exists.
-    async fn sent_account_balance(&mut self, account: &Public) -> anyhow::Result<Raw>;
-
-    /// Balance of an account including receive blocks.
-    async fn recv_account_balance(&mut self, account: &Public) -> anyhow::Result<Raw>;
-
-    async fn set_sent_account_balance(&mut self, account: &Public, raw: &Raw)
-        -> anyhow::Result<()>;
-
-    async fn set_recv_account_balance(&mut self, account: &Public, raw: &Raw)
-        -> anyhow::Result<()>;
+    async fn get_latest_block_hash_for_account(
+        &self,
+        account: &Public,
+    ) -> anyhow::Result<Option<BlockHash>>;
 
     async fn account_for_block_hash(
         &mut self,

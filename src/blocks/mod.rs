@@ -1,34 +1,54 @@
-#[cfg(feature = "node")]
-#[cfg(feature = "node")]
-use crate::encoding::blake2b;
-use crate::{expect_len, Address, Private, Public, Raw, Signature, Work};
-use anyhow::anyhow;
+use anyhow::{anyhow, Context};
 pub use block_hash::BlockHash;
 pub use change_block::ChangeBlock;
 use core::convert::TryFrom;
+use link::Link;
 pub use open_block::OpenBlock;
 pub use receive_block::ReceiveBlock;
 pub use send_block::SendBlock;
+use serde;
 use serde::{Deserialize, Serialize};
-pub use state_block::{Link, StateBlock};
+pub use state_block::StateBlock;
 use std::hash::Hash;
+
+#[cfg(feature = "node")]
+#[cfg(feature = "node")]
+use crate::encoding::blake2b;
+use crate::node::network::Network;
+use crate::{expect_len, Address, Private, Public, Raw, Signature, Work};
 
 mod block_hash;
 mod change_block;
+pub mod link;
 mod open_block;
 mod receive_block;
 mod send_block;
 mod state_block;
 
-#[derive(Debug, Eq, PartialEq)]
+#[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
 pub enum BlockType {
-    Invalid = 0,
-    NotABlock = 1,
-    Send = 2,
-    Receive = 3,
-    Open = 4,
-    Change = 5,
-    State = 6,
+    Invalid,
+    NotABlock,
+    Send,
+    Receive,
+    Open,
+    Change,
+    State,
+}
+
+impl BlockType {
+    pub fn as_u8(&self) -> u8 {
+        match self {
+            BlockType::Invalid => 0,
+            BlockType::NotABlock => 1,
+            BlockType::Send => 2,
+            BlockType::Receive => 3,
+            BlockType::Open => 4,
+            BlockType::Change => 5,
+            BlockType::State => 6,
+        }
+    }
 }
 
 impl TryFrom<u8> for BlockType {
@@ -49,69 +69,150 @@ impl TryFrom<u8> for BlockType {
     }
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
-#[serde(tag = "type")]
-#[serde(rename_all = "snake_case")]
-pub enum Block {
-    Send(SendBlock),
-    Receive(ReceiveBlock),
-    Open(OpenBlock),
-    Change(ChangeBlock),
-    State(StateBlock),
-}
-
-/// A FullBlock contains all block information needed for the network.
+/// A `Block` contains all block information needed for network and storage.
 ///
-/// It includes work and signature, as well as the block specific information based on its type.
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
-pub struct FullBlock {
-    #[serde(flatten)]
-    block: Block,
-    work: Option<Work>,
+/// It has the fields of a state block, but can handle all block types.
+///
+/// When processing blocks from the network, this should be created after going through the
+/// controller since certain fields such as "amount" won't be available immediately.
+#[derive(Debug, Clone, Serialize, PartialEq, Eq)]
+pub struct Block {
+    #[serde(rename = "type")]
+    block_type: BlockType,
+
+    /// The cached hash of this block.
+    hash: Option<BlockHash>,
+
+    /// The account owner of this block.
+    account: Public,
+
+    /// Previous block hash on this account. Set to 0 if it's the first block.
+    previous: BlockHash,
+
+    /// The representative this account is delegating to.
+    representative: Public,
+
+    /// The new balance of this account.
+    balance: Raw,
+
+    /// Link to either a send block, or a destination account.
+    link: Link,
+
+    /// The signed block's hash with the account's private key.
     signature: Option<Signature>,
+
+    /// The proof of work applied to this block.
+    work: Option<Work>,
 }
 
-impl FullBlock {
-    pub fn new(block: Block) -> Self {
+impl Block {
+    pub fn new(
+        block_type: BlockType,
+        account: Public,
+        previous: BlockHash,
+        representative: Public,
+        balance: Raw,
+        link: Link,
+    ) -> Self {
         Self {
-            block,
+            hash: None,
+            block_type,
+            account,
+            previous,
+            representative,
+            balance,
+            link,
             work: None,
             signature: None,
         }
     }
 
-    pub fn block(&self) -> &Block {
-        &self.block
+    pub fn from_open_block(open_block: &OpenBlock, previous: BlockHash, balance: Raw) -> Self {
+        let mut b = Self::new(
+            BlockType::Open,
+            open_block.account.to_owned(),
+            previous,
+            open_block.representative.to_owned(),
+            balance,
+            Link::SourceBlockHash(open_block.source.to_owned()),
+        );
+        b.signature = open_block.signature.to_owned();
+        b.work = open_block.work.to_owned();
+        b
     }
 
+    pub fn hash(&self) -> anyhow::Result<&BlockHash> {
+        self.hash.as_ref().ok_or(anyhow!("Hash not calculated yet"))
+    }
+
+    /// Get existing hash or generate the hash for this block.
     // TODO: Can this ever fail?
-    pub fn hash(&self) -> anyhow::Result<BlockHash> {
-        match &self.block {
-            Block::Send(x) => x.hash(),
-            // Block::Receive(x) => x.hash(),
-            Block::Open(x) => x.hash(),
-            // Block::Change(x) => x.hash(),
-            Block::State(x) => x.hash(),
+    pub fn calc_hash(&mut self) -> anyhow::Result<()> {
+        let context = || format!("Calculating hash for {:?}", &self);
+        if self.hash.is_some() {
+            return Ok(());
+        };
+
+        // TODO: move this back into the block specific structs and use their hash functions?
+
+        let hash_result = match &self.block_type() {
+            BlockType::Open => hash_block(&[
+                self.source().with_context(context)?.as_bytes(),
+                self.representative.as_bytes(),
+                self.account.as_bytes(),
+            ]),
+            // BlockType::Send => hash_block(&[
+            //     self.previous.as_bytes(),
+            //     self.destination.as_bytes(), <-- todo!()
+            //     self.balance.to_vec().as_slice(),
+            // ]),
+            BlockType::State => {
+                let mut preamble = [0u8; 32];
+                preamble[31] = BlockType::State as u8;
+
+                hash_block(&[
+                    &preamble,
+                    self.account.as_bytes(),
+                    self.previous.as_bytes(),
+                    self.representative.as_bytes(),
+                    self.balance.to_vec().as_slice(),
+                    self.link.as_bytes(),
+                ])
+            }
             _ => todo!(),
-        }
+        };
+
+        let hash = hash_result.with_context(context)?;
+        self.hash = Some(hash);
+        Ok(())
+    }
+
+    pub fn block_type(&self) -> &BlockType {
+        &self.block_type
     }
 
     pub fn work(&self) -> Option<&Work> {
         self.work.as_ref()
     }
 
-    pub fn set_work(&mut self, work: Work) -> anyhow::Result<()> {
+    pub fn set_work(&mut self, work: Work) {
         self.work = Some(work);
-        Ok(())
     }
 
     pub fn signature(&self) -> Option<&Signature> {
         self.signature.as_ref()
     }
 
-    pub fn set_signature(&mut self, signature: Signature) -> anyhow::Result<()> {
+    pub fn set_signature(&mut self, signature: Signature) {
         self.signature = Some(signature);
-        Ok(())
+    }
+
+    pub fn account(&self) -> &Public {
+        &self.account
+    }
+
+    pub fn is_genesis(&self, network: &Network) -> anyhow::Result<bool> {
+        Ok(&network.genesis_hash() == self.hash()?)
     }
 
     pub fn verify_signature(&self, account: &Public) -> anyhow::Result<bool> {
@@ -123,39 +224,54 @@ impl FullBlock {
     pub fn sign(&mut self, private: Private) -> anyhow::Result<()> {
         let hash = self.hash()?;
         let signature = private.sign(hash.as_bytes())?;
-        self.set_signature(signature)
+        self.set_signature(signature);
+        Ok(())
     }
 
-    /// If it's an open block, return it.
-    pub fn open_block(&self) -> anyhow::Result<&OpenBlock> {
-        if let Block::Open(o) = &self.block() {
-            Ok(o)
+    pub fn balance(&self) -> &Raw {
+        &self.balance
+    }
+
+    pub fn previous(&self) -> &BlockHash {
+        &self.previous
+    }
+
+    /// For an open or recv block, get the sender's block hash, otherwise Err.
+    pub fn source(&self) -> anyhow::Result<&BlockHash> {
+        if self.block_type != BlockType::Open {
+            return Err(anyhow!(
+                "Source requested for a {:?} block",
+                self.block_type
+            ));
+        }
+
+        if let Link::SourceBlockHash(hash) = &self.link {
+            Ok(&hash)
         } else {
-            Err(anyhow!("Not an open block"))
+            Err(anyhow!(
+                "source requested for {:?} but the link is incorrect",
+                self
+            ))
         }
     }
 
-    /// If it's a send block, return it.
-    pub fn send_block(&self) -> anyhow::Result<&SendBlock> {
-        if let Block::Send(o) = &self.block() {
-            Ok(o)
+    /// For a send block, the destination account being sent to.
+    pub fn destination(&self) -> anyhow::Result<&Public> {
+        if self.block_type != BlockType::Send {
+            return Err(anyhow!(
+                "Destination requested for a {:?} block: {:?}",
+                self.block_type,
+                self
+            ));
+        }
+
+        if let Link::DestinationAccount(account) = &self.link {
+            Ok(&account)
         } else {
-            Err(anyhow!("Not an open block"))
-        }
-    }
-
-    pub fn balance(&self) -> Option<&Raw> {
-        match &self.block {
-            Block::Send(b) => Some(&b.balance),
-            _ => todo!(),
-        }
-    }
-
-    pub fn previous(&self) -> Option<BlockHash> {
-        match &self.block {
-            Block::Open(_b) => None,
-            Block::Send(b) => Some(b.previous.to_owned()),
-            _ => todo!(),
+            Err(anyhow!(
+                "destination requested for {:?} but the link is incorrect",
+                self
+            ))
         }
     }
 }
@@ -170,27 +286,13 @@ pub fn hash_block(parts: &[&[u8]]) -> anyhow::Result<BlockHash> {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
     use crate::node::network::Network;
+
+    use super::*;
 
     #[test]
     fn json() {
-        let genesis_json = r#"
-        {
-            "type": "open",
-            "source": "E89208DD038FBB269987689621D52292AE9C35941A7484756ECCED92A65093BA",
-            "representative": "nano_3t6k35gi95xu6tergt6p69ck76ogmitsa8mnijtpxm9fkcm736xtoncuohr3",
-            "account": "nano_3t6k35gi95xu6tergt6p69ck76ogmitsa8mnijtpxm9fkcm736xtoncuohr3",
-            "work": "62F05417DD3FB691",
-            "signature": "9F0C933C8ADE004D808EA1985FA746A7E95BA2A38F867640F53EC8F180BDFE9E2C1268DEAD7C2664F356E37ABA362BC58E46DBA03E523A7B5A19E4B6EB12BB02"
-        }
-        "#;
-
         let genesis = Network::Live.genesis_block();
-
-        let block: FullBlock = serde_json::from_str(genesis_json).unwrap();
-        assert_eq!(&block, &genesis);
-
         let a = serde_json::to_string_pretty(&genesis).unwrap();
         dbg!(&a);
         assert!(a.contains(r#"type": "open""#));

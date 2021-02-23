@@ -1,9 +1,9 @@
-use crate::blocks::FullBlock;
+use crate::blocks::Block;
 use crate::node::header::Header;
 use crate::node::wire::Wire;
 
 #[derive(Debug)]
-pub struct Publish(FullBlock);
+pub struct Publish(Block);
 
 impl Wire for Publish {
     fn serialize(&self) -> Vec<u8> {

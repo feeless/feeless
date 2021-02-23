@@ -3,7 +3,7 @@ use std::net::SocketAddr;
 use crate::node::cookie::Cookie;
 use crate::node::network::Network;
 use crate::node::state::State;
-use crate::{BlockHash, FullBlock, Public, Raw};
+use crate::{Block, BlockHash, Public, Raw};
 use async_trait::async_trait;
 use std::convert::TryFrom;
 
@@ -38,38 +38,18 @@ impl State for SledDiskState {
         self.network
     }
 
-    async fn add_block(
-        &mut self,
-        _account: &Public,
-        _full_block: &FullBlock,
-    ) -> anyhow::Result<()> {
+    async fn add_block(&mut self, _account: &Public, _full_block: &Block) -> anyhow::Result<()> {
         unimplemented!()
     }
 
-    async fn get_block_by_hash(&mut self, _hash: &BlockHash) -> anyhow::Result<Option<FullBlock>> {
+    async fn get_block_by_hash(&mut self, _hash: &BlockHash) -> anyhow::Result<Option<Block>> {
         unimplemented!()
     }
 
-    async fn sent_account_balance(&mut self, account: &Public) -> Result<Raw, anyhow::Error> {
-        unimplemented!()
-    }
-
-    async fn recv_account_balance(&mut self, account: &Public) -> Result<Raw, anyhow::Error> {
-        unimplemented!()
-    }
-    async fn set_sent_account_balance(
-        &mut self,
-        _account: &Public,
-        _raw: &Raw,
-    ) -> anyhow::Result<()> {
-        unimplemented!()
-    }
-
-    async fn set_recv_account_balance(
-        &mut self,
-        _account: &Public,
-        _raw: &Raw,
-    ) -> anyhow::Result<()> {
+    async fn get_latest_block_hash_for_account(
+        &self,
+        account: &Public,
+    ) -> anyhow::Result<Option<BlockHash>> {
         unimplemented!()
     }
 

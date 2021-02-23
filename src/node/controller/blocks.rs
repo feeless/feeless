@@ -1,6 +1,6 @@
-use crate::blocks::Block;
+use crate::blocks::BlockType;
 use crate::node::controller::Controller;
-use crate::{FullBlock, Public, Raw};
+use crate::{Block, Public, Raw};
 use anyhow::{anyhow, Context};
 use tracing::debug;
 
@@ -22,9 +22,9 @@ impl Controller {
     /// * Handle the specific block type appropriately.
     ///
     /// After adding we need to update any representative weights.
-    pub async fn add_elected_block(&mut self, block: &FullBlock) -> anyhow::Result<bool> {
-        debug!("Adding elected block {:?}", block);
-        let context = || format!("Block {:?}", block);
+    pub async fn add_elected_block(&mut self, block: &Block) -> anyhow::Result<()> {
+        debug!("Adding elected block {:?}", &block);
+        let context = || format!("Block {:?}", &block);
         let block_hash = block.hash().with_context(context)?;
 
         // Block already exists, we can ignore this.
@@ -37,15 +37,12 @@ impl Controller {
             .with_context(context)?
             .is_some()
         {
-            return Ok(false);
+            return Err(anyhow!("Block already exists")).with_context(context);
         }
 
-        let from_account = self.account_for_block(&block).await?;
-        dbg!(&from_account);
-
-        let context = || format!("Block {:?} Account: {:?}", block, &from_account);
+        let context = || format!("Block {:?}", block);
         if !block
-            .verify_signature(&from_account)
+            .verify_signature(&block.account())
             .with_context(context)?
         {
             return Err(anyhow!("Incorrect signature")).with_context(context);
@@ -58,125 +55,115 @@ impl Controller {
         // TODO: Verify work
 
         // TODO: For now just assume this is a send block
-        if let Ok(send_block) = block.send_block() {
-            let to_account = &send_block.destination;
-            let to_balance = self
-                .state
-                .recv_account_balance(&to_account)
-                .await
-                .with_context(context)?;
-
-            let old_balance = self.state.recv_account_balance(&from_account).await?;
-
-            let from_new_balance = &send_block.balance;
-            if from_new_balance >= &old_balance {
-                return Err(anyhow!("Can not increase balance in a send block"))
-                    .with_context(context);
+        match block.block_type() {
+            BlockType::Send => {
+                // let to_account = &block.destination().with_context(context)?;
+                // let from_new_balance = block.balance();
+                // if from_new_balance >= &old_balance {
+                //     return Err(anyhow!("Can not increase balance in a send block"))
+                //         .with_context(context);
+                // }
+                // let amount = old_balance
+                //     .checked_sub(from_new_balance)
+                //     .ok_or_else(|| {
+                //         anyhow!(
+                //             "Subtracting old_balance {:?} and from_new_balance {:?}",
+                //             old_balance,
+                //             from_new_balance
+                //         )
+                //     })
+                //     .with_context(context)?;
+                //
+                // // The account is lowering its balance on both sent and recv balances.
+                // self.state
+                //     .set_sent_account_balance(&block.account(), &from_new_balance)
+                //     .await?;
+                // self.state
+                //     .set_recv_account_balance(&block.account(), &from_new_balance)
+                //     .await?;
+                //
+                // // The receiving "sent account" is reduced, but not the "recv account" until a recv
+                // // block is confirmed.
+                // let to_new_balance = to_balance
+                //     .checked_add(&amount)
+                //     .ok_or_else(|| {
+                //         anyhow!("Adding to_balance {:?} and amount {:?}", to_balance, amount)
+                //     })
+                //     .with_context(context)?;
+                //
+                // self.state
+                //     .set_sent_account_balance(&to_account, &to_new_balance)
+                //     .await?;
+                todo!()
             }
-            let amount = old_balance
-                .checked_sub(from_new_balance)
-                .ok_or_else(|| {
-                    anyhow!(
-                        "Subtracting old_balance {:?} and from_new_balance {:?}",
-                        old_balance,
-                        from_new_balance
-                    )
-                })
-                .with_context(context)?;
+            BlockType::Open => {
+                dbg!(block);
 
-            // The account is lowering its balance on both sent and recv balances.
-            self.state
-                .set_sent_account_balance(&from_account, &from_new_balance)
-                .await?;
-            self.state
-                .set_recv_account_balance(&from_account, &from_new_balance)
-                .await?;
+                // If the block is the genesis block, we basically just trust the balance.
+                if block.is_genesis(&self.network)? {
+                    // self.state
+                    //     .set_sent_account_balance(block.account(), block.balance());
+                    // self.state
+                    //     .set_recv_account_balance(block.account(), block.balance());
+                } else {
+                    todo!();
+                }
 
-            // The receiving "sent account" is reduced, but not the "recv account" until a recv
-            // block is confirmed.
-            let to_new_balance = to_balance
-                .checked_add(&amount)
-                .ok_or_else(|| {
-                    anyhow!("Adding to_balance {:?} and amount {:?}", to_balance, amount)
-                })
-                .with_context(context)?;
-
-            self.state
-                .set_sent_account_balance(&to_account, &to_new_balance)
-                .await?;
-        } else if let Ok(open_block) = block.open_block() {
-            dbg!(open_block);
-
-            let to_account = &open_block.account;
-
-            // If the block is the genesis block, we give Raw::max instead of the amount from the
-            // previous block.
-            let add_amount = if block == self.network.genesis_block() {
-                Raw::max()
-            } else {
-                let send_block = self
-                    .state
-                    .get_block_by_hash(&open_block.source)
-                    .await
-                    .with_context(context)?
-                    .ok_or_else(|| anyhow!("Open block has a reference to a non existent block"))?
-                    .send_block()
-                    .context("Open block is referencing a block that is not a send block")?;
-
-                let to_balance = self
-                    .state
-                    .recv_account_balance(&to_account)
-                    .await
-                    .with_context(context)?;
-            };
-        } else {
-            todo!();
+                // let to_account = block.account();
+                // // If the block is the genesis block, we give Raw::max instead of the amount from the
+                // // previous block.
+                // let add_amount = if *block == self.network.genesis_block() {
+                //     Raw::max()
+                // } else {
+                //     let send_block = self
+                //         .state
+                //         .get_block_by_hash(&open_block.source)
+                //         .await
+                //         .with_context(context)?
+                //         .ok_or_else(|| anyhow!("Open block has a reference to a non existent block"))?
+                //         .send_block()
+                //         .context("Open block is referencing a block that is not a send block")?;
+                //
+                //     let to_balance = self
+                //         .state
+                //         .recv_account_balance(&to_account)
+                //         .await
+                //         .with_context(context)?;
+                // };
+                // todo!();
+            }
+            _ => todo!(),
         }
 
         self.state
-            .add_block(&from_account, block)
+            .add_block(&block.account(), block)
             .await
             .with_context(context)?;
 
-        self.balance_rep_weights(block)
+        // self.balance_rep_weights(block)
+        //     .await
+        //     .with_context(context)?;
+
+        Ok(())
+    }
+
+    pub async fn get_latest_block(&mut self, account: &Public) -> anyhow::Result<Option<Block>> {
+        let block_hash = self
+            .state
+            .get_latest_block_hash_for_account(account)
             .await
-            .with_context(context)?;
+            .with_context(|| format!("Account: {:?}", account))?
+            .ok_or_else(|| anyhow!("No block found for account: {:?}", account))?;
 
-        Ok(true)
-    }
-
-    pub async fn account_for_block(&mut self, block: &FullBlock) -> anyhow::Result<Public> {
-        let account = match block.block() {
-            Block::Open(o) => o.account.to_owned(),
-            _ => {
-                let previous = block
-                    .previous()
-                    .expect("A non open block doesn't have a previous block hash");
-                // TODO: Handle missing account
-                self.state
-                    .account_for_block_hash(&previous)
-                    .await?
-                    .expect("TODO: Handle missing block")
-            }
-        };
-
-        Ok(account)
-    }
-
-    /// Return the parent block of this block.
-    ///
-    /// This might need a few hits in the database, depending on the block.
-    pub async fn find_parent_block(
-        &mut self,
-        _block: &FullBlock,
-    ) -> anyhow::Result<Option<FullBlock>> {
-        // let maybe_block = if let Some(block_hash) = block.parent_hash() {
-        //     self.find_block_by_hash(block_hash).await?
-        // } else {
-        //     todo!();
-        //     // self.find_block_by_destination().await?
-        // };
-
-        todo!()
+        Ok(self
+            .state
+            .get_block_by_hash(&block_hash)
+            .await
+            .with_context(|| {
+                format!(
+                    "Could not get block for latest hash for account: {:?}",
+                    account
+                )
+            })?)
     }
 }

@@ -1,8 +1,6 @@
 use std::convert::TryFrom;
 
-
-
-use crate::blocks::{BlockType, FullBlock};
+use crate::blocks::{Block, BlockType};
 use crate::bytes::Bytes;
 use crate::node::header::Header;
 use crate::node::wire::Wire;
@@ -21,7 +19,7 @@ pub struct ConfirmAck {
 #[derive(Debug)]
 pub enum Confirm {
     VoteByHash(Vec<BlockHash>),
-    Block(FullBlock), // TODO: this variant is 704 bytes, use Box<>?
+    Block(Block), // TODO: this variant is 704 bytes, use Box<>?
 }
 
 impl ConfirmAck {

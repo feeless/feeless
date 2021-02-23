@@ -1,16 +1,22 @@
 use crate::blocks::{hash_block, Block};
 
 use crate::keys::public::{from_address, to_address};
-use crate::{BlockHash, FullBlock, Public};
+use crate::{BlockHash, Public, Signature, Work};
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct OpenBlock {
+    /// BlockHash of the Open block sending the funds to this account.
     pub source: BlockHash,
+
     #[serde(serialize_with = "to_address", deserialize_with = "from_address")]
     pub representative: Public,
+
     #[serde(serialize_with = "to_address", deserialize_with = "from_address")]
     pub account: Public,
+
+    pub work: Option<Work>,
+    pub signature: Option<Signature>,
 }
 
 impl OpenBlock {
@@ -19,11 +25,9 @@ impl OpenBlock {
             source,
             representative,
             account,
+            work: None,
+            signature: None,
         }
-    }
-
-    pub fn into_full_block(self) -> FullBlock {
-        FullBlock::new(Block::Open(self))
     }
 
     pub fn hash(&self) -> anyhow::Result<BlockHash> {
