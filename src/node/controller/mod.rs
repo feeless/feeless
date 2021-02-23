@@ -143,7 +143,8 @@ mod tests {
         // TODO: Check pending balance of landing account.
 
         // A real open block to the "Landing" account.
-        // `type` is ignored here, but just left it in as it's ignored.
+        // `type` is ignored here, but just left it in as it's part of the RPC response and
+        // might be checked in the future.
         let land_open: OpenBlock = serde_json::from_str(
             r#"{
                 "type": "open",
@@ -170,6 +171,30 @@ mod tests {
         assert_eq!(
             controller.account_balance(&landing_account).await.unwrap(),
             given
+        );
+
+        let land_send: SendBlock = serde_json::from_str(
+            r#"{
+    "type": "send",
+    "previous": "90D0C16AC92DD35814E84BFBCC739A039615D0A42A76EF44ADAEF1D99E9F8A35",
+    "destination": "nano_35jjmmmh81kydepzeuf9oec8hzkay7msr6yxagzxpcht7thwa5bus5tomgz9",
+    "balance": "02761762762762762762762762762762",
+    "work": "6d6d59ca60cab77d",
+    "signature": "434CF7E7B2C2CAA3E3910CC711B29498870636C1247EA8C72BD5C0A7BB15A7BACFEC9CF289B92E4BD56F56E68277B45B3A3FF9339D2547038B87DE38C851B70B"
+  }"#).unwrap();
+
+        let mut land_send =
+            Block::from_send_block(&land_send, &landing_account, &land_open.representative());
+        land_send.calc_hash().unwrap();
+
+        controller.add_elected_block(&land_send).await.unwrap();
+        dbg!(&controller.state);
+
+        assert_eq!(
+            controller.account_balance(&landing_account).await.unwrap(),
+            given
+                .checked_sub(&Raw::from(324518553658426726783156020576256))
+                .unwrap()
         );
     }
 }
