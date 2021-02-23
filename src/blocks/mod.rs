@@ -1,3 +1,4 @@
+use crate::keys::public::{from_address, to_address};
 use anyhow::{anyhow, Context};
 pub use block_hash::BlockHash;
 pub use change_block::ChangeBlock;
@@ -12,8 +13,8 @@ pub use state_block::StateBlock;
 use std::hash::Hash;
 
 #[cfg(feature = "node")]
-#[cfg(feature = "node")]
 use crate::encoding::blake2b;
+#[cfg(feature = "node")]
 use crate::node::network::Network;
 use crate::{expect_len, Address, Private, Public, Raw, Signature, Work};
 
@@ -84,12 +85,14 @@ pub struct Block {
     hash: Option<BlockHash>,
 
     /// The account owner of this block.
+    #[serde(serialize_with = "to_address", deserialize_with = "from_address")]
     account: Public,
 
     /// Previous block hash on this account. Set to 0 if it's the first block.
     previous: BlockHash,
 
     /// The representative this account is delegating to.
+    #[serde(serialize_with = "to_address", deserialize_with = "from_address")]
     representative: Public,
 
     /// The new balance of this account.
@@ -127,17 +130,35 @@ impl Block {
         }
     }
 
-    pub fn from_open_block(open_block: &OpenBlock, previous: BlockHash, balance: Raw) -> Self {
+    pub fn from_open_block(open_block: &OpenBlock, previous: &BlockHash, balance: &Raw) -> Self {
         let mut b = Self::new(
             BlockType::Open,
             open_block.account.to_owned(),
-            previous,
+            previous.to_owned(),
             open_block.representative.to_owned(),
-            balance,
-            Link::SourceBlockHash(open_block.source.to_owned()),
+            balance.to_owned(),
+            Link::Source(open_block.source.to_owned()),
         );
         b.signature = open_block.signature.to_owned();
         b.work = open_block.work.to_owned();
+        b
+    }
+
+    pub fn from_send_block(
+        send_block: &SendBlock,
+        account: &Public,
+        representative: &Public,
+    ) -> Self {
+        let mut b = Self::new(
+            BlockType::Send,
+            account.to_owned(),
+            send_block.previous.to_owned(),
+            representative.to_owned(),
+            send_block.balance.to_owned(),
+            Link::DestinationAccount(send_block.destination.to_owned()),
+        );
+        b.signature = send_block.signature.to_owned();
+        b.work = send_block.work.to_owned();
         b
     }
 
@@ -161,11 +182,11 @@ impl Block {
                 self.representative.as_bytes(),
                 self.account.as_bytes(),
             ]),
-            // BlockType::Send => hash_block(&[
-            //     self.previous.as_bytes(),
-            //     self.destination.as_bytes(), <-- todo!()
-            //     self.balance.to_vec().as_slice(),
-            // ]),
+            BlockType::Send => hash_block(&[
+                self.previous.as_bytes(),
+                self.destination().with_context(context)?.as_bytes(),
+                self.balance.to_vec().as_slice(),
+            ]),
             BlockType::State => {
                 let mut preamble = [0u8; 32];
                 preamble[31] = BlockType::State as u8;
@@ -211,6 +232,10 @@ impl Block {
         &self.account
     }
 
+    pub fn representative(&self) -> &Public {
+        &self.representative
+    }
+
     pub fn is_genesis(&self, network: &Network) -> anyhow::Result<bool> {
         Ok(&network.genesis_hash() == self.hash()?)
     }
@@ -245,7 +270,7 @@ impl Block {
             ));
         }
 
-        if let Link::SourceBlockHash(hash) = &self.link {
+        if let Link::Source(hash) = &self.link {
             Ok(&hash)
         } else {
             Err(anyhow!(

@@ -41,7 +41,7 @@ impl Network {
         let balance = Raw::max();
 
         let previous = BlockHash::zero();
-        let mut block = Block::from_open_block(&open_block, previous, balance);
+        let mut block = Block::from_open_block(&open_block, &previous, &balance);
         block.calc_hash().unwrap();
         block
     }

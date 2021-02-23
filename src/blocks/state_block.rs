@@ -119,7 +119,7 @@ mod tests {
                 .unwrap();
         let representative = account.clone();
         let balance = Raw::from_raw(2711469892748129430069222848295u128);
-        let link = Link::SourceBlockHash(
+        let link = Link::Source(
             BlockHash::from_hex("0399B19B022D260F3DDFBA26D0306D423F1890D3AE06136FAB16802D1F2B87A7")
                 .unwrap(),
         );
@@ -127,11 +127,8 @@ mod tests {
         let signature = Signature::from_hex("BCF9F123138355AE9E741912D319FF48E5FCCA39D9E5DD74411D32C69B1C7501A0BF001C45D4F68CB561B902A42711E6166B9018E76C50CC868EF2E32B78F200").unwrap();
         let work = Work::from_hex("d4757052401b9e08").unwrap();
 
-        todo!()
-
-        // let mut block =
-        //     StateBlock::new(account, parent, representative, balance, link).into_full_block();
-        //
+        let mut block = StateBlock::new(account, parent, representative, balance, link);
+        // let block = Block::from_state_block(block);
         //
         // block.set_signature(signature).unwrap();
         // block.set_work(work).unwrap();
@@ -141,5 +138,6 @@ mod tests {
         //     BlockHash::from_hex("6F050D3D0B19C2C206046AAE2D46661B57E1B7D890DE8398D203A025E29A4AD9")
         //         .unwrap()
         // )
+        // TODO: Fix this test
     }
 }

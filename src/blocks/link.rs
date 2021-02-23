@@ -2,6 +2,7 @@ use crate::{expect_len, BlockHash, Public};
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "snake_case")]
 pub enum Link {
     /// For the change block type.
     Nothing,
@@ -10,7 +11,7 @@ pub enum Link {
     Unsure([u8; Link::LEN]),
 
     /// Reference the previous block, for receiving.
-    SourceBlockHash(BlockHash),
+    Source(BlockHash),
 
     /// Send to a destination account.
     DestinationAccount(Public),
@@ -33,7 +34,7 @@ impl Link {
     pub fn as_bytes(&self) -> &[u8] {
         match self {
             Link::Nothing => &[0u8; Self::LEN],
-            Link::SourceBlockHash(hash) => hash.as_bytes(),
+            Link::Source(hash) => hash.as_bytes(),
             Link::DestinationAccount(key) => key.as_bytes(),
             Link::Unsure(b) => b.as_ref(),
         }

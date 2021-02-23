@@ -42,7 +42,7 @@ impl State for SledDiskState {
         unimplemented!()
     }
 
-    async fn get_block_by_hash(&mut self, _hash: &BlockHash) -> anyhow::Result<Option<Block>> {
+    async fn get_block_by_hash(&self, _hash: &BlockHash) -> anyhow::Result<Option<Block>> {
         unimplemented!()
     }
 

@@ -18,7 +18,7 @@ pub trait State: Debug {
 
     async fn add_block(&mut self, account: &Public, full_block: &Block) -> anyhow::Result<()>;
 
-    async fn get_block_by_hash(&mut self, hash: &BlockHash) -> anyhow::Result<Option<Block>>;
+    async fn get_block_by_hash(&self, hash: &BlockHash) -> anyhow::Result<Option<Block>>;
 
     async fn get_latest_block_hash_for_account(
         &self,

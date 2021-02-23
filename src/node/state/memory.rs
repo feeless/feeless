@@ -46,7 +46,7 @@ impl State for MemoryState {
         Ok(())
     }
 
-    async fn get_block_by_hash(&mut self, hash: &BlockHash) -> anyhow::Result<Option<Block>> {
+    async fn get_block_by_hash(&self, hash: &BlockHash) -> anyhow::Result<Option<Block>> {
         Ok(self.blocks.get(hash).map(|b| b.to_owned()))
     }
 
