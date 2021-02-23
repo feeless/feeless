@@ -117,7 +117,7 @@ mod tests {
         // e.g. controller.validate_send_block() or controller.fill_send_block()
         let mut block: Block =
             Block::from_send_block(&gen_send, genesis.account(), genesis.representative());
-        block.calc_hash();
+        block.calc_hash().unwrap();
 
         controller.add_elected_block(&block).await.unwrap();
 
@@ -154,13 +154,15 @@ mod tests {
                 "signature": "E950FFDF0C9C4DAF43C27AE3993378E4D8AD6FA591C24497C53E07A3BC80468539B0A467992A916F0DDA6F267AD764A3C1A5BDBD8F489DFAE8175EEE0E337402"
             }"#,
         ).unwrap();
+        let mut land_open = Block::from_open_block(&land_open, &BlockHash::zero(), &given);
+        land_open.calc_hash().unwrap();
         assert_eq!(
             land_open.hash().unwrap(),
-            BlockHash::from_hex("90D0C16AC92DD35814E84BFBCC739A039615D0A42A76EF44ADAEF1D99E9F8A35")
-                .unwrap()
+            &BlockHash::from_hex(
+                "90D0C16AC92DD35814E84BFBCC739A039615D0A42A76EF44ADAEF1D99E9F8A35"
+            )
+            .unwrap()
         );
-        let mut land_open = Block::from_open_block(&land_open, &BlockHash::zero(), &given);
-        land_open.calc_hash();
 
         controller.add_elected_block(&land_open).await.unwrap();
         dbg!(&controller.state);

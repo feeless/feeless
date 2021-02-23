@@ -174,8 +174,6 @@ impl Block {
             return Ok(());
         };
 
-        // TODO: move this back into the block specific structs and use their hash functions?
-
         let hash_result = match &self.block_type() {
             BlockType::Open => hash_block(&[
                 self.source().with_context(context)?.as_bytes(),

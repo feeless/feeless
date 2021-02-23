@@ -29,12 +29,4 @@ impl OpenBlock {
             signature: None,
         }
     }
-
-    pub fn hash(&self) -> anyhow::Result<BlockHash> {
-        hash_block(&[
-            self.source.as_bytes(),
-            self.representative.as_bytes(),
-            self.account.as_bytes(),
-        ])
-    }
 }
