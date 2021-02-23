@@ -1,7 +1,7 @@
 use crate::blocks::hash_block;
 use crate::keys::public::{from_address, to_address};
 use crate::raw::{deserialize_from_hex, serialize_to_hex};
-use crate::{Block, BlockHash, Public, Raw, Signature, Work};
+use crate::{BlockHash, Public, Raw, Signature, Work};
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Serialize, Deserialize, Eq, PartialEq)]

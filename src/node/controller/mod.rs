@@ -25,7 +25,7 @@ impl Controller {
     }
 
     /// Update the representative weights based on this block being added to the network.
-    pub async fn balance_rep_weights(&mut self, full_block: &Block) -> anyhow::Result<()> {
+    pub async fn balance_rep_weights(&mut self, _full_block: &Block) -> anyhow::Result<()> {
         // match full_block.block() {
         //     Block::Send(_) => {
         //         // TODO: Balance rep for send block
@@ -74,7 +74,7 @@ mod tests {
         let network = Network::Live;
         let genesis = network.genesis_block();
 
-        let mut controller = empty_lattice(network).await;
+        let controller = empty_lattice(network).await;
         dbg!(&controller.state);
         assert_eq!(
             controller

@@ -1,6 +1,6 @@
 use crate::node::cookie::Cookie;
 use crate::node::network::Network;
-use crate::{Block, BlockHash, Public, Raw};
+use crate::{Block, BlockHash, Public};
 use async_trait::async_trait;
 pub use memory::MemoryState;
 pub use sled_disk::SledDiskState;

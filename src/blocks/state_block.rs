@@ -1,8 +1,8 @@
 use serde::{Deserialize, Serialize};
 
-use super::Block;
-use crate::blocks::{hash_block, BlockType};
-use crate::{expect_len, BlockHash, Link, Public, Raw};
+
+
+use crate::{BlockHash, Link, Public, Raw};
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct StateBlock {
@@ -124,10 +124,10 @@ mod tests {
                 .unwrap(),
         );
         // Signature and work aren't hashed, but left them as the real data anyway.
-        let signature = Signature::from_hex("BCF9F123138355AE9E741912D319FF48E5FCCA39D9E5DD74411D32C69B1C7501A0BF001C45D4F68CB561B902A42711E6166B9018E76C50CC868EF2E32B78F200").unwrap();
-        let work = Work::from_hex("d4757052401b9e08").unwrap();
+        let _signature = Signature::from_hex("BCF9F123138355AE9E741912D319FF48E5FCCA39D9E5DD74411D32C69B1C7501A0BF001C45D4F68CB561B902A42711E6166B9018E76C50CC868EF2E32B78F200").unwrap();
+        let _work = Work::from_hex("d4757052401b9e08").unwrap();
 
-        let mut block = StateBlock::new(account, parent, representative, balance, link);
+        let _block = StateBlock::new(account, parent, representative, balance, link);
         // let block = Block::from_state_block(block);
         //
         // block.set_signature(signature).unwrap();

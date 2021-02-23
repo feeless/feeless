@@ -1,4 +1,4 @@
-use crate::keys::public::{from_address, to_address};
+use crate::keys::public::{to_address};
 use anyhow::{anyhow, Context};
 pub use block_hash::BlockHash;
 pub use change_block::ChangeBlock;
@@ -16,7 +16,7 @@ use std::hash::Hash;
 use crate::encoding::blake2b;
 #[cfg(feature = "node")]
 use crate::node::network::Network;
-use crate::{expect_len, Address, Private, Public, Raw, Signature, Work};
+use crate::{Private, Public, Raw, Signature, Work};
 
 mod block_hash;
 mod change_block;
@@ -311,7 +311,7 @@ pub fn hash_block(parts: &[&[u8]]) -> anyhow::Result<BlockHash> {
 mod tests {
     use crate::node::network::Network;
 
-    use super::*;
+    
 
     #[test]
     fn json() {

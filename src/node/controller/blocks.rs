@@ -76,8 +76,8 @@ impl Controller {
                     .with_context(context);
                 }
 
-                let to_account = block.destination().with_context(context)?;
-                let amount = prev_balance
+                let _to_account = block.destination().with_context(context)?;
+                let _amount = prev_balance
                     .checked_sub(block.balance())
                     .ok_or_else(|| {
                         anyhow!(

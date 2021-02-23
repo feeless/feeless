@@ -3,7 +3,7 @@ use std::net::SocketAddr;
 use crate::node::cookie::Cookie;
 use crate::node::network::Network;
 use crate::node::state::State;
-use crate::{Block, BlockHash, Public, Raw};
+use crate::{Block, BlockHash, Public};
 use async_trait::async_trait;
 use std::convert::TryFrom;
 
@@ -48,7 +48,7 @@ impl State for SledDiskState {
 
     async fn get_latest_block_hash_for_account(
         &self,
-        account: &Public,
+        _account: &Public,
     ) -> anyhow::Result<Option<BlockHash>> {
         unimplemented!()
     }

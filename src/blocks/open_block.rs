@@ -1,4 +1,4 @@
-use crate::blocks::{hash_block, Block};
+
 
 use crate::keys::public::{from_address, to_address};
 use crate::{BlockHash, Public, Signature, Work};

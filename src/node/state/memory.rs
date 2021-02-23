@@ -4,7 +4,7 @@ use crate::node::cookie::Cookie;
 use crate::node::network::Network;
 use crate::node::state::State;
 
-use crate::{Block, BlockHash, Public, Raw};
+use crate::{Block, BlockHash, Public};
 use anyhow::Context;
 use async_trait::async_trait;
 use std::collections::HashMap;
