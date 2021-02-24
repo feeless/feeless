@@ -130,7 +130,7 @@ mod tests {
         let confirm_ack = ConfirmAck::new(
             account,
             signature,
-            IncrementalTimestamp::now(),
+            IncrementalTimestamp::new(),
             Confirm::VoteByHash(vec![block_hash]),
         );
         assert!(confirm_ack.verify().is_ok());
