@@ -2,15 +2,15 @@ use crate::node::cookie::Cookie;
 use crate::node::header::{Extensions, Header, MessageType};
 use crate::node::messages::confirm_ack::ConfirmAck;
 use crate::node::messages::confirm_req::ConfirmReq;
-
 use crate::node::messages::handshake::{Handshake, HandshakeQuery, HandshakeResponse};
+use crate::node::messages::keepalive::Keepalive;
 use crate::node::messages::publish::Publish;
 use crate::node::messages::telemetry_ack::TelemetryAck;
 
 use crate::node::state::BoxedState;
 use crate::node::wire::Wire;
 use crate::{expect_len, to_hex, Public, Seed, Signature};
-use anyhow::anyhow;
+use anyhow::{anyhow, Context};
 use std::fmt::Debug;
 use std::net::SocketAddr;
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
@@ -58,7 +58,7 @@ impl Channel {
     async fn recv<T: Wire + Debug>(&mut self, header: Option<&Header>) -> anyhow::Result<T> {
         let expected_len = T::len(header)?;
         if expected_len > self.buffer.len() {
-            trace!("Expanding buffer {} -> {}", self.buffer.len(), expected_len);
+            // trace!("Expanding buffer {} -> {}", self.buffer.len(), expected_len);
             self.buffer.resize(expected_len, 0)
         }
 
@@ -95,13 +95,19 @@ impl Channel {
 
     #[instrument(skip(self))]
     pub async fn run(&mut self) -> anyhow::Result<()> {
+        trace!("Initial handshake");
         self.send_node_id_handshake().await?;
-        self.send_telemetry_req().await?;
+        // trace!("Initial telemetry request");
+        // self.send_telemetry_req().await?;
 
+        trace!("Loop start");
         loop {
-            let header = self.recv::<Header>(None).await?;
+            let header = self
+                .recv::<Header>(None)
+                .await
+                .with_context(|| format!("Main node loop"))?;
             header.validate(&self.state)?;
-            // debug!("Header: {:?}", &header);
+            trace!("Header: {:?}", &header);
 
             match header.message_type() {
                 MessageType::Keepalive => self.recv_keepalive(header).await?,
@@ -121,7 +127,9 @@ impl Channel {
     }
 
     #[instrument(skip(self))]
-    async fn recv_keepalive(&mut self, _: Header) -> anyhow::Result<()> {
+    async fn recv_keepalive(&mut self, header: Header) -> anyhow::Result<()> {
+        let keepalive = self.recv::<Keepalive>(Some(&header)).await?;
+        debug!("{:?}", keepalive);
         Ok(())
     }
 
@@ -135,6 +143,7 @@ impl Channel {
 
     #[instrument(skip(self))]
     async fn send_node_id_handshake(&mut self) -> anyhow::Result<()> {
+        trace!("Sending handshake");
         self.send_header(MessageType::Handshake, *Extensions::new().query())
             .await?;
 
@@ -213,14 +222,16 @@ impl Channel {
     #[instrument(skip(self, header))]
     async fn recv_confirm_req(&mut self, header: Header) -> anyhow::Result<()> {
         let data = self.recv::<ConfirmReq>(Some(&header)).await?;
-        trace!("Pairs: {:?}", &data);
-        warn!("TODO confirm_req");
+        trace!("TODO confirm req pairs: {:?}", &data);
+        // warn!("TODO confirm_req");
         Ok(())
     }
 
     #[instrument(skip(self, header))]
     async fn recv_confirm_ack(&mut self, header: Header) -> anyhow::Result<()> {
-        let _data = self.recv::<ConfirmAck>(Some(&header)).await?;
+        let vote = self.recv::<ConfirmAck>(Some(&header)).await?;
+
+        dbg!(vote);
         warn!("TODO confirm_ack");
         Ok(())
     }

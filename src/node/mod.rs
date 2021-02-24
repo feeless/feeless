@@ -13,6 +13,7 @@ pub mod messages;
 pub mod network;
 pub mod peer;
 pub mod state;
+pub mod timestamp;
 pub mod wire;
 
 pub async fn node_with_single_peer(address: &str) -> anyhow::Result<()> {

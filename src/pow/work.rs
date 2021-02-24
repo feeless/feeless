@@ -14,7 +14,7 @@ pub enum Subject {
 }
 
 impl Subject {
-    pub fn to_bytes(&self) -> &[u8] {
+    pub fn as_bytes(&self) -> &[u8] {
         match self {
             Subject::Hash(h) => h.as_bytes(),
             Subject::Public(p) => p.as_bytes(),
@@ -73,7 +73,7 @@ impl Work {
         reversed_work.reverse();
 
         work_and_subject.extend_from_slice(&reversed_work);
-        work_and_subject.extend_from_slice(subject.to_bytes());
+        work_and_subject.extend_from_slice(subject.as_bytes());
         let hash = Self::hash(&work_and_subject);
         Difficulty::from_le_slice(hash.as_ref())
     }

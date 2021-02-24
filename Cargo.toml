@@ -16,6 +16,7 @@ node = ["sled"]
 pcap = ["node", "pcarp", "etherparse"]
 
 [dependencies]
+once_cell = "1.7.0"
 ansi_term = "0.12"
 async-trait = "0.1.42"
 hex = "0.4.2"

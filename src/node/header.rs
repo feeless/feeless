@@ -1,7 +1,7 @@
 use std::convert::{TryFrom, TryInto};
 use std::result::Result;
 
-use anyhow::anyhow;
+use anyhow::{anyhow, Context};
 use bitvec::prelude::*;
 
 use crate::blocks::BlockType;
@@ -111,10 +111,12 @@ impl Wire for Header {
     fn deserialize(header: Option<&Header>, data: &[u8]) -> anyhow::Result<Self> {
         debug_assert!(header.is_none());
 
-        expect_len(data.len(), Header::LEN, "Header")?;
-        MagicNumber::try_from(data[Self::MAGIC_NUMBER])?;
+        let context = || format!("Deserializing header");
 
-        let network = Network::try_from(data[Self::NETWORK])?;
+        expect_len(data.len(), Header::LEN, "Header")?;
+        MagicNumber::try_from(data[Self::MAGIC_NUMBER]).with_context(context)?;
+
+        let network = Network::try_from(data[Self::NETWORK]).with_context(context)?;
         let message_type = MessageType::try_from(data[Self::MESSAGE_TYPE])?;
         let ext =
             Extensions::try_from(&data[Self::EXTENSIONS..Self::EXTENSIONS + Extensions::LEN])?;
