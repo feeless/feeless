@@ -314,8 +314,19 @@ mod tests {
     }
 
     fn assert_contains_err<T: Debug>(result: anyhow::Result<T>, s: &str) {
-        let x = result.unwrap_err().to_string();
-        assert!(x.contains(s), x);
+        for entry in result.as_ref().err().as_ref().unwrap().chain() {
+            if entry.to_string().contains(s) {
+                return;
+            }
+        }
+        assert!(
+            false,
+            format!(
+                "Got error:\n{:?}\n\nExpecting: {}",
+                &result.err().unwrap(),
+                s
+            )
+        );
     }
 
     #[test]
