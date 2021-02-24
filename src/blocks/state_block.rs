@@ -1,16 +1,21 @@
+use crate::blocks::BlockType;
+use crate::bytes::Bytes;
+use crate::node::header::Header;
+use crate::node::wire::Wire;
+use crate::{Block, BlockHash, Link, Public, Raw, Signature, Work};
+use anyhow::anyhow;
 use serde::{Deserialize, Serialize};
-
-
-
-use crate::{BlockHash, Link, Public, Raw};
+use std::convert::TryFrom;
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct StateBlock {
-    account: Public,
-    previous: BlockHash,
-    representative: Public,
-    balance: Raw,
-    link: Link,
+    pub account: Public,
+    pub previous: BlockHash,
+    pub representative: Public,
+    pub balance: Raw,
+    pub link: Link,
+    pub work: Option<Work>,
+    pub signature: Option<Signature>,
 }
 
 impl StateBlock {
@@ -29,75 +34,55 @@ impl StateBlock {
             representative,
             balance,
             link,
+            work: None,
+            signature: None,
         }
     }
 }
 
-// impl Wire for StateBlock {
-//     fn serialize(&self) -> Vec<u8> {
-//         unimplemented!()
-//     }
-//
-//     fn deserialize(_: Option<&Header>, data: &[u8]) -> Result<Self, anyhow::Error>
-//         where
-//             Self: Sized,
-//     {
-//         warn!("TODO StateBlock::deserialize");
-//         let mut data = Bytes::new(data);
-//
-//         let account = Public::try_from(data.slice(Public::LEN)?)?;
-//         let previous = BlockHash::try_from(data.slice(BlockHash::LEN)?)?;
-//         let representative = Public::try_from(data.slice(Public::LEN)?)?;
-//         let raw = Raw::try_from(data.slice(Raw::LEN)?)?;
-//
-//         let link_data = data.slice(Public::LEN)?;
-//         // TODO: I think this only works once we have previous blocks in a database.
-//         // let link_data_is_zero = link_data == [0u8; Public::LEN];
-//         // let link = if diff < 0 {
-//         //     // Send
-//         //     info!("Senddddddddddddddd");
-//         //     Link::SendDestinationPublicKey(Public::try_from(link_data)?)
-//         // } else if raw > 0 {
-//         //     // Receive
-//         //     info!("Recvvvvvvvvvvvvvvv");
-//         //     Link::PairingSendBlockHash(BlockHash::try_from(link_data)?)
-//         // } else {
-//         //     // Change rep
-//         //     if !link_data_is_zero {
-//         //         return Err(anyhow!("Link data is zero but raw is not zero: {:?}", raw));
-//         //     }
-//         //     info!("Changerepppppppppppppppp");
-//         //     Link::Nothing
-//         // };
-//         let link = Link::Unsure(<[u8; 32]>::try_from(link_data)?);
-//
-//         let signature = Signature::try_from(data.slice(Signature::LEN)?)?;
-//
-//         Ok(Self::new(
-//             account,
-//             previous,
-//             representative,
-//             raw,
-//             link,
-//             signature,
-//             Work::zero(), // TODO
-//         ))
-//     }
-//
-//     fn len(header: Option<&Header>) -> Result<usize, anyhow::Error> {
-//         debug_assert!(header.is_some());
-//         let header = header.unwrap();
-//
-//         if header.ext().block_type()? != BlockType::State {
-//             return Err(anyhow!(
-//                 "unexpected block type: {:?}",
-//                 header.ext().block_type()
-//             ));
-//         }
-//
-//         Ok(VerifiableBlock::LEN)
-//     }
-// }
+impl Wire for StateBlock {
+    fn serialize(&self) -> Vec<u8> {
+        unimplemented!()
+    }
+
+    fn deserialize(header: Option<&Header>, data: &[u8]) -> anyhow::Result<Self>
+    where
+        Self: Sized,
+    {
+        let mut data = Bytes::new(data);
+
+        let account = Public::try_from(data.slice(Public::LEN)?)?;
+        let previous = BlockHash::try_from(data.slice(BlockHash::LEN)?)?;
+        let representative = Public::try_from(data.slice(Public::LEN)?)?;
+        let balance = Raw::try_from(data.slice(Raw::LEN)?)?;
+
+        let link_data = data.slice(Public::LEN)?;
+        // We are unsure because we need to work out the previous balance of this account first.
+        let link = Link::Unsure(<[u8; 32]>::try_from(link_data)?);
+
+        let signature = Signature::try_from(data.slice(Signature::LEN)?)?;
+        let work = Work::try_from(data.slice(Work::LEN)?)?;
+
+        let mut block = Self::new(account, previous, representative, balance, link);
+        block.signature = Some(signature);
+        block.work = Some(work);
+        Ok(block)
+    }
+
+    fn len(header: Option<&Header>) -> Result<usize, anyhow::Error> {
+        debug_assert!(header.is_some());
+        let header = header.unwrap();
+
+        if header.ext().block_type()? != BlockType::State {
+            return Err(anyhow!(
+                "Unexpected block type: {:?}",
+                header.ext().block_type()
+            ));
+        }
+
+        Ok(StateBlock::LEN)
+    }
+}
 
 #[cfg(test)]
 mod tests {
@@ -106,7 +91,7 @@ mod tests {
     use crate::{Address, Signature, Work};
 
     use super::StateBlock;
-    use super::{BlockHash, Raw};
+    use super::{Block, BlockHash, Raw};
 
     #[test]
     fn hash_a_real_state_block() {
@@ -124,20 +109,22 @@ mod tests {
                 .unwrap(),
         );
         // Signature and work aren't hashed, but left them as the real data anyway.
-        let _signature = Signature::from_hex("BCF9F123138355AE9E741912D319FF48E5FCCA39D9E5DD74411D32C69B1C7501A0BF001C45D4F68CB561B902A42711E6166B9018E76C50CC868EF2E32B78F200").unwrap();
-        let _work = Work::from_hex("d4757052401b9e08").unwrap();
+        let signature = Signature::from_hex("BCF9F123138355AE9E741912D319FF48E5FCCA39D9E5DD74411D32C69B1C7501A0BF001C45D4F68CB561B902A42711E6166B9018E76C50CC868EF2E32B78F200").unwrap();
+        let work = Work::from_hex("d4757052401b9e08").unwrap();
 
-        let _block = StateBlock::new(account, parent, representative, balance, link);
-        // let block = Block::from_state_block(block);
-        //
-        // block.set_signature(signature).unwrap();
-        // block.set_work(work).unwrap();
-        //
-        // assert_eq!(
-        //     block.hash().unwrap(),
-        //     BlockHash::from_hex("6F050D3D0B19C2C206046AAE2D46661B57E1B7D890DE8398D203A025E29A4AD9")
-        //         .unwrap()
-        // )
-        // TODO: Fix this test
+        let block = StateBlock::new(account, parent, representative, balance, link);
+        let mut block = Block::from_state_block(&block);
+
+        block.set_signature(signature);
+        block.set_work(work);
+        block.calc_hash();
+
+        assert_eq!(
+            block.hash().unwrap(),
+            &BlockHash::from_hex(
+                "6F050D3D0B19C2C206046AAE2D46661B57E1B7D890DE8398D203A025E29A4AD9"
+            )
+            .unwrap()
+        )
     }
 }

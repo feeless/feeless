@@ -1,4 +1,4 @@
-use crate::keys::public::{to_address};
+use crate::keys::public::to_address;
 use anyhow::{anyhow, Context};
 pub use block_hash::BlockHash;
 pub use change_block::ChangeBlock;
@@ -14,8 +14,10 @@ use std::hash::Hash;
 
 #[cfg(feature = "node")]
 use crate::encoding::blake2b;
+use crate::node::header::Header;
 #[cfg(feature = "node")]
 use crate::node::network::Network;
+use crate::node::wire::Wire;
 use crate::{Private, Public, Raw, Signature, Work};
 
 mod block_hash;
@@ -67,6 +69,45 @@ impl TryFrom<u8> for BlockType {
             6 => State,
             _ => return Err(anyhow!("Invalid block type: {}", value)),
         })
+    }
+}
+
+/// For "holding" deserialized blocks that we can't convert to `Block` yet.
+#[derive(Debug, Clone)]
+pub enum BlockHolder {
+    Send(SendBlock),
+    Receive(ReceiveBlock),
+    Open(OpenBlock),
+    Change(ChangeBlock),
+    State(StateBlock),
+}
+
+impl Wire for BlockHolder {
+    fn serialize(&self) -> Vec<u8> {
+        unimplemented!()
+    }
+
+    fn deserialize(header: Option<&Header>, data: &[u8]) -> anyhow::Result<Self>
+    where
+        Self: Sized,
+    {
+        debug_assert!(header.is_some());
+        let holder = match header.as_ref().unwrap().ext().block_type()? {
+            BlockType::State => BlockHolder::State(Wire::deserialize(header, data)?),
+            _ => todo!(),
+        };
+        Ok(holder)
+    }
+
+    fn len(header: Option<&Header>) -> anyhow::Result<usize>
+    where
+        Self: Sized,
+    {
+        debug_assert!(header.is_some());
+        match header.as_ref().unwrap().ext().block_type()? {
+            BlockType::State => StateBlock::len(header),
+            _ => todo!(),
+        }
     }
 }
 
@@ -159,6 +200,20 @@ impl Block {
         );
         b.signature = send_block.signature.to_owned();
         b.work = send_block.work.to_owned();
+        b
+    }
+
+    pub fn from_state_block(state_block: &StateBlock) -> Self {
+        let mut b = Self::new(
+            BlockType::State,
+            state_block.account.to_owned(),
+            state_block.previous.to_owned(),
+            state_block.representative.to_owned(),
+            state_block.balance.to_owned(),
+            state_block.link.to_owned(),
+        );
+        b.signature = state_block.signature.to_owned();
+        b.work = state_block.work.to_owned();
         b
     }
 
@@ -310,8 +365,6 @@ pub fn hash_block(parts: &[&[u8]]) -> anyhow::Result<BlockHash> {
 #[cfg(test)]
 mod tests {
     use crate::node::network::Network;
-
-    
 
     #[test]
     fn json() {

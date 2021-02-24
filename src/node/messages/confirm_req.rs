@@ -3,7 +3,7 @@ use std::convert::TryFrom;
 use anyhow::Context;
 use tracing::info;
 
-use crate::blocks::{Block, BlockType};
+use crate::blocks::{Block, BlockHolder, BlockType};
 use crate::bytes::Bytes;
 use crate::node::header::Header;
 use crate::node::wire::Wire;
@@ -21,7 +21,7 @@ use crate::{expect_len, BlockHash};
 #[derive(Debug)]
 pub enum ConfirmReq {
     ConfirmReqByHash(Vec<RootHashPair>),
-    BlockSelector(Block),
+    BlockSelector(BlockHolder),
 }
 
 impl ConfirmReq {
@@ -61,11 +61,16 @@ impl Wire for ConfirmReq {
             }
             Ok(Self::ConfirmReqByHash(pairs))
         } else {
-            debug_assert_eq!(header.ext().block_type()?, BlockType::State);
             info!("Block type {:?}", header.ext().block_type());
+            debug_assert_eq!(header.ext().block_type()?, BlockType::State);
 
-            todo!("handle state block")
+            Ok(Self::BlockSelector(BlockHolder::deserialize(
+                Some(header),
+                data,
+            )?))
 
+            // todo!("handle state block")
+            //
             // let value = bytes
             //     .slice(FullBlock::LEN)
             //     .context("Confirm req slice state block")?;
@@ -84,7 +89,9 @@ impl Wire for ConfirmReq {
             Ok(Self::CONFIRM_REQ_BY_HASH_LEN * header.ext().item_count())
         } else {
             debug_assert_eq!(header.ext().block_type()?, BlockType::State);
-            todo!("handle state block")
+
+            BlockHolder::len(Some(header))
+            // todo!("handle state block")
             // Ok(FullBlock::LEN)
         }
     }

@@ -21,9 +21,8 @@ use pcarp::Capture;
 use std::collections::{HashMap, HashSet};
 
 use std::fs::File;
-use std::io::{Read};
-use std::net::{Ipv4Addr};
-
+use std::io::Read;
+use std::net::Ipv4Addr;
 
 use tracing::{debug, error, info, trace, warn};
 
@@ -240,7 +239,7 @@ impl<'a> PcapDump<'a> {
 
                     let frontier =
                         FrontierResp::deserialize(None, bytes.slice(FrontierResp::LEN)?)?;
-                    dbg!(frontier);
+                    // dbg!(frontier);
                 }
                 continue 'next_packet;
             }

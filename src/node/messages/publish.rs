@@ -1,25 +1,23 @@
-use crate::blocks::Block;
+use crate::blocks::{Block, BlockHolder, BlockType, StateBlock};
 use crate::node::header::Header;
 use crate::node::wire::Wire;
 
 #[derive(Debug)]
-pub struct Publish(Block);
+pub struct Publish(BlockHolder);
 
 impl Wire for Publish {
     fn serialize(&self) -> Vec<u8> {
         unimplemented!()
     }
 
-    fn deserialize(_: Option<&Header>, _data: &[u8]) -> Result<Self, anyhow::Error>
+    fn deserialize(header: Option<&Header>, data: &[u8]) -> anyhow::Result<Self>
     where
         Self: Sized,
     {
-        todo!("handle full block")
-        // Ok(Self(FullBlock::deserialize(None, data)?))
+        Ok(Publish(BlockHolder::deserialize(header, data)?))
     }
 
-    fn len(_: Option<&Header>) -> Result<usize, anyhow::Error> {
-        todo!("handle full block")
-        // Ok(FullBlock::LEN)
+    fn len(header: Option<&Header>) -> Result<usize, anyhow::Error> {
+        BlockHolder::len(header)
     }
 }
