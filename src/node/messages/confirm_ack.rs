@@ -7,6 +7,7 @@ use crate::{BlockHash, Public, Signature};
 use std::convert::TryFrom;
 use tracing::trace;
 
+/// This is a vote on the network by a representative for one or more block hashes.
 #[derive(Debug)]
 pub struct ConfirmAck {
     pub account: Public,
@@ -19,7 +20,9 @@ pub struct ConfirmAck {
 #[derive(Debug)]
 pub enum Confirm {
     VoteByHash(Vec<BlockHash>),
-    Block(Block), // TODO: this variant is 704 bytes, use Box<>?
+
+    // TODO: This looks like it isn't used on the live network.
+    Block(Block),
 }
 
 impl ConfirmAck {

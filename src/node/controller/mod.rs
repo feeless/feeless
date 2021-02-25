@@ -2,19 +2,19 @@ mod blocks;
 mod genesis;
 
 use crate::node::network::Network;
-use crate::node::state::BoxedState;
+use crate::node::state::{ArcState, DynState};
 use crate::{Block, Public, Raw};
 use anyhow::{anyhow, Context};
 
 /// The controller handles the logic with handling and emitting messages, as well as time based
 /// actions, peer management, etc.
-struct Controller {
+pub struct Controller {
     network: Network,
-    state: BoxedState,
+    state: ArcState,
 }
 
 impl Controller {
-    pub fn new(network: Network, state: BoxedState) -> Self {
+    pub fn new(network: Network, state: ArcState) -> Self {
         Self { network, state }
     }
 
@@ -50,6 +50,10 @@ impl Controller {
             Some(block) => Ok(block.balance().to_owned()),
             None => Ok(Raw::zero()),
         }
+    }
+
+    pub fn network(&self) -> &Network {
+        &self.network
     }
 }
 

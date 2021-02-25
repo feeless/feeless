@@ -7,7 +7,7 @@ use bitvec::prelude::*;
 use crate::blocks::BlockType;
 use crate::expect_len;
 use crate::node::network::Network;
-use crate::node::state::BoxedState;
+use crate::node::state::DynState;
 use crate::node::wire::Wire;
 
 // TODO: Have header internally only contain [u8; 8] and use accessors, so that the header doesn't
@@ -36,12 +36,12 @@ pub struct Header {
 }
 
 impl Header {
-    pub fn validate(&self, state: &BoxedState) -> anyhow::Result<()> {
-        if self.network != state.network() {
+    pub fn validate(&self, network: &Network) -> anyhow::Result<()> {
+        if &self.network != network {
             return Err(anyhow!(
                 "network mismatch: They're on {:?}. We're on {:?}",
                 self.network,
-                state.network(),
+                network,
             ));
         }
 
@@ -331,7 +331,7 @@ mod tests {
 
     #[test]
     fn bad_length() {
-        let _state: BoxedState = Box::new(MemoryState::new(Network::Live));
+        let _state: DynState = Box::new(MemoryState::new(Network::Live));
         let err = "Header is the wrong length";
         let s = vec![];
         assert_contains_err(Header::deserialize(None, &s), err);
@@ -341,14 +341,14 @@ mod tests {
 
     #[test]
     fn bad_magic() {
-        let _state: BoxedState = Box::new(MemoryState::new(Network::Live));
+        let _state: DynState = Box::new(MemoryState::new(Network::Live));
         let s = vec![0xFF, 0x43, 18, 18, 18, 2, 3, 0];
         assert_contains_err(Header::deserialize(None, &s), "magic number");
     }
 
     #[test]
     fn bad_network() {
-        let state: BoxedState = Box::new(MemoryState::new(Network::Test));
+        let state: DynState = Box::new(MemoryState::new(Network::Test));
         let s = vec![0x52, 0x43, 18, 18, 18, 2, 3, 0];
         let header = Header::deserialize(None, &s).unwrap();
         let result = header.validate(&state);
@@ -357,7 +357,7 @@ mod tests {
 
     #[test]
     fn bad_message_type() {
-        let _state: BoxedState = Box::new(MemoryState::new(Network::Live));
+        let _state: DynState = Box::new(MemoryState::new(Network::Live));
         let s = vec![0x52, 0x43, 18, 18, 18, 100, 3, 0];
         assert_contains_err(Header::deserialize(None, &s), "message type");
     }

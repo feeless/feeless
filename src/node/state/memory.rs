@@ -7,23 +7,27 @@ use crate::node::state::State;
 use crate::{Block, BlockHash, Public};
 use anyhow::Context;
 use async_trait::async_trait;
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 
 #[derive(Debug)]
 pub struct MemoryState {
     network: Network,
+    cookies: HashMap<SocketAddr, Cookie>,
     blocks: HashMap<BlockHash, Block>,
     block_hash_to_account: HashMap<BlockHash, Public>,
     latest_block_hash: HashMap<Public, BlockHash>,
+    votes: HashMap<BlockHash, HashSet<Public>>,
 }
 
 impl MemoryState {
     pub fn new(network: Network) -> Self {
         Self {
             network,
+            cookies: HashMap::new(),
             blocks: HashMap::new(),
             block_hash_to_account: HashMap::new(),
             latest_block_hash: HashMap::new(),
+            votes: HashMap::new(),
         }
     }
 }
@@ -67,18 +71,39 @@ impl State for MemoryState {
             .map(|a| a.to_owned()))
     }
 
+    async fn add_vote(&mut self, hash: &BlockHash, representative: &Public) -> anyhow::Result<()> {
+        let mut entry = self
+            .votes
+            .entry(hash.to_owned())
+            .or_insert_with(|| HashSet::new());
+        entry.insert(representative.to_owned());
+
+        // dbg!(&self
+        //     .votes
+        //     .iter()
+        //     .map(|v| format!("{} {}", v.0, v.1.len()))
+        //     .collect::<Vec<_>>());
+
+        // dbg!(&self.votes);
+
+        println!("XXXXXX {:?} {:?}", hash, representative);
+
+        Ok(())
+    }
+
     async fn set_cookie(
         &mut self,
-        _socket_addr: SocketAddr,
-        _cookie: Cookie,
+        socket_addr: SocketAddr,
+        cookie: Cookie,
     ) -> Result<(), anyhow::Error> {
-        unimplemented!()
+        self.cookies.insert(socket_addr, cookie);
+        Ok(())
     }
 
     async fn cookie_for_socket_addr(
         &self,
-        _socket_addr: &SocketAddr,
+        socket_addr: &SocketAddr,
     ) -> Result<Option<Cookie>, anyhow::Error> {
-        unimplemented!()
+        Ok(self.cookies.get(&socket_addr).map(|c| c.to_owned()))
     }
 }

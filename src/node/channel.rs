@@ -7,7 +7,8 @@ use crate::node::messages::keepalive::Keepalive;
 use crate::node::messages::publish::Publish;
 use crate::node::messages::telemetry_ack::TelemetryAck;
 
-use crate::node::state::BoxedState;
+use crate::node::controller::Controller;
+use crate::node::state::{ArcState, DynState};
 use crate::node::wire::Wire;
 use crate::{expect_len, to_hex, Public, Seed, Signature};
 use anyhow::{anyhow, Context};
@@ -18,9 +19,9 @@ use tokio::net::TcpStream;
 use tracing::{debug, instrument, trace, warn};
 
 /// A connection to a single peer.
-#[derive(Debug)]
 pub struct Channel {
-    pub state: BoxedState,
+    pub state: ArcState,
+    pub controller: Controller,
 
     // TODO: Both of these into a Communication trait, for ease of testing. e.g.:
     //  * async fn Comm::send() -> Result<()>
@@ -30,10 +31,10 @@ pub struct Channel {
     // This would also remove Self::buffer.
     // Not sure about the performance problems of having to use async-trait.
     stream: TcpStream,
-    pub(crate) peer_addr: SocketAddr,
+    pub peer_addr: SocketAddr,
 
     /// A reusable header to reduce allocations.
-    pub(crate) header: Header,
+    pub header: Header,
 
     /// Storage that can be shared within this task without reallocating.
     /// This is currently only used for the recv buffers.
@@ -41,12 +42,14 @@ pub struct Channel {
 }
 
 impl Channel {
-    pub fn new(state: BoxedState, stream: TcpStream) -> Self {
-        let network = state.network();
+    pub async fn new(state: ArcState, stream: TcpStream) -> Self {
+        let network = state.lock().await.network();
         // TODO: Remove unwrap
         let peer_addr = stream.peer_addr().unwrap();
+        let controller = Controller::new(network, state.clone());
         Self {
             state,
+            controller,
             stream,
             peer_addr,
             header: Header::new(network, MessageType::Handshake, Extensions::new()),
@@ -106,7 +109,7 @@ impl Channel {
                 .recv::<Header>(None)
                 .await
                 .with_context(|| format!("Main node loop"))?;
-            header.validate(&self.state)?;
+            header.validate(&self.controller.network())?;
             trace!("Header: {:?}", &header);
 
             match header.message_type() {
@@ -147,8 +150,11 @@ impl Channel {
         self.send_header(MessageType::Handshake, *Extensions::new().query())
             .await?;
 
+        // TODO: Move to controller
         let cookie = Cookie::random();
         self.state
+            .lock()
+            .await
             .set_cookie(self.peer_addr, cookie.clone())
             .await?;
         let handshake_query = HandshakeQuery::new(cookie);
@@ -192,7 +198,13 @@ impl Channel {
             let public = response.public;
             let signature = response.signature;
 
-            let cookie = &self.state.cookie_for_socket_addr(&self.peer_addr).await?;
+            // TODO: Move to controller
+            let cookie = &self
+                .state
+                .lock()
+                .await
+                .cookie_for_socket_addr(&self.peer_addr)
+                .await?;
             if cookie.is_none() {
                 warn!(
                     "Peer {:?} has no cookie. Can't verify handshake.",
@@ -231,8 +243,9 @@ impl Channel {
     async fn recv_confirm_ack(&mut self, header: Header) -> anyhow::Result<()> {
         let vote = self.recv::<ConfirmAck>(Some(&header)).await?;
 
-        dbg!(vote);
-        warn!("TODO confirm_ack");
+        dbg!(&vote);
+        self.controller.add_vote(&vote).await?;
+
         Ok(())
     }
 

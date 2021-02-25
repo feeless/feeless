@@ -60,6 +60,10 @@ impl State for SledDiskState {
         unimplemented!()
     }
 
+    async fn add_vote(&mut self, hash: &BlockHash, representative: &Public) -> anyhow::Result<()> {
+        unimplemented!()
+    }
+
     async fn set_cookie(&mut self, socket_addr: SocketAddr, cookie: Cookie) -> anyhow::Result<()> {
         self.cookies
             .insert(format!("{}", socket_addr), cookie.as_bytes())?;

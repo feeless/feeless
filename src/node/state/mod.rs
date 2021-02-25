@@ -6,14 +6,18 @@ pub use memory::MemoryState;
 pub use sled_disk::SledDiskState;
 use std::fmt::Debug;
 use std::net::SocketAddr;
+use std::sync::Arc;
+use tokio::sync::Mutex;
+
 mod memory;
 mod sled_disk;
 
-pub type BoxedState = Box<dyn State + Send + Sync>;
+pub type DynState = dyn State + Send + Sync;
+pub type ArcState = Arc<Mutex<DynState>>;
 
 /// State contains a state of the Nano block lattice 🥬.
 #[async_trait]
-pub trait State: Debug {
+pub trait State: Debug + Sync + Send + 'static {
     fn network(&self) -> Network;
 
     async fn add_block(&mut self, account: &Public, full_block: &Block) -> anyhow::Result<()>;
@@ -29,6 +33,8 @@ pub trait State: Debug {
         &mut self,
         block_hash: &BlockHash,
     ) -> anyhow::Result<Option<Public>>;
+
+    async fn add_vote(&mut self, hash: &BlockHash, representative: &Public) -> anyhow::Result<()>;
 
     async fn set_cookie(&mut self, socket_addr: SocketAddr, cookie: Cookie) -> anyhow::Result<()>;
 

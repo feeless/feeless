@@ -1,8 +1,9 @@
 use crate::blocks::BlockType;
 use crate::node::controller::Controller;
-use crate::{Block, Public, Raw};
+use crate::node::messages::confirm_ack::{Confirm, ConfirmAck};
+use crate::{Block, BlockHash, Public, Raw, Signature};
 use anyhow::{anyhow, Context};
-use tracing::debug;
+use tracing::{debug, instrument, warn};
 
 struct AccountDelta {
     from: Public,
@@ -11,9 +12,56 @@ struct AccountDelta {
 }
 
 impl Controller {
+    #[instrument(skip(self))]
+    pub async fn add_vote(&mut self, confirm_ack: &ConfirmAck) -> anyhow::Result<()> {
+        let context = || format!("Adding vote {:?}", &confirm_ack);
+
+        let hashes = if let Confirm::VoteByHash(hashes) = &confirm_ack.confirm {
+            hashes
+        } else {
+            return Err(anyhow!("Confirm::Block not implemented")).with_context(context);
+        };
+
+        for hash in hashes {
+            self.validate_vote(hash, &confirm_ack.account, &confirm_ack.signature)
+                .await
+                .with_context(context)?;
+
+            self.state
+                .lock()
+                .await
+                .add_vote(hash, &confirm_ack.account)
+                .await
+                .with_context(context)?;
+
+            // XXX: Adding twice as a test
+            self.state
+                .lock()
+                .await
+                .add_vote(hash, &confirm_ack.account)
+                .await
+                .with_context(context)?;
+
+            // self.check_votes(&confirm_ack.confirm)
+            //     .await
+            //     .with_context(context)?;
+        }
+
+        Ok(())
+    }
+
+    #[instrument(skip(self, signature))]
+    pub async fn validate_vote(
+        &mut self,
+        hash: &BlockHash,
+        representative: &Public,
+        signature: &Signature,
+    ) -> anyhow::Result<()> {
+        warn!("TODO validate vote");
+        Ok(())
+    }
+
     /// Add a block that has been deemed valid by ORV.
-    ///
-    /// Returns true if it was added.
     ///
     /// Before adding a block we need to make sure it:
     /// * Doesn't already exist.
@@ -32,6 +80,8 @@ impl Controller {
         // This function should only have the chance to be called once per block.
         if self
             .state
+            .lock()
+            .await
             .get_block_by_hash(&block_hash)
             .await
             .with_context(context)?
@@ -60,6 +110,8 @@ impl Controller {
                 dbg!(block);
                 let prev_block = self
                     .state
+                    .lock()
+                    .await
                     .get_block_by_hash(block.previous())
                     .await
                     .context("Previous block")
@@ -101,6 +153,8 @@ impl Controller {
         }
 
         self.state
+            .lock()
+            .await
             .add_block(&block.account(), block)
             .await
             .with_context(context)?;
@@ -115,6 +169,8 @@ impl Controller {
     pub async fn get_latest_block(&self, account: &Public) -> anyhow::Result<Option<Block>> {
         let block_hash = self
             .state
+            .lock()
+            .await
             .get_latest_block_hash_for_account(account)
             .await
             .with_context(|| format!("Account: {:?}", account))?;
@@ -125,6 +181,8 @@ impl Controller {
 
         Ok(self
             .state
+            .lock()
+            .await
             .get_block_by_hash(&block_hash)
             .await
             .with_context(|| {

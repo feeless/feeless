@@ -147,6 +147,18 @@ pub struct Block {
 
     /// The proof of work applied to this block.
     work: Option<Work>,
+
+    /// What level of trust do we have with this block?
+    state: ValidationState,
+}
+
+#[derive(Debug, Clone, Serialize, PartialEq, Eq)]
+pub enum ValidationState {
+    Published,
+    PresumedValid,
+    Valid,
+    SignatureFailed,
+    WorkFailed,
 }
 
 impl Block {
@@ -157,6 +169,7 @@ impl Block {
         representative: Public,
         balance: Raw,
         link: Link,
+        state: ValidationState,
     ) -> Self {
         Self {
             hash: None,
@@ -168,6 +181,7 @@ impl Block {
             link,
             work: None,
             signature: None,
+            state,
         }
     }
 
@@ -179,6 +193,7 @@ impl Block {
             open_block.representative.to_owned(),
             balance.to_owned(),
             Link::Source(open_block.source.to_owned()),
+            ValidationState::Valid,
         );
         b.signature = open_block.signature.to_owned();
         b.work = open_block.work.to_owned();
@@ -197,6 +212,7 @@ impl Block {
             representative.to_owned(),
             send_block.balance.to_owned(),
             Link::DestinationAccount(send_block.destination.to_owned()),
+            ValidationState::Valid,
         );
         b.signature = send_block.signature.to_owned();
         b.work = send_block.work.to_owned();
@@ -211,6 +227,7 @@ impl Block {
             state_block.representative.to_owned(),
             state_block.balance.to_owned(),
             state_block.link.to_owned(),
+            ValidationState::Valid,
         );
         b.signature = state_block.signature.to_owned();
         b.work = state_block.work.to_owned();
