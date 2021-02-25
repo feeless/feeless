@@ -1,7 +1,7 @@
 use crate::blocks::{Block, BlockType};
 use crate::bytes::Bytes;
 use crate::node::header::Header;
-use crate::node::timestamp::IncrementalTimestamp;
+use crate::node::timestamp::Timestamp;
 use crate::node::wire::Wire;
 use crate::{BlockHash, Public, Signature};
 use std::convert::TryFrom;
@@ -12,7 +12,7 @@ pub struct ConfirmAck {
     pub account: Public,
     pub signature: Signature,
 
-    pub timestamp: IncrementalTimestamp,
+    pub timestamp: Timestamp,
     pub confirm: Confirm,
 }
 
@@ -23,12 +23,12 @@ pub enum Confirm {
 }
 
 impl ConfirmAck {
-    const VOTE_COMMON_LEN: usize = Public::LEN + Signature::LEN + IncrementalTimestamp::LEN;
+    const VOTE_COMMON_LEN: usize = Public::LEN + Signature::LEN + Timestamp::LEN;
 
     pub fn new(
         account: Public,
         signature: Signature,
-        timestamp: IncrementalTimestamp,
+        timestamp: Timestamp,
         confirm: Confirm,
     ) -> Self {
         Self {
@@ -78,8 +78,9 @@ impl Wire for ConfirmAck {
         let mut data = Bytes::new(data);
         let account = Public::try_from(data.slice(Public::LEN)?)?;
         let signature = Signature::try_from(data.slice(Signature::LEN)?)?;
-        // to_vec here to stop a borrow problem
-        let timestamp = IncrementalTimestamp::try_from(data.slice(IncrementalTimestamp::LEN)?)?;
+        // `to_vec` here to stop a borrow problem
+        // Looks like this is "sequence" on the live network, but will change to "timestamp".
+        let timestamp = Timestamp::try_from(data.slice(Timestamp::LEN)?)?;
         let confirm = if header.ext().block_type()? == BlockType::NotABlock {
             let mut block_hashes = vec![];
             for _ in 0..header.ext().item_count() {
@@ -130,7 +131,7 @@ mod tests {
         let confirm_ack = ConfirmAck::new(
             account,
             signature,
-            IncrementalTimestamp::new(),
+            Timestamp::now(),
             Confirm::VoteByHash(vec![block_hash]),
         );
         assert!(confirm_ack.verify().is_ok());
