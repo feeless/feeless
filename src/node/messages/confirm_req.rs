@@ -62,7 +62,6 @@ impl Wire for ConfirmReq {
             Ok(Self::ConfirmReqByHash(pairs))
         } else {
             info!("Block type {:?}", header.ext().block_type());
-            debug_assert_eq!(header.ext().block_type()?, BlockType::State);
 
             Ok(Self::BlockSelector(BlockHolder::deserialize(
                 Some(header),
@@ -88,11 +87,7 @@ impl Wire for ConfirmReq {
         if header.ext().block_type()? == BlockType::NotABlock {
             Ok(Self::CONFIRM_REQ_BY_HASH_LEN * header.ext().item_count())
         } else {
-            debug_assert_eq!(header.ext().block_type()?, BlockType::State);
-
             BlockHolder::len(Some(header))
-            // todo!("handle state block")
-            // Ok(FullBlock::LEN)
         }
     }
 }

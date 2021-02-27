@@ -24,6 +24,11 @@ use std::fs::File;
 use std::io::Read;
 use std::net::Ipv4Addr;
 
+use crate::node::controller::Controller;
+use crate::node::network::Network;
+use crate::node::state::MemoryState;
+use std::sync::Arc;
+use tokio::sync::Mutex;
 use tracing::{debug, error, info, trace, warn};
 
 /// Subject is the focused peer that we act as "us", when showing if we're sending or
@@ -91,7 +96,7 @@ impl<'a> PcapDump<'a> {
         }
     }
 
-    pub fn dump(&'a mut self, path: &'a str) -> anyhow::Result<()> {
+    pub async fn dump(&'a mut self, path: &'a str) -> anyhow::Result<()> {
         info!("Loading dump: {}", path);
 
         let file = File::open(path).with_context(|| format!("Opening file {}", path))?;
@@ -239,7 +244,7 @@ impl<'a> PcapDump<'a> {
 
                     let frontier =
                         FrontierResp::deserialize(None, bytes.slice(FrontierResp::LEN)?)?;
-                    // dbg!(frontier);
+                    dbg!(frontier);
                 }
                 continue 'next_packet;
             }

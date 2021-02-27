@@ -92,8 +92,19 @@ impl Wire for BlockHolder {
         Self: Sized,
     {
         debug_assert!(header.is_some());
-        let holder = match header.as_ref().unwrap().ext().block_type()? {
-            BlockType::State => BlockHolder::State(Wire::deserialize(header, data)?),
+        let context = "Deserialize BlockHolder";
+
+        let holder = match header
+            .as_ref()
+            .unwrap()
+            .ext()
+            .block_type()
+            .context(context)?
+        {
+            BlockType::State => {
+                BlockHolder::State(Wire::deserialize(header, data).context(context)?)
+            }
+            BlockType::Send => BlockHolder::Send(Wire::deserialize(header, data).context(context)?),
             _ => todo!(),
         };
         Ok(holder)
@@ -106,6 +117,7 @@ impl Wire for BlockHolder {
         debug_assert!(header.is_some());
         match header.as_ref().unwrap().ext().block_type()? {
             BlockType::State => StateBlock::len(header),
+            BlockType::Send => SendBlock::len(header),
             _ => todo!(),
         }
     }

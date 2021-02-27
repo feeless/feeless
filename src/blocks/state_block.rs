@@ -72,13 +72,7 @@ impl Wire for StateBlock {
     fn len(header: Option<&Header>) -> Result<usize, anyhow::Error> {
         debug_assert!(header.is_some());
         let header = header.unwrap();
-
-        if header.ext().block_type()? != BlockType::State {
-            return Err(anyhow!(
-                "Unexpected block type: {:?}",
-                header.ext().block_type()
-            ));
-        }
+        debug_assert_eq!(header.ext().block_type()?, BlockType::State);
 
         Ok(StateBlock::LEN)
     }

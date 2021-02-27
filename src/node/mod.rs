@@ -8,7 +8,7 @@ use tokio::sync::Mutex;
 use tracing::info;
 
 mod channel;
-mod controller;
+pub mod controller;
 pub mod cookie;
 pub mod header;
 pub mod messages;

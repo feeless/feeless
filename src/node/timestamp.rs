@@ -34,7 +34,6 @@ impl TryFrom<&[u8]> for Timestamp {
     type Error = anyhow::Error;
 
     fn try_from(value: &[u8]) -> Result<Self, Self::Error> {
-        dbg!(&value);
         let fixed = <[u8; Self::LEN]>::try_from(value)
             .with_context(|| len_err_msg(value.len(), Self::LEN, "IncrementalTimestamp"))?;
 

@@ -34,14 +34,6 @@ impl Controller {
                 .await
                 .with_context(context)?;
 
-            // XXX: Adding twice as a test
-            self.state
-                .lock()
-                .await
-                .add_vote(hash, &confirm_ack.account)
-                .await
-                .with_context(context)?;
-
             // self.check_votes(&confirm_ack.confirm)
             //     .await
             //     .with_context(context)?;

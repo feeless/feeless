@@ -1,4 +1,6 @@
 use crate::encoding::{deserialize_hex, FromHex};
+use crate::node::header::Header;
+use crate::node::wire::Wire;
 use crate::{encoding, len_err_msg, to_hex, Address, Signature};
 use anyhow::Context;
 use bitvec::prelude::*;
@@ -117,6 +119,26 @@ impl<'de> Deserialize<'de> for Public {
         D: Deserializer<'de>,
     {
         deserialize_hex(deserializer)
+    }
+}
+
+impl Wire for Public {
+    fn serialize(&self) -> Vec<u8> {
+        unimplemented!()
+    }
+
+    fn deserialize(header: Option<&Header>, data: &[u8]) -> anyhow::Result<Self>
+    where
+        Self: Sized,
+    {
+        unimplemented!()
+    }
+
+    fn len(header: Option<&Header>) -> anyhow::Result<usize>
+    where
+        Self: Sized,
+    {
+        Ok(Self::LEN)
     }
 }
 
