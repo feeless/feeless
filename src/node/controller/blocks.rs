@@ -83,12 +83,10 @@ impl Controller {
         }
 
         let context = || format!("Block {:?}", block);
-        if !block
+        block
             .verify_signature(&block.account())
-            .with_context(context)?
-        {
-            return Err(anyhow!("Incorrect signature")).with_context(context);
-        }
+            .context("Incorrect signature")
+            .with_context(context)?;
 
         let work = block.work();
         if work.is_none() {
@@ -117,7 +115,7 @@ impl Controller {
                         "Can not increase balance in a send block. Prev: {:?}",
                         prev_block
                     ))
-                    .with_context(context);
+                        .with_context(context);
                 }
 
                 let _to_account = block.destination().with_context(context)?;

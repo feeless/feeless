@@ -65,9 +65,11 @@ mod tests {
     use crate::encoding::FromHex;
     use crate::node::state::MemoryState;
     use crate::{Address, BlockHash};
+    use std::sync::Arc;
+    use tokio::sync::Mutex;
 
     async fn empty_lattice(network: Network) -> Controller {
-        let state = Box::new(MemoryState::new(network));
+        let state = Arc::new(Mutex::new(MemoryState::new(network)));
         let mut controller = Controller::new(network, state);
         controller.init().await.unwrap();
         controller
@@ -79,7 +81,6 @@ mod tests {
         let genesis = network.genesis_block();
 
         let controller = empty_lattice(network).await;
-        dbg!(&controller.state);
         assert_eq!(
             controller
                 .get_latest_block(genesis.account())
@@ -170,7 +171,6 @@ mod tests {
         );
 
         controller.add_elected_block(&land_open).await.unwrap();
-        dbg!(&controller.state);
 
         assert_eq!(
             controller.account_balance(&landing_account).await.unwrap(),
@@ -192,7 +192,6 @@ mod tests {
         land_send.calc_hash().unwrap();
 
         controller.add_elected_block(&land_send).await.unwrap();
-        dbg!(&controller.state);
 
         assert_eq!(
             controller.account_balance(&landing_account).await.unwrap(),

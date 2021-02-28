@@ -322,10 +322,10 @@ impl Block {
         Ok(&network.genesis_hash() == self.hash()?)
     }
 
-    pub fn verify_signature(&self, account: &Public) -> anyhow::Result<bool> {
+    pub fn verify_signature(&self, account: &Public) -> anyhow::Result<()> {
         let hash = self.hash()?;
         let signature = self.signature().ok_or(anyhow!("Signature missing"))?;
-        Ok(account.verify(hash.as_bytes(), signature))
+        Ok(account.verify(hash.as_bytes(), signature).context("Verify block")?)
     }
 
     pub fn sign(&mut self, private: Private) -> anyhow::Result<()> {

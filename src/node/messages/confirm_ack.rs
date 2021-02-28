@@ -1,9 +1,11 @@
 use crate::blocks::{Block, BlockType};
 use crate::bytes::Bytes;
+use crate::encoding::blake2b;
 use crate::node::header::Header;
 use crate::node::timestamp::Timestamp;
 use crate::node::wire::Wire;
 use crate::{BlockHash, Public, Signature};
+use anyhow::Context;
 use std::convert::TryFrom;
 use tracing::trace;
 
@@ -42,26 +44,29 @@ impl ConfirmAck {
         }
     }
 
-    pub fn verify(&self) -> anyhow::Result<()> {
-        // self.account.verify(self.confirm)
-        todo!()
+    pub fn verify_signature(&self) -> anyhow::Result<()> {
+        self.account
+            .verify(&self.inner_hash(), &self.signature)
+            .context("Verify signature on ConfirmAck")
     }
 
-    pub fn hash(&self) -> Vec<u8> {
+    // nano::block_hash nano::vote::hash () const
+    pub fn inner_hash(&self) -> Vec<u8> {
         let mut v = Vec::new();
+
+        // TODO: Only add this prefix if there's data. See nano::vote::hash()
         v.extend_from_slice("vote ".as_bytes());
 
         if let Confirm::VoteByHash(hashes) = &self.confirm {
             for hash in hashes {
                 v.extend_from_slice(hash.as_bytes())
             }
-            // TODO
-            // v.extend_from_slice(timestamp.as_bytes())
+            v.extend_from_slice(&self.timestamp.to_bytes())
         } else {
             todo!("handle block hash");
         }
 
-        todo!()
+        blake2b(BlockHash::LEN, &v).to_vec()
     }
 }
 
@@ -125,18 +130,22 @@ mod tests {
     #[test]
     fn verify_sig() {
         let account =
-            Public::from_hex("96B8D493E24886F9B52919C40D169B1B914CEAD7D064AFBA916264C87A305A56")
+            Public::from_hex("2994D330022A052DF83E10FCE1B3E140496CDCD7E0C0F2FF6DE2670291B88011")
                 .unwrap();
-        let signature = Signature::from_hex("5A8FFB1F0F8CD7900A9703D2984963CA560E34ED414149AC2EC8666E55D28BEBE79F59F7949345DE5A7DD7B9FA4408F57CCEC44458731AC52927C6525878DA05").unwrap();
-        let block_hash =
-            BlockHash::from_hex("3332DE6136266EDB713439599E7F5F0ADAC2B08CEDAF1104F542854D33A81833")
+        let signature = Signature::from_hex("721C6CAFD61C2D7ED27643C556F77AE900308BD5AAF458E74310E42773BB45494A138EE0291B6868C360EB983AB5CE8FF2EFF6A66044CBA2B128047ACDBD4402").unwrap();
+        let hash1 =
+            BlockHash::from_hex("C3A3FE56D584CB997199E3B09EC454F62DED3B7EF875D9D7E8E5011AC34C77A5")
                 .unwrap();
+        let hash2 =
+            BlockHash::from_hex("139E1064D7CCC26495EFB4030015C02CE78556EBE3547192843B0E71C91599FC")
+                .unwrap();
+        let timestamp = Timestamp::from_u64(2019626603);
         let confirm_ack = ConfirmAck::new(
             account,
             signature,
-            Timestamp::now(),
-            Confirm::VoteByHash(vec![block_hash]),
+            timestamp,
+            Confirm::VoteByHash(vec![hash1, hash2]),
         );
-        assert!(confirm_ack.verify().is_ok());
+        assert!(confirm_ack.verify_signature().is_ok());
     }
 }

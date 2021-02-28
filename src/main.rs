@@ -3,7 +3,6 @@
 #[cfg(feature = "node")]
 use feeless::node::node_with_single_peer;
 #[cfg(feature = "pcap")]
-#[cfg(feature = "pcap")]
 use feeless::pcap::{PcapDump, Subject};
 
 use ansi_term::Color;

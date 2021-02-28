@@ -185,7 +185,7 @@ impl Channel {
             let private = seed.derive(0);
             let public = private.to_public();
             let signature = private.sign(query.cookie().as_bytes())?;
-            debug_assert!(public.verify(query.cookie().as_bytes(), &signature));
+            public.verify(query.cookie().as_bytes(), &signature).context("Recv node id handshake")?;
 
             // Respond at the end because we mess with the header buffer.
             should_respond = ShouldRespond::Yes(public, signature);
@@ -214,9 +214,7 @@ impl Channel {
             }
             let cookie = cookie.as_ref().unwrap();
 
-            if !public.verify(&cookie.as_bytes(), &signature) {
-                return Err(anyhow!("Invalid signature in node_id_handshake response"));
-            }
+             public.verify(&cookie.as_bytes(), &signature).context("Invalid signature in node_id_handshake response")?;
         }
 
         if let ShouldRespond::Yes(public, signature) = should_respond {

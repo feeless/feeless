@@ -331,7 +331,6 @@ mod tests {
 
     #[test]
     fn bad_length() {
-        let _state: DynState = Box::new(MemoryState::new(Network::Live));
         let err = "Header is the wrong length";
         let s = vec![];
         assert_contains_err(Header::deserialize(None, &s), err);
@@ -341,23 +340,20 @@ mod tests {
 
     #[test]
     fn bad_magic() {
-        let _state: DynState = Box::new(MemoryState::new(Network::Live));
         let s = vec![0xFF, 0x43, 18, 18, 18, 2, 3, 0];
         assert_contains_err(Header::deserialize(None, &s), "magic number");
     }
 
     #[test]
     fn bad_network() {
-        let state: DynState = Box::new(MemoryState::new(Network::Test));
         let s = vec![0x52, 0x43, 18, 18, 18, 2, 3, 0];
         let header = Header::deserialize(None, &s).unwrap();
-        let result = header.validate(&state);
+        let result = header.validate(&Network::Test);
         assert_contains_err(result, "network mismatch");
     }
 
     #[test]
     fn bad_message_type() {
-        let _state: DynState = Box::new(MemoryState::new(Network::Live));
         let s = vec![0x52, 0x43, 18, 18, 18, 100, 3, 0];
         assert_contains_err(Header::deserialize(None, &s), "message type");
     }

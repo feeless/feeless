@@ -54,6 +54,6 @@ mod tests {
         let private = Seed::random().derive(0);
         let public = private.to_public();
         let signature = private.sign(&message).unwrap();
-        assert!(public.verify(&message, &signature));
+        assert!(public.verify(&message, &signature).is_ok());
     }
 }
