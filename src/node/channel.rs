@@ -1,5 +1,5 @@
-use crate::network::header::{Extensions, Header, MessageType};
 use crate::node::cookie::Cookie;
+use crate::node::header::{Extensions, Header, MessageType};
 use crate::node::messages::confirm_ack::ConfirmAck;
 use crate::node::messages::confirm_req::ConfirmReq;
 use crate::node::messages::handshake::{Handshake, HandshakeQuery, HandshakeResponse};
@@ -7,9 +7,9 @@ use crate::node::messages::keepalive::Keepalive;
 use crate::node::messages::publish::Publish;
 use crate::node::messages::telemetry_ack::TelemetryAck;
 
-use crate::network::wire::Wire;
 use crate::node::controller::Controller;
 use crate::node::state::{ArcState, DynState};
+use crate::node::wire::Wire;
 use crate::{expect_len, to_hex, Public, Seed, Signature};
 use anyhow::{anyhow, Context};
 use std::fmt::Debug;

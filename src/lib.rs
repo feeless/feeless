@@ -1,6 +1,7 @@
 #![forbid(unsafe_code)]
 
 use anyhow::anyhow;
+
 pub use blocks::link::Link;
 pub use blocks::Block;
 pub use blocks::BlockHash;
@@ -24,7 +25,7 @@ pub mod blocks;
 mod bytes;
 pub mod encoding;
 mod keys;
-mod network;
+pub mod network;
 mod pow;
 mod pretty;
 mod raw;

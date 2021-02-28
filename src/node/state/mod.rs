@@ -1,4 +1,4 @@
-use crate::network::network::Network;
+use crate::network::Network;
 use crate::node::cookie::Cookie;
 use crate::{Block, BlockHash, Public};
 use async_trait::async_trait;

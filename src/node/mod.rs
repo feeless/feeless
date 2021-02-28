@@ -6,17 +6,19 @@ use tracing::info;
 
 use state::SledDiskState;
 
-use crate::network::network::Network;
+use crate::network::Network;
 use crate::node::channel::Channel;
 use crate::node::state::{DynState, MemoryState};
 
 mod channel;
 pub mod controller;
 pub mod cookie;
+pub mod header;
 pub mod messages;
 pub mod peer;
 pub mod state;
 pub mod timestamp;
+pub mod wire;
 
 pub async fn node_with_single_peer(address: &str) -> anyhow::Result<()> {
     // let state = SledDiskState::new(Network::Live);

@@ -1,8 +1,12 @@
+#[cfg(feature = "node")]
+use crate::node::header::Header;
+
+#[cfg(feature = "node")]
+use crate::node::wire::Wire;
+
 use crate::blocks::BlockType;
 use crate::bytes::Bytes;
 use crate::keys::public::{from_address, to_address};
-use crate::network::header::Header;
-use crate::network::wire::Wire;
 use crate::raw::{deserialize_from_hex, serialize_to_hex};
 use crate::{to_hex, BlockHash, Public, Raw, Signature, Work};
 use anyhow::Context;
@@ -41,6 +45,7 @@ impl SendBlock {
     }
 }
 
+#[cfg(feature = "node")]
 impl Wire for SendBlock {
     fn serialize(&self) -> Vec<u8> {
         unimplemented!()

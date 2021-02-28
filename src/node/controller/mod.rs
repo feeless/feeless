@@ -1,7 +1,7 @@
 mod blocks;
 mod genesis;
 
-use crate::network::network::Network;
+use crate::network::Network;
 use crate::node::state::{ArcState, DynState};
 use crate::{Block, Public, Raw};
 use anyhow::{anyhow, Context};

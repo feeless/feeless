@@ -1,6 +1,10 @@
+#[cfg(feature = "node")]
+use crate::node::wire::Wire;
+
+#[cfg(feature = "node")]
+use crate::node::header::Header;
+
 use crate::encoding::{deserialize_hex, FromHex};
-use crate::network::header::Header;
-use crate::network::wire::Wire;
 use crate::{encoding, len_err_msg, to_hex, Address, Signature};
 use anyhow::{anyhow, Context};
 use bitvec::prelude::*;
@@ -124,6 +128,7 @@ impl<'de> Deserialize<'de> for Public {
     }
 }
 
+#[cfg(feature = "node")]
 impl Wire for Public {
     fn serialize(&self) -> Vec<u8> {
         unimplemented!()

@@ -1,8 +1,12 @@
+#[cfg(feature = "node")]
+use crate::node::wire::Wire;
+
+#[cfg(feature = "node")]
+use crate::node::header::Header;
+
 use crate::encoding::blake2b;
 use crate::keys::public::to_address;
-use crate::network::header::Header;
-use crate::network::network::Network;
-use crate::network::wire::Wire;
+use crate::network::Network;
 use crate::{Private, Public, Raw, Signature, Work};
 use anyhow::{anyhow, Context};
 pub use block_hash::BlockHash;
@@ -79,6 +83,7 @@ pub enum BlockHolder {
     State(StateBlock),
 }
 
+#[cfg(feature = "node")]
 impl Wire for BlockHolder {
     fn serialize(&self) -> Vec<u8> {
         unimplemented!()
@@ -392,7 +397,7 @@ pub fn hash_block(parts: &[&[u8]]) -> anyhow::Result<BlockHash> {
 
 #[cfg(test)]
 mod tests {
-    use crate::network::network::Network;
+    use crate::network::Network;
 
     #[test]
     fn json() {

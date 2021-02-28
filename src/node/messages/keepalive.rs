@@ -1,7 +1,7 @@
 use crate::bytes::Bytes;
-use crate::network::header::Header;
-use crate::network::wire::Wire;
+use crate::node::header::Header;
 use crate::node::peer::Peer;
+use crate::node::wire::Wire;
 
 #[derive(Debug)]
 pub struct Keepalive(Vec<Peer>);

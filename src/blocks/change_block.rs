@@ -1,3 +1,9 @@
+#[cfg(feature = "node")]
+use crate::node::header::Header;
+
+#[cfg(feature = "node")]
+use crate::node::wire::Wire;
+
 use crate::{BlockHash, Public};
 use serde::{Deserialize, Serialize};
 

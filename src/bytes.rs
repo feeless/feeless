@@ -1,5 +1,3 @@
-use crate::network::header::Header;
-use crate::network::wire::Wire;
 use anyhow::anyhow;
 use std::convert::TryFrom;
 use std::fmt::Debug;
@@ -65,15 +63,4 @@ impl<'a> Bytes<'a> {
             Ok(())
         }
     }
-
-    // pub fn wire<T>(&mut self, header: Option<&Header>) -> anyhow::Result<T>
-    // where
-    //     T: Wire + TryFrom<&'a [u8]> + ToOwned + ToOwned<Owned = T>,
-    //     <T as TryFrom<&'a [u8]>>::Error: Debug,
-    // {
-    //     let len = T::len(header)?;
-    //     let slice = self.slice(len)?.to_owned();
-    //     let t = T::try_from(&slice).unwrap(); // .map_err(|e| anyhow!("Try from slice: {:?} {:?}", e, &self))?;
-    //     Ok(t.clone())
-    // }
 }

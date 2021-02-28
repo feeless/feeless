@@ -1,9 +1,9 @@
 use crate::blocks::{Block, BlockType};
 use crate::bytes::Bytes;
 use crate::encoding::blake2b;
-use crate::network::header::Header;
-use crate::network::wire::Wire;
+use crate::node::header::Header;
 use crate::node::timestamp::Timestamp;
+use crate::node::wire::Wire;
 use crate::{BlockHash, Public, Signature};
 use anyhow::Context;
 use std::convert::TryFrom;

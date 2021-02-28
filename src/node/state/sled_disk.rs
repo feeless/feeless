@@ -1,6 +1,6 @@
 use std::net::SocketAddr;
 
-use crate::network::network::Network;
+use crate::network::Network;
 use crate::node::cookie::Cookie;
 use crate::node::state::State;
 use crate::{Block, BlockHash, Public};

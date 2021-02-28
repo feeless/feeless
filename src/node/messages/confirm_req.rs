@@ -5,8 +5,8 @@ use tracing::info;
 
 use crate::blocks::{Block, BlockHolder, BlockType};
 use crate::bytes::Bytes;
-use crate::network::header::Header;
-use crate::network::wire::Wire;
+use crate::node::header::Header;
+use crate::node::wire::Wire;
 use crate::{expect_len, BlockHash};
 
 /// Requests confirmation of the given block or list of root/hash pairs.

@@ -1,7 +1,11 @@
+#[cfg(feature = "node")]
+use crate::node::header::Header;
+
+#[cfg(feature = "node")]
+use crate::node::wire::Wire;
+
 use crate::blocks::BlockType;
 use crate::bytes::Bytes;
-use crate::network::header::Header;
-use crate::network::wire::Wire;
 use crate::{Block, BlockHash, Link, Public, Raw, Signature, Work};
 use anyhow::anyhow;
 use serde::{Deserialize, Serialize};
@@ -40,6 +44,7 @@ impl StateBlock {
     }
 }
 
+#[cfg(feature = "node")]
 impl Wire for StateBlock {
     fn serialize(&self) -> Vec<u8> {
         unimplemented!()
