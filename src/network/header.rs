@@ -6,9 +6,8 @@ use bitvec::prelude::*;
 
 use crate::blocks::BlockType;
 use crate::expect_len;
-use crate::node::network::Network;
-use crate::node::state::DynState;
-use crate::node::wire::Wire;
+use crate::network::network::Network;
+use crate::network::wire::Wire;
 
 // TODO: Have header internally only contain [u8; 8] and use accessors, so that the header doesn't
 //       have to be encoded/decoded when sending/receiving.

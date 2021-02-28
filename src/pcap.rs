@@ -1,8 +1,9 @@
 use crate::bytes::Bytes;
-use crate::node::header::{Header, MessageType};
+use crate::network::header::{Header, MessageType};
 use crate::node::messages::confirm_ack::ConfirmAck;
 use crate::node::messages::confirm_req::ConfirmReq;
 
+use crate::network::wire::Wire;
 use crate::node::messages::frontier_req::FrontierReq;
 use crate::node::messages::frontier_resp::FrontierResp;
 use crate::node::messages::handshake::Handshake;
@@ -10,7 +11,6 @@ use crate::node::messages::keepalive::Keepalive;
 use crate::node::messages::publish::Publish;
 use crate::node::messages::telemetry_ack::TelemetryAck;
 use crate::node::messages::telemetry_req::TelemetryReq;
-use crate::node::wire::Wire;
 use crate::{to_hex, DEFAULT_PORT};
 use ansi_term;
 use ansi_term::Color;
@@ -24,8 +24,8 @@ use std::fs::File;
 use std::io::Read;
 use std::net::Ipv4Addr;
 
+use crate::network::network::Network;
 use crate::node::controller::Controller;
-use crate::node::network::Network;
 use crate::node::state::MemoryState;
 use std::sync::Arc;
 use tokio::sync::Mutex;

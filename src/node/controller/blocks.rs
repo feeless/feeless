@@ -115,7 +115,7 @@ impl Controller {
                         "Can not increase balance in a send block. Prev: {:?}",
                         prev_block
                     ))
-                        .with_context(context);
+                    .with_context(context);
                 }
 
                 let _to_account = block.destination().with_context(context)?;

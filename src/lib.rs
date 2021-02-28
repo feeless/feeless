@@ -1,7 +1,6 @@
 #![forbid(unsafe_code)]
 
 use anyhow::anyhow;
-
 pub use blocks::link::Link;
 pub use blocks::Block;
 pub use blocks::BlockHash;
@@ -15,14 +14,17 @@ pub use keys::signature::Signature;
 pub use pow::work::Work;
 pub use raw::Raw;
 
-mod blocks;
+#[cfg(feature = "node")]
+pub mod node;
+
+#[cfg(feature = "pcap")]
+pub mod pcap;
+
+pub mod blocks;
 mod bytes;
 pub mod encoding;
 mod keys;
-#[cfg(feature = "node")]
-pub mod node;
-#[cfg(feature = "pcap")]
-pub mod pcap;
+mod network;
 mod pow;
 mod pretty;
 mod raw;

@@ -1,6 +1,6 @@
 use crate::encoding::{deserialize_hex, FromHex};
-use crate::node::header::Header;
-use crate::node::wire::Wire;
+use crate::network::header::Header;
+use crate::network::wire::Wire;
 use crate::{encoding, len_err_msg, to_hex, Address, Signature};
 use anyhow::{anyhow, Context};
 use bitvec::prelude::*;
@@ -46,7 +46,9 @@ impl Public {
             .with_context(|| format!("Verify {:?} with {:?}", message, signature));
 
         match result {
-            Ok(key) => key.verify(message, &signature.internal()).context("Public verification failed"),
+            Ok(key) => key
+                .verify(message, &signature.internal())
+                .context("Public verification failed"),
             // We're returning false here because someone we can be given a bad public key,
             // but since we're not checking the key for how valid it is, only the signature,
             // we just say that it does not pass validation.
@@ -106,8 +108,8 @@ impl std::fmt::Display for Public {
 
 impl Serialize for Public {
     fn serialize<S>(&self, serializer: S) -> Result<<S as Serializer>::Ok, <S as Serializer>::Error>
-        where
-            S: Serializer,
+    where
+        S: Serializer,
     {
         serializer.serialize_str(to_hex(&self.0).as_str())
     }
@@ -115,8 +117,8 @@ impl Serialize for Public {
 
 impl<'de> Deserialize<'de> for Public {
     fn deserialize<D>(deserializer: D) -> Result<Self, <D as Deserializer<'de>>::Error>
-        where
-            D: Deserializer<'de>,
+    where
+        D: Deserializer<'de>,
     {
         deserialize_hex(deserializer)
     }
@@ -128,15 +130,15 @@ impl Wire for Public {
     }
 
     fn deserialize(header: Option<&Header>, data: &[u8]) -> anyhow::Result<Self>
-        where
-            Self: Sized,
+    where
+        Self: Sized,
     {
         unimplemented!()
     }
 
     fn len(header: Option<&Header>) -> anyhow::Result<usize>
-        where
-            Self: Sized,
+    where
+        Self: Sized,
     {
         Ok(Self::LEN)
     }
@@ -146,15 +148,15 @@ impl Wire for Public {
 ///
 /// Use with #[serde(serialize_with = "to_address")] on the field that needs it.
 pub fn to_address<S>(public: &Public, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: Serializer,
+where
+    S: Serializer,
 {
     serializer.serialize_str(public.to_address().to_string().as_str())
 }
 
 pub fn from_address<'de, D>(deserializer: D) -> Result<Public, <D as Deserializer<'de>>::Error>
-    where
-        D: Deserializer<'de>,
+where
+    D: Deserializer<'de>,
 {
     let s: &str = Deserialize::deserialize(deserializer)?;
     Ok(Address::from_str(s).map_err(D::Error::custom)?.to_public())

@@ -1,5 +1,5 @@
-use crate::node::header::Header;
-use crate::node::wire::Wire;
+use crate::network::header::Header;
+use crate::network::wire::Wire;
 use crate::{expect_len, hex_formatter};
 use rand::RngCore;
 use std::convert::TryFrom;

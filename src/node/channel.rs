@@ -1,5 +1,5 @@
+use crate::network::header::{Extensions, Header, MessageType};
 use crate::node::cookie::Cookie;
-use crate::node::header::{Extensions, Header, MessageType};
 use crate::node::messages::confirm_ack::ConfirmAck;
 use crate::node::messages::confirm_req::ConfirmReq;
 use crate::node::messages::handshake::{Handshake, HandshakeQuery, HandshakeResponse};
@@ -7,9 +7,9 @@ use crate::node::messages::keepalive::Keepalive;
 use crate::node::messages::publish::Publish;
 use crate::node::messages::telemetry_ack::TelemetryAck;
 
+use crate::network::wire::Wire;
 use crate::node::controller::Controller;
 use crate::node::state::{ArcState, DynState};
-use crate::node::wire::Wire;
 use crate::{expect_len, to_hex, Public, Seed, Signature};
 use anyhow::{anyhow, Context};
 use std::fmt::Debug;
@@ -185,7 +185,9 @@ impl Channel {
             let private = seed.derive(0);
             let public = private.to_public();
             let signature = private.sign(query.cookie().as_bytes())?;
-            public.verify(query.cookie().as_bytes(), &signature).context("Recv node id handshake")?;
+            public
+                .verify(query.cookie().as_bytes(), &signature)
+                .context("Recv node id handshake")?;
 
             // Respond at the end because we mess with the header buffer.
             should_respond = ShouldRespond::Yes(public, signature);
@@ -214,7 +216,9 @@ impl Channel {
             }
             let cookie = cookie.as_ref().unwrap();
 
-             public.verify(&cookie.as_bytes(), &signature).context("Invalid signature in node_id_handshake response")?;
+            public
+                .verify(&cookie.as_bytes(), &signature)
+                .context("Invalid signature in node_id_handshake response")?;
         }
 
         if let ShouldRespond::Yes(public, signature) = should_respond {

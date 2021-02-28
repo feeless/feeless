@@ -1,4 +1,9 @@
+use crate::encoding::blake2b;
 use crate::keys::public::to_address;
+use crate::network::header::Header;
+use crate::network::network::Network;
+use crate::network::wire::Wire;
+use crate::{Private, Public, Raw, Signature, Work};
 use anyhow::{anyhow, Context};
 pub use block_hash::BlockHash;
 pub use change_block::ChangeBlock;
@@ -11,14 +16,6 @@ use serde;
 use serde::{Deserialize, Serialize};
 pub use state_block::StateBlock;
 use std::hash::Hash;
-
-#[cfg(feature = "node")]
-use crate::encoding::blake2b;
-use crate::node::header::Header;
-#[cfg(feature = "node")]
-use crate::node::network::Network;
-use crate::node::wire::Wire;
-use crate::{Private, Public, Raw, Signature, Work};
 
 mod block_hash;
 mod change_block;
@@ -325,7 +322,9 @@ impl Block {
     pub fn verify_signature(&self, account: &Public) -> anyhow::Result<()> {
         let hash = self.hash()?;
         let signature = self.signature().ok_or(anyhow!("Signature missing"))?;
-        Ok(account.verify(hash.as_bytes(), signature).context("Verify block")?)
+        Ok(account
+            .verify(hash.as_bytes(), signature)
+            .context("Verify block")?)
     }
 
     pub fn sign(&mut self, private: Private) -> anyhow::Result<()> {
@@ -393,7 +392,7 @@ pub fn hash_block(parts: &[&[u8]]) -> anyhow::Result<BlockHash> {
 
 #[cfg(test)]
 mod tests {
-    use crate::node::network::Network;
+    use crate::network::network::Network;
 
     #[test]
     fn json() {

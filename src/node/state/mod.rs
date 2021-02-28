@@ -1,5 +1,5 @@
+use crate::network::network::Network;
 use crate::node::cookie::Cookie;
-use crate::node::network::Network;
 use crate::{Block, BlockHash, Public};
 use async_trait::async_trait;
 pub use memory::MemoryState;

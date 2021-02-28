@@ -1,6 +1,6 @@
 use std::fmt::Debug;
 
-use crate::node::header::Header;
+use crate::network::header::Header;
 
 pub trait Wire: Debug {
     fn serialize(&self) -> Vec<u8>;

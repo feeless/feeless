@@ -1,22 +1,22 @@
-use crate::node::channel::Channel;
-use crate::node::state::{DynState, MemoryState};
-use network::Network;
-use state::SledDiskState;
 use std::sync::Arc;
+
 use tokio::net::TcpStream;
 use tokio::sync::Mutex;
 use tracing::info;
 
+use state::SledDiskState;
+
+use crate::network::network::Network;
+use crate::node::channel::Channel;
+use crate::node::state::{DynState, MemoryState};
+
 mod channel;
 pub mod controller;
 pub mod cookie;
-pub mod header;
 pub mod messages;
-pub mod network;
 pub mod peer;
 pub mod state;
 pub mod timestamp;
-pub mod wire;
 
 pub async fn node_with_single_peer(address: &str) -> anyhow::Result<()> {
     // let state = SledDiskState::new(Network::Live);

@@ -1,7 +1,7 @@
 use crate::blocks::BlockType;
 use crate::bytes::Bytes;
-use crate::node::header::Header;
-use crate::node::wire::Wire;
+use crate::network::header::Header;
+use crate::network::wire::Wire;
 use crate::{Block, BlockHash, Link, Public, Raw, Signature, Work};
 use anyhow::anyhow;
 use serde::{Deserialize, Serialize};
