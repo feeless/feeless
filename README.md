@@ -152,6 +152,7 @@ A medium term task list:
       - [x] Send cookie
       - [ ] Cookie/peer store and logic
       - [x] Validate response
+      - [x] Validate signature
     - [ ] Confirm Req
       - [ ] Serialize
       - [x] Deserialize
@@ -163,6 +164,7 @@ A medium term task list:
       - [ ] Deserialize
         - [x] Vote by hash
         - [ ] Block
+      - [x] Validate signature
     - [ ] Keepalive
       - [ ] Serialize
       - [x] Deserialize
@@ -184,6 +186,7 @@ A medium term task list:
         - [x] Most fields
         - [ ] Timestamp
         - [ ] Active difficulty
+      - [ ] Validate signature
     - [ ] Frontier Req
       - [ ] Serialize
       - [x] Deserialize
