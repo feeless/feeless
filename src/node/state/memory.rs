@@ -34,10 +34,6 @@ impl MemoryState {
 
 #[async_trait]
 impl State for MemoryState {
-    fn network(&self) -> Network {
-        self.network
-    }
-
     async fn add_block(&mut self, account: &Public, full_block: &Block) -> anyhow::Result<()> {
         self.blocks.insert(
             full_block.hash().context("Add block")?.to_owned(),

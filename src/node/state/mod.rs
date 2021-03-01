@@ -18,8 +18,6 @@ pub type ArcState = Arc<Mutex<DynState>>;
 /// State contains a state of the Nano block lattice 🥬.
 #[async_trait]
 pub trait State: Debug + Sync + Send + 'static {
-    fn network(&self) -> Network;
-
     async fn add_block(&mut self, account: &Public, full_block: &Block) -> anyhow::Result<()>;
 
     async fn get_block_by_hash(&self, hash: &BlockHash) -> anyhow::Result<Option<Block>>;

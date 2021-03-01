@@ -2,12 +2,19 @@ mod blocks;
 mod genesis;
 
 use crate::network::Network;
+use crate::node::cookie::Cookie;
+use crate::node::header::{Extensions, Header, MessageType};
+use crate::node::messages::handshake::HandshakeQuery;
 use crate::node::state::{ArcState, DynState};
-use crate::{Block, Public, Raw};
+use crate::node::wire::Wire;
+use crate::{to_hex, Block, Public, Raw};
 use anyhow::{anyhow, Context};
+use std::fmt::Debug;
+use std::net::{IpAddr, SocketAddr};
 use tokio::io::AsyncRead;
 use tokio::sync::mpsc;
 use tokio::sync::mpsc::{Receiver, Sender};
+use tracing::{debug, instrument, trace, warn};
 
 /// The controller handles the logic with handling and emitting messages, as well as time based
 /// actions, peer management, etc.
@@ -15,30 +22,102 @@ pub struct Controller {
     network: Network,
     state: ArcState,
 
-    /// Incoming data from the connected peer.
-    incoming: Receiver<Vec<u8>>,
+    peer_addr: SocketAddr,
 
     /// Internal buffer for incoming data.
     incoming_buffer: Vec<u8>,
 
+    /// Incoming data from the connected peer.
+    incoming: Receiver<Vec<u8>>,
+
     /// Data to be sent to the other peer.
     outgoing: Sender<Vec<u8>>,
+
+    /// A reusable header to reduce allocations.
+    pub header: Header,
 }
 
 impl Controller {
-    pub fn new(
+    pub fn new_with_channels(
         network: Network,
         state: ArcState,
-        incoming: Receiver<Vec<u8>>,
-        outgoing: Sender<Vec<u8>>,
-    ) -> Self {
-        Self {
+        peer_addr: SocketAddr,
+    ) -> (Self, Sender<Vec<u8>>, Receiver<Vec<u8>>) {
+        // Packets coming in from a remote host.
+        let (incoming_tx, incoming_rx) = mpsc::channel::<Vec<u8>>(100);
+        // Packets to be sent out to a remote host.
+        let (outgoing_tx, mut outgoing_rx) = mpsc::channel::<Vec<u8>>(100);
+
+        let s = Self {
             network,
             state,
-            incoming,
+            peer_addr,
             incoming_buffer: Vec::with_capacity(1024),
-            outgoing,
+            incoming: incoming_rx,
+            outgoing: outgoing_tx,
+            header: Header::new(network, MessageType::Handshake, Extensions::new()),
+        };
+
+        (s, incoming_tx, outgoing_rx)
+    }
+
+    /// Run will loop forever and is expected to be spawned and will quit when the incoming channel
+    /// is closed.
+    pub async fn run(mut self) {
+        trace!("Initial handshake");
+        self.send_node_id_handshake()
+            .await
+            .expect("Could not send handshake");
+        //         // trace!("Initial telemetry request");
+        //         // self.send_telemetry_req().await?;
+
+        loop {
+            let data = match self.incoming.recv().await {
+                Some(data) => data,
+                None => return,
+            };
+
+            if !data.is_empty() {
+                dbg!(data);
+            }
         }
+    }
+    #[instrument(level = "debug", skip(self, message))]
+    async fn send<T: Wire + Debug>(&mut self, message: &T) -> anyhow::Result<()> {
+        let data = message.serialize();
+        trace!("HEX {}", to_hex(&data));
+        debug!("OBJ {:?}", &message);
+        self.outgoing.send(Vec::from(data)).await?;
+        Ok(())
+    }
+
+    async fn send_header(
+        &mut self,
+        message_type: MessageType,
+        ext: Extensions,
+    ) -> anyhow::Result<()> {
+        let mut header = self.header;
+        header.reset(message_type, ext);
+        Ok(self.send(&header).await?)
+    }
+
+    #[instrument(skip(self))]
+    async fn send_node_id_handshake(&mut self) -> anyhow::Result<()> {
+        trace!("Sending handshake");
+        self.send_header(MessageType::Handshake, *Extensions::new().query())
+            .await?;
+
+        // TODO: Track our own cookie?
+        let cookie = Cookie::random();
+        self.state
+            .lock()
+            .await
+            .set_cookie(self.peer_addr, cookie.clone())
+            .await?;
+        let handshake_query = HandshakeQuery::new(cookie);
+        self.send(&handshake_query).await?;
+
+        Ok(())
     }
 
     /// Set up the genesis block if it hasn't already.

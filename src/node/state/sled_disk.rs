@@ -34,10 +34,6 @@ impl SledDiskState {
 
 #[async_trait]
 impl State for SledDiskState {
-    fn network(&self) -> Network {
-        self.network
-    }
-
     async fn add_block(&mut self, _account: &Public, _full_block: &Block) -> anyhow::Result<()> {
         unimplemented!()
     }
