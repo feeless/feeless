@@ -5,17 +5,40 @@ use crate::network::Network;
 use crate::node::state::{ArcState, DynState};
 use crate::{Block, Public, Raw};
 use anyhow::{anyhow, Context};
+use tokio::io::AsyncRead;
+use tokio::sync::mpsc;
+use tokio::sync::mpsc::{Receiver, Sender};
 
 /// The controller handles the logic with handling and emitting messages, as well as time based
 /// actions, peer management, etc.
 pub struct Controller {
     network: Network,
     state: ArcState,
+
+    /// Incoming data from the connected peer.
+    incoming: Receiver<Vec<u8>>,
+
+    /// Internal buffer for incoming data.
+    incoming_buffer: Vec<u8>,
+
+    /// Data to be sent to the other peer.
+    outgoing: Sender<Vec<u8>>,
 }
 
 impl Controller {
-    pub fn new(network: Network, state: ArcState) -> Self {
-        Self { network, state }
+    pub fn new(
+        network: Network,
+        state: ArcState,
+        incoming: Receiver<Vec<u8>>,
+        outgoing: Sender<Vec<u8>>,
+    ) -> Self {
+        Self {
+            network,
+            state,
+            incoming,
+            incoming_buffer: Vec::with_capacity(1024),
+            outgoing,
+        }
     }
 
     /// Set up the genesis block if it hasn't already.

@@ -16,6 +16,8 @@ use std::fmt::Debug;
 use std::net::SocketAddr;
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use tokio::net::TcpStream;
+use tokio::sync::mpsc;
+use tokio::sync::mpsc::Sender;
 use tracing::{debug, instrument, trace, warn};
 
 /// A connection to a single peer.
@@ -44,9 +46,16 @@ pub struct Channel {
 impl Channel {
     pub async fn new(state: ArcState, stream: TcpStream) -> Self {
         let network = state.lock().await.network();
-        // TODO: Remove unwrap
+
+        // TODO: Remove unwrap?
         let peer_addr = stream.peer_addr().unwrap();
-        let controller = Controller::new(network, state.clone());
+
+        // Packets coming in from a remote host.
+        let (in_tx, in_rx) = mpsc::channel::<Vec<u8>>(100);
+        // Packets to be sent out to a remote host.
+        let (out_tx, out_rx) = mpsc::channel::<Vec<u8>>(100);
+
+        let controller = Controller::new(network, state.clone(), in_rx, out_tx);
         Self {
             state,
             controller,
