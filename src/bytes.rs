@@ -2,6 +2,7 @@ use anyhow::anyhow;
 use std::convert::TryFrom;
 use std::fmt::Debug;
 
+/// A wrapper around a u8 slice which incrementally slices the data.
 #[derive(Debug)]
 pub struct Bytes<'a> {
     bytes: &'a [u8],

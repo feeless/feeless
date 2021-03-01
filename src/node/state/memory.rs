@@ -84,7 +84,7 @@ impl State for MemoryState {
         //     .map(|v| format!("{} {}", v.0, v.1.len()))
         //     .collect::<Vec<_>>());
 
-        dbg!(&self.votes);
+        // dbg!(&self.votes);
 
         // println!("XXXXXX {:?} {:?}", hash, representative);
 
