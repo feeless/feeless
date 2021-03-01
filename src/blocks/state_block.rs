@@ -6,7 +6,7 @@ use crate::node::wire::Wire;
 
 use crate::blocks::BlockType;
 use crate::bytes::Bytes;
-use crate::{Block, BlockHash, Link, Public, Raw, Signature, Work};
+use crate::{expect_len, Block, BlockHash, Public, Raw, Signature, Work};
 use anyhow::anyhow;
 use serde::{Deserialize, Serialize};
 use std::convert::TryFrom;
@@ -85,7 +85,7 @@ impl Wire for StateBlock {
 
 #[cfg(test)]
 mod tests {
-    use crate::blocks::link::Link;
+    use crate::blocks::state_block::Link;
     use crate::encoding::FromHex;
     use crate::{Address, Signature, Work};
 
@@ -125,5 +125,45 @@ mod tests {
             )
             .unwrap()
         )
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "snake_case")]
+pub enum Link {
+    /// For the change block type.
+    Nothing,
+
+    /// When we've received and decoded a block, but don't know what kind of block this is yet.
+    Unsure([u8; Link::LEN]),
+
+    /// Reference the previous block, for receiving.
+    Source(BlockHash),
+
+    /// Send to a destination account.
+    DestinationAccount(Public),
+}
+
+impl Link {
+    pub const LEN: usize = 32;
+
+    pub fn nothing() -> Self {
+        Self::Nothing
+    }
+
+    pub fn unsure_from_hex(s: &str) -> anyhow::Result<Self> {
+        expect_len(s.len(), Self::LEN * 2, "Link")?;
+        let mut slice = [0u8; Self::LEN];
+        hex::decode_to_slice(s, &mut slice)?;
+        Ok(Link::Unsure(slice))
+    }
+
+    pub fn as_bytes(&self) -> &[u8] {
+        match self {
+            Link::Nothing => &[0u8; Self::LEN],
+            Link::Source(hash) => hash.as_bytes(),
+            Link::DestinationAccount(key) => key.as_bytes(),
+            Link::Unsure(b) => b.as_ref(),
+        }
     }
 }

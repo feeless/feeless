@@ -2,7 +2,6 @@
 
 use anyhow::anyhow;
 
-pub use blocks::link::Link;
 pub use blocks::Block;
 pub use blocks::BlockHash;
 pub use encoding::{hex_formatter, to_hex};
