@@ -5,6 +5,7 @@ mod messages;
 use crate::network::Network;
 use crate::node::cookie::Cookie;
 use crate::node::header::{Extensions, Header, MessageType};
+use crate::node::messages::frontier_resp::FrontierResp;
 use crate::node::messages::handshake::HandshakeQuery;
 use crate::node::messages::keepalive::Keepalive;
 use crate::node::state::{ArcState, DynState};
@@ -17,28 +18,62 @@ use std::net::{IpAddr, SocketAddr};
 use tokio::io::AsyncRead;
 use tokio::sync::mpsc;
 use tokio::sync::mpsc::{Receiver, Sender};
-use tracing::{debug, instrument, trace, warn};
+use tracing::{debug, instrument, span, trace, warn, Level};
 use tracing_subscriber::fmt::layer;
+
+/// A message sent between channels that contains a peer's network data.
+#[derive(Debug)]
+pub struct Packet {
+    /// Used by pcap to annotate direction and packet number, etc.
+    pub annotation: Option<String>,
+
+    /// The data sent to/from a peer.
+    pub data: Vec<u8>,
+}
+
+impl Packet {
+    pub fn new(data: Vec<u8>) -> Self {
+        Self {
+            data,
+            annotation: None,
+        }
+    }
+
+    pub fn new_with_annotation(data: Vec<u8>, annotation: String) -> Self {
+        Self {
+            data,
+            annotation: Some(annotation),
+        }
+    }
+}
 
 /// The controller handles the logic with handling and emitting messages, as well as time based
 /// actions, peer management, etc.
 pub struct Controller {
+    /// Disable when used for pcap dump, where might have our own different cookie.
+    pub validate_handshakes: bool,
+
     network: Network,
     state: ArcState,
 
     peer_addr: SocketAddr,
 
+    /// Are we doing a frontier req stream? (Bootstrap?)
+    frontier_stream: bool,
+
     /// Internal buffer for incoming data.
     incoming_buffer: Vec<u8>,
 
     /// Incoming data from the connected peer.
-    incoming: Receiver<Vec<u8>>,
+    incoming: Receiver<Packet>,
 
     /// Data to be sent to the other peer.
-    outgoing: Sender<Vec<u8>>,
+    outgoing: Sender<Packet>,
 
     /// A reusable header to reduce allocations.
-    pub header: Header,
+    pub(crate) header: Header,
+
+    last_annotation: Option<String>,
 }
 
 impl Controller {
@@ -46,20 +81,23 @@ impl Controller {
         network: Network,
         state: ArcState,
         peer_addr: SocketAddr,
-    ) -> (Self, Sender<Vec<u8>>, Receiver<Vec<u8>>) {
+    ) -> (Self, Sender<Packet>, Receiver<Packet>) {
         // Packets coming in from a remote host.
-        let (incoming_tx, incoming_rx) = mpsc::channel::<Vec<u8>>(100);
+        let (incoming_tx, incoming_rx) = mpsc::channel::<Packet>(100);
         // Packets to be sent out to a remote host.
-        let (outgoing_tx, mut outgoing_rx) = mpsc::channel::<Vec<u8>>(100);
+        let (outgoing_tx, mut outgoing_rx) = mpsc::channel::<Packet>(100);
 
         let s = Self {
+            validate_handshakes: true,
             network,
             state,
             peer_addr,
+            frontier_stream: false,
             incoming_buffer: Vec::with_capacity(10_000),
             incoming: incoming_rx,
             outgoing: outgoing_tx,
             header: Header::new(network, MessageType::Handshake, Extensions::new()),
+            last_annotation: None,
         };
 
         (s, incoming_tx, outgoing_rx)
@@ -71,8 +109,20 @@ impl Controller {
         macro_rules! handle {
             ($self: ident, $fun:ident, $header:expr) => {{
                 let sh = Some(&$header);
-                let payload = self.recv(sh).await?;
-                $self.$fun(&$header, payload).await?;
+                let payload = self
+                    .recv(sh)
+                    .await
+                    .with_context(|| format!("Receiving payload for {:?}", $header))?;
+
+                match &self.last_annotation {
+                    Some(a) => debug!("{} {:?}", a, &payload),
+                    None => debug!("{:?}", &payload),
+                };
+
+                $self
+                    .$fun(&$header, payload)
+                    .await
+                    .with_context(|| format!("Handling payload for {:?}", $header))?;
             };};
         }
 
@@ -82,23 +132,28 @@ impl Controller {
         // self.send_telemetry_req().await?;
 
         loop {
-            let header = self.recv::<Header>(None).await?;
-            header.validate(&self.network)?;
+            if self.frontier_stream {
+                let payload = self.recv::<FrontierResp>(None).await?;
+                self.handle_frontier_resp(payload).await?;
+            } else {
+                let header = self.recv::<Header>(None).await?;
+                header.validate(&self.network)?;
 
-            match header.message_type() {
-                MessageType::Keepalive => handle!(self, handle_keepalive, header),
-                MessageType::Publish => handle!(self, handle_publish, header),
-                MessageType::ConfirmReq => handle!(self, handle_confirm_req, header),
-                MessageType::ConfirmAck => handle!(self, handle_confirm_ack, header),
-                // MessageType::BulkPull => {}
-                // MessageType::BulkPush => {}
-                // MessageType::BulkPullAccount => {}
-                // MessageType::FrontierReq => {}
-                MessageType::Handshake => handle!(self, handle_handshake, header),
-                MessageType::TelemetryReq => handle!(self, handle_telemetry_req, header),
-                MessageType::TelemetryAck => handle!(self, handle_telemetry_ack, header),
-                _ => todo!("{:?}", header),
-            };
+                match header.message_type() {
+                    MessageType::Keepalive => handle!(self, handle_keepalive, header),
+                    MessageType::Publish => handle!(self, handle_publish, header),
+                    MessageType::ConfirmReq => handle!(self, handle_confirm_req, header),
+                    MessageType::ConfirmAck => handle!(self, handle_confirm_ack, header),
+                    // MessageType::BulkPull => {}
+                    // MessageType::BulkPush => {}
+                    // MessageType::BulkPullAccount => {}
+                    MessageType::FrontierReq => handle!(self, handle_frontier_req, header),
+                    MessageType::Handshake => handle!(self, handle_handshake, header),
+                    MessageType::TelemetryReq => handle!(self, handle_telemetry_req, header),
+                    MessageType::TelemetryAck => handle!(self, handle_telemetry_ack, header),
+                    _ => todo!("{:?}", header),
+                };
+            }
         }
     }
 
@@ -108,7 +163,6 @@ impl Controller {
         let buffer = self.recv_buf(expected_len).await?;
         trace!("HEX: {}", to_hex(&buffer));
         let result = T::deserialize(header, &buffer)?;
-        debug!("OBJ: {:?}", &result);
         Ok(result)
     }
 
@@ -120,12 +174,21 @@ impl Controller {
                 return self.recv_immediate(size);
             }
 
-            let data = match self.incoming.recv().await {
+            let packet = match self.incoming.recv().await {
                 Some(data) => data,
-                None => return Err(anyhow!("Disconnected")),
+                None => {
+                    return Err(anyhow!(
+                        "Incoming stream disconnected {:?} {:?}",
+                        self.peer_addr,
+                        self.last_annotation
+                    ))
+                }
             };
 
-            self.incoming_buffer.extend(data);
+            if let Some(annotation) = packet.annotation {
+                self.last_annotation = Some(annotation);
+            }
+            self.incoming_buffer.extend(packet.data);
         }
     }
 
@@ -146,7 +209,7 @@ impl Controller {
         let data = message.serialize();
         trace!("HEX {}", to_hex(&data));
         debug!("OBJ {:?}", &message);
-        self.outgoing.send(Vec::from(data)).await?;
+        self.outgoing.send(Packet::new(Vec::from(data))).await?;
         Ok(())
     }
 
@@ -183,6 +246,10 @@ impl Controller {
 
     pub fn network(&self) -> &Network {
         &self.network
+    }
+
+    pub fn peer_addr(&self) -> &SocketAddr {
+        &self.peer_addr
     }
 }
 

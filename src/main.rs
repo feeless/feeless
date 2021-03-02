@@ -12,6 +12,7 @@ use feeless::encoding::FromHex;
 use feeless::Public;
 use std::net::Ipv4Addr;
 use std::str::FromStr;
+use tracing::error;
 
 #[derive(Clap)]
 struct Opts {
@@ -75,18 +76,6 @@ struct PcapDumpArgs {
     /// Last packet to process.
     #[clap(long)]
     end: Option<usize>,
-
-    /// Show packets over multiple lines.
-    #[clap(short, long)]
-    expanded: bool,
-
-    /// Stop the dump when there's an error. By default, the packet is ignored and the dump
-    /// continues.
-    #[clap(short, long)]
-    abort_on_error: bool,
-
-    #[clap(short, long)]
-    pause_on_error: bool,
 }
 
 #[tokio::main]
@@ -94,9 +83,7 @@ async fn main() {
     tracing_subscriber::fmt::init();
     let result = option(Opts::parse()).await;
     if let Err(err) = result {
-        eprintln!();
-        eprintln!("{}", Color::Red.paint("Exiting because of an error:"));
-        eprintln!("{:?}", err);
+        error!("Exiting because of an error: {:?}", err);
         std::process::exit(1);
     }
 }
@@ -117,7 +104,6 @@ async fn option(opts: Opts) -> anyhow::Result<()> {
                 None => Subject::AutoFirstSource,
             };
             let mut p = PcapDump::new(subject);
-            p.expanded = o.expanded;
             p.start_at = o.start;
             p.end_at = o.end;
             p.filter_addr = o
@@ -125,8 +111,6 @@ async fn option(opts: Opts) -> anyhow::Result<()> {
                 .as_ref()
                 .map(|i| Ipv4Addr::from_str(i).context("Invalid IP address"))
                 .transpose()?;
-            p.abort_on_error = o.abort_on_error;
-            p.pause_on_error = o.pause_on_error;
             p.dump(&o.path).await
         }
         #[cfg(not(feature = "pcap"))]

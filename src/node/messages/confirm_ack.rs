@@ -79,7 +79,6 @@ impl Wire for ConfirmAck {
     where
         Self: Sized,
     {
-        trace!("deserialize confirm ack");
         debug_assert!(header.is_some());
         let header = header.unwrap();
 
@@ -97,9 +96,7 @@ impl Wire for ConfirmAck {
             Confirm::VoteByHash(block_hashes)
         } else {
             // let block = Block;
-            trace!("block");
             dbg!("block!!!!!!!", header.ext().block_type().unwrap());
-            // dbg!("{:X}", data.slice(FullBlock::LEN)?);
             todo!()
         };
 
@@ -111,12 +108,9 @@ impl Wire for ConfirmAck {
         let header = header.unwrap();
 
         if header.ext().block_type()? == BlockType::NotABlock {
-            trace!("not a block");
             Ok(Self::VOTE_COMMON_LEN + header.ext().item_count() * BlockHash::LEN)
         } else {
-            trace!("a block");
-            dbg!(header);
-            todo!("got a block in confirm ack");
+            todo!("got a block in confirm ack {:#?}", header);
             // Ok(Self::VOTE_COMMON_LEN + FullBlock::LEN)
         }
     }

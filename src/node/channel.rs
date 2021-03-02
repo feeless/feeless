@@ -8,7 +8,7 @@ use crate::node::messages::publish::Publish;
 use crate::node::messages::telemetry_ack::TelemetryAck;
 
 use crate::network::Network;
-use crate::node::controller::Controller;
+use crate::node::controller::{Controller, Packet};
 use crate::node::state::{ArcState, DynState};
 use crate::node::wire::Wire;
 use crate::{expect_len, to_hex, Public, Seed, Signature};
@@ -69,7 +69,7 @@ pub async fn network_channel(
                 .await
                 .expect("Could not read from peer");
 
-            tx.send(Vec::from(&buffer[0..bytes]))
+            tx.send(Packet::new(Vec::from(&buffer[0..bytes])))
                 .await
                 .expect("Could not send to controller");
         }
@@ -82,7 +82,7 @@ pub async fn network_channel(
             None => return Ok(()),
         };
 
-        out_stream.write_all(&to_send).await?;
+        out_stream.write_all(&to_send.data).await?;
     }
 }
 

@@ -50,9 +50,12 @@ impl Public {
             .with_context(|| format!("Verify {:?} with {:?}", message, signature));
 
         match result {
-            Ok(key) => key
-                .verify(message, &signature.internal())
-                .context("Public verification failed"),
+            Ok(key) => key.verify(message, &signature.internal()).with_context(|| {
+                format!(
+                    "Public verification failed: sig: {:?} message: {:?} key: {:?}",
+                    signature, message, self
+                )
+            }),
             // We're returning false here because someone we can be given a bad public key,
             // but since we're not checking the key for how valid it is, only the signature,
             // we just say that it does not pass validation.

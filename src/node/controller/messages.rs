@@ -3,6 +3,8 @@ use crate::node::cookie::Cookie;
 use crate::node::header::{Extensions, Header, MessageType};
 use crate::node::messages::confirm_ack::ConfirmAck;
 use crate::node::messages::confirm_req::ConfirmReq;
+use crate::node::messages::frontier_req::FrontierReq;
+use crate::node::messages::frontier_resp::FrontierResp;
 use crate::node::messages::handshake::{Handshake, HandshakeQuery, HandshakeResponse};
 use crate::node::messages::keepalive::Keepalive;
 use crate::node::messages::publish::Publish;
@@ -55,7 +57,7 @@ impl Controller {
             let signature = private.sign(query.cookie().as_bytes())?;
             public
                 .verify(query.cookie().as_bytes(), &signature)
-                .context("Recv node id handshake")?;
+                .context("Verify recv handshake signature")?;
 
             // Respond at the end because we mess with the header buffer.
             should_respond = ShouldRespond::Yes(public, signature);
@@ -84,9 +86,11 @@ impl Controller {
             }
             let cookie = cookie.as_ref().unwrap();
 
-            public
-                .verify(&cookie.as_bytes(), &signature)
-                .context("Invalid signature in node_id_handshake response")?;
+            if self.validate_handshakes {
+                public
+                    .verify(&cookie.as_bytes(), &signature)
+                    .context("Invalid signature in handshake response")?;
+            }
         }
 
         if let ShouldRespond::Yes(public, signature) = should_respond {
@@ -106,7 +110,8 @@ impl Controller {
         header: &Header,
         keepalive: Keepalive,
     ) -> anyhow::Result<()> {
-        dbg!(keepalive);
+        // dbg!(keepalive);
+        debug!("{:?}", keepalive);
         Ok(())
     }
 
@@ -115,7 +120,7 @@ impl Controller {
         header: &Header,
         telemetry_req: TelemetryReq,
     ) -> anyhow::Result<()> {
-        dbg!(telemetry_req);
+        // dbg!(telemetry_req);
         Ok(())
     }
 
@@ -124,7 +129,7 @@ impl Controller {
         header: &Header,
         telemetry_ack: TelemetryAck,
     ) -> anyhow::Result<()> {
-        dbg!(telemetry_ack);
+        // dbg!(telemetry_ack);
         Ok(())
     }
 
@@ -133,7 +138,7 @@ impl Controller {
         header: &Header,
         publish: Publish,
     ) -> anyhow::Result<()> {
-        dbg!(publish);
+        // dbg!(publish);
         Ok(())
     }
 
@@ -142,7 +147,7 @@ impl Controller {
         header: &Header,
         confirm_req: ConfirmReq,
     ) -> anyhow::Result<()> {
-        dbg!(confirm_req);
+        // dbg!(confirm_req);
         Ok(())
     }
 
@@ -151,7 +156,28 @@ impl Controller {
         header: &Header,
         confirm_ack: ConfirmAck,
     ) -> anyhow::Result<()> {
-        dbg!(confirm_ack);
+        // dbg!(confirm_ack);
+        Ok(())
+    }
+
+    pub async fn handle_frontier_req(
+        &mut self,
+        header: &Header,
+        frontier_req: FrontierReq,
+    ) -> anyhow::Result<()> {
+        // The rest of this connection will be a bunch of frontiers without any headers.
+        self.frontier_stream = true;
+
+        Ok(())
+    }
+
+    pub async fn handle_frontier_resp(
+        &mut self,
+        frontier_resp: FrontierResp,
+    ) -> anyhow::Result<()> {
+        // dbg!(frontier_resp);
+        // dbg!("----------------------------------------------------------------------");
+
         Ok(())
     }
 }

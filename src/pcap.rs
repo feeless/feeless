@@ -1,20 +1,7 @@
-use crate::bytes::Bytes;
-use crate::node::header::{Header, MessageType};
-use crate::node::messages::confirm_ack::ConfirmAck;
-use crate::node::messages::confirm_req::ConfirmReq;
-
-use crate::node::messages::frontier_req::FrontierReq;
-use crate::node::messages::frontier_resp::FrontierResp;
-use crate::node::messages::handshake::Handshake;
-use crate::node::messages::keepalive::Keepalive;
-use crate::node::messages::publish::Publish;
-use crate::node::messages::telemetry_ack::TelemetryAck;
-use crate::node::messages::telemetry_req::TelemetryReq;
 use crate::node::wire::Wire;
-use crate::{to_hex, DEFAULT_PORT};
+use crate::DEFAULT_PORT;
 use ansi_term;
-use ansi_term::Color;
-use anyhow::{anyhow, Context};
+use anyhow::Context;
 use etherparse::{InternetSlice, SlicedPacket};
 use etherparse::{Ipv4HeaderSlice, TcpHeaderSlice, TransportSlice};
 use pcarp::Capture;
@@ -22,12 +9,14 @@ use std::collections::{HashMap, HashSet};
 
 use std::fs::File;
 use std::io::Read;
-use std::net::Ipv4Addr;
+use std::net::{IpAddr, Ipv4Addr, SocketAddr};
 
 use crate::network::Network;
-use crate::node::controller::Controller;
+use crate::node::controller::{Controller, Packet};
 use crate::node::state::MemoryState;
+use std::str::FromStr;
 use std::sync::Arc;
+use tokio::sync::mpsc::{Receiver, Sender};
 use tokio::sync::Mutex;
 use tracing::{debug, error, info, trace, warn};
 
@@ -50,29 +39,28 @@ enum Direction {
     Recv,
 }
 
-pub struct PcapDump<'a> {
+pub struct PcapDump {
     /// Storage to continue a TCP payload for the next packet in a stream.
     stream_cont: HashMap<String, (usize, Vec<u8>)>,
 
     /// Frontier connections
     frontiers: HashSet<String>,
 
-    pub expanded: bool,
+    /// per_stream_controllers
+    controllers: HashMap<String, (Sender<Packet>, Receiver<Packet>)>,
+
     pub start_at: Option<usize>,
     pub end_at: Option<usize>,
     pub filter_addr: Option<Ipv4Addr>,
-    pub abort_on_error: bool,
-    pub pause_on_error: bool,
 
     subject: Subject,
     found_subject: Option<Ipv4Addr>,
 
     packet_idx: usize,
     stream_id: String,
-    bytes: Bytes<'a>,
 }
 
-impl<'a> PcapDump<'a> {
+impl PcapDump {
     pub fn new(subject: Subject) -> Self {
         let found_subject = match subject {
             Subject::Specified(s) => Some(s),
@@ -86,25 +74,20 @@ impl<'a> PcapDump<'a> {
             found_subject,
             packet_idx: 0,
             stream_id: "".to_string(),
-            expanded: false,
             start_at: None,
             end_at: None,
             filter_addr: None,
-            abort_on_error: false,
-            pause_on_error: false,
-            bytes: Bytes::new(&[]),
+            controllers: Default::default(),
         }
     }
 
-    pub async fn dump(&'a mut self, path: &'a str) -> anyhow::Result<()> {
+    pub async fn dump(&mut self, path: &str) -> anyhow::Result<()> {
+        let network = Network::Live;
+        let state = Arc::new(Mutex::new(MemoryState::new(network)));
+
         info!("Loading dump: {}", path);
 
         let file = File::open(path).with_context(|| format!("Opening file {}", path))?;
-
-        let recv_color = Color::Green.normal();
-        let send_color = Color::Blue.bold();
-        let direction_marker_color = Color::White.bold();
-        let _error_color = Color::Red;
 
         let mut has_started = false;
         let mut reader =
@@ -206,145 +189,44 @@ impl<'a> PcapDump<'a> {
             connection_id.sort();
             let connection_id = connection_id.join("-");
 
-            debug!(
-                "Packet: #{} size: {} {}",
+            let direction_text = match direction {
+                Direction::Send => {
+                    format!(">>> {}:{}", ip.destination_addr(), tcp.destination_port())
+                }
+                Direction::Recv => format!("<<< {}:{}", ip.source_addr(), tcp.source_port()),
+            };
+
+            let annotation = format!(
+                "Packet: #{} {} size: {}",
                 &self.packet_idx,
+                direction_text,
                 data.len(),
-                &self.stream_id
             );
 
-            let mut v = vec![];
-            let slice = match self.stream_cont.get(&self.stream_id) {
-                Some((other_packet_idx, b)) => {
-                    // We have some left over data from a previous packet.
-                    trace!(
-                        "Prepending {} bytes from packet #{}.",
-                        b.len(),
-                        other_packet_idx
-                    );
-                    v.extend_from_slice(&b);
-                    v.extend_from_slice(data);
-                    self.stream_cont.remove(&self.stream_id);
-                    v.as_slice()
-                }
+            let (tx, _) = match self.controllers.get(&connection_id) {
+                Some(z) => z,
                 None => {
-                    trace!("Payload: {}", to_hex(data));
-                    data
+                    let state_cloned = state.clone();
+                    let peer_addr =
+                        SocketAddr::new(IpAddr::V4(ip.destination_addr()), tcp.destination_port());
+                    let (mut c, tx, mut rx) =
+                        Controller::new_with_channels(network, state_cloned, peer_addr.clone());
+
+                    tokio::spawn(async move {
+                        c.validate_handshakes = false;
+                        let result = c.run().await;
+                        if let Err(err) = result {
+                            error!("Error on pcap controller {:?}: {:#?}", peer_addr, err);
+                        }
+                    });
+
+                    self.controllers.insert(connection_id.clone(), (tx, rx));
+                    self.controllers.get(&connection_id).unwrap()
                 }
             };
 
-            let mut bytes = Bytes::new(slice);
-            if self.frontiers.contains(&connection_id) {
-                // At this point we're only going to receive frontier messages which do not have a
-                // header.
-                while !bytes.eof() {
-                    if self.should_resume_stream_later(&mut bytes, FrontierResp::LEN)? {
-                        continue 'next_packet;
-                    }
-
-                    let frontier =
-                        FrontierResp::deserialize(None, bytes.slice(FrontierResp::LEN)?)?;
-                    dbg!(frontier);
-                }
-                continue 'next_packet;
-            }
-
-            while !bytes.eof() {
-                if self
-                    .should_resume_stream_later(&mut bytes, Header::LEN)
-                    .context("Header")?
-                {
-                    continue 'next_packet;
-                }
-
-                let header_bytes =
-                    match self.handle_error(bytes.slice(Header::LEN).with_context(|| {
-                        format!("Slicing header on packet #{}", self.packet_idx)
-                    }))? {
-                        Some(x) => x,
-                        None => continue 'next_packet,
-                    };
-
-                let header = match self.handle_error(
-                    Header::deserialize(None, header_bytes).with_context(|| {
-                        format!("Deserializing header on packet #{}", self.packet_idx)
-                    }),
-                )? {
-                    Some(x) => x,
-                    None => continue 'next_packet,
-                };
-
-                let (direction_text, color) = match direction {
-                    Direction::Send => (
-                        format!(
-                            ">>> #{} {}:{}",
-                            self.packet_idx,
-                            ip.destination_addr(),
-                            tcp.destination_port()
-                        ),
-                        send_color,
-                    ),
-                    Direction::Recv => (
-                        format!(
-                            "<<< #{} {}:{}",
-                            self.packet_idx,
-                            ip.source_addr(),
-                            tcp.source_port()
-                        ),
-                        recv_color,
-                    ),
-                };
-
-                let func = match header.message_type() {
-                    MessageType::Handshake => payload::<Handshake>,
-                    MessageType::ConfirmReq => payload::<ConfirmReq>,
-                    MessageType::ConfirmAck => payload::<ConfirmAck>,
-                    MessageType::Keepalive => payload::<Keepalive>,
-                    MessageType::TelemetryReq => payload::<TelemetryReq>,
-                    MessageType::TelemetryAck => payload::<TelemetryAck>,
-                    MessageType::Publish => payload::<Publish>,
-                    MessageType::FrontierReq => payload::<FrontierReq>,
-                    _ => {
-                        let o = self.handle_error::<anyhow::Result<()>>(Err(anyhow!(
-                            "Unhandled message type {:?}",
-                            header
-                        )))?;
-                        debug_assert!(o.is_none());
-                        continue 'next_packet;
-                    }
-                };
-
-                let maybe_decoded = match self.handle_error(
-                    func(Some(&header), &mut bytes)
-                        .with_context(|| format!("Decoding packet #{}", &self.packet_idx)),
-                )? {
-                    Some(x) => x,
-                    None => continue 'next_packet,
-                };
-                let decoded = match maybe_decoded {
-                    Some(p) => p,
-                    None => {
-                        bytes.seek(-(Header::LEN as i64))?;
-                        self.save_stream_for_later(&mut bytes).context("Header")?;
-                        continue 'next_packet;
-                    }
-                };
-
-                let dbg = if self.expanded {
-                    format!("{:#?}", decoded.as_ref())
-                } else {
-                    format!("{:?}", decoded.as_ref())
-                };
-                println!(
-                    "{} {}",
-                    direction_marker_color.paint(direction_text),
-                    color.paint(dbg)
-                );
-
-                if header.message_type() == MessageType::FrontierReq {
-                    self.frontiers.insert(connection_id.clone());
-                }
-            }
+            tx.send(Packet::new_with_annotation(Vec::from(data), annotation))
+                .await?;
         }
     }
 
@@ -367,71 +249,4 @@ impl<'a> PcapDump<'a> {
         let data_len = ip.payload_len() as usize - tcp.slice().len() as usize;
         Some((ip, tcp, &packet.payload[..data_len]))
     }
-
-    /// If theres an error, we either return the error, or optionally allow the user to continue.
-    /// Returning Ok(None) tells the caller the packet is bad and we want to try the next packet.
-    fn handle_error<T>(
-        &self,
-        result: Result<T, anyhow::Error>,
-    ) -> Result<Option<T>, anyhow::Error> {
-        match result {
-            Ok(m) => Ok(Some(m)),
-            Err(err) => {
-                if self.abort_on_error {
-                    return Err(err);
-                }
-
-                error!("{:?}", err);
-                if self.pause_on_error {
-                    println!("\nPress [enter] to resume");
-                    std::io::stdin().read(&mut [0]).unwrap();
-                }
-                Ok(None)
-            }
-        }
-    }
-
-    fn should_resume_stream_later(
-        &mut self,
-        bytes: &mut Bytes,
-        expected_len: usize,
-    ) -> anyhow::Result<bool> {
-        if bytes.remain() < expected_len {
-            self.save_stream_for_later(bytes)?;
-            Ok(true)
-        } else {
-            Ok(false)
-        }
-    }
-
-    fn save_stream_for_later(&mut self, bytes: &mut Bytes) -> anyhow::Result<()> {
-        let remaining = Vec::from(
-            bytes
-                .slice(bytes.remain())
-                .context("Slicing remaining stream for later")?,
-        );
-        self.stream_cont
-            .insert(self.stream_id.to_owned(), (self.packet_idx, remaining));
-        Ok(())
-    }
-}
-
-pub fn payload<T: 'static + Wire>(
-    header: Option<&Header>,
-    bytes: &mut Bytes,
-) -> anyhow::Result<Option<Box<dyn Wire>>> {
-    let len = T::len(header)?;
-
-    if bytes.remain() < len {
-        trace!(
-            "Not enough bytes left to process. Needs {} more. Will prepend {} bytes in next packet.",
-            len - bytes.remain(),
-            bytes.remain()
-        );
-        return Ok(None);
-    }
-
-    let data = bytes.slice(len)?;
-    let payload: T = T::deserialize(header, data).context("Deserializing payload")?;
-    Ok(Some(Box::new(payload)))
 }
