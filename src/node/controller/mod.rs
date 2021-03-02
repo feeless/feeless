@@ -1,20 +1,24 @@
 mod blocks;
 mod genesis;
+mod messages;
 
 use crate::network::Network;
 use crate::node::cookie::Cookie;
 use crate::node::header::{Extensions, Header, MessageType};
 use crate::node::messages::handshake::HandshakeQuery;
+use crate::node::messages::keepalive::Keepalive;
 use crate::node::state::{ArcState, DynState};
 use crate::node::wire::Wire;
-use crate::{to_hex, Block, Public, Raw};
+use crate::{expect_len, to_hex, Block, Public, Raw};
 use anyhow::{anyhow, Context};
+use std::collections::VecDeque;
 use std::fmt::Debug;
 use std::net::{IpAddr, SocketAddr};
 use tokio::io::AsyncRead;
 use tokio::sync::mpsc;
 use tokio::sync::mpsc::{Receiver, Sender};
 use tracing::{debug, instrument, trace, warn};
+use tracing_subscriber::fmt::layer;
 
 /// The controller handles the logic with handling and emitting messages, as well as time based
 /// actions, peer management, etc.
@@ -52,7 +56,7 @@ impl Controller {
             network,
             state,
             peer_addr,
-            incoming_buffer: Vec::with_capacity(1024),
+            incoming_buffer: Vec::with_capacity(10_000),
             incoming: incoming_rx,
             outgoing: outgoing_tx,
             header: Header::new(network, MessageType::Handshake, Extensions::new()),
@@ -63,25 +67,80 @@ impl Controller {
 
     /// Run will loop forever and is expected to be spawned and will quit when the incoming channel
     /// is closed.
-    pub async fn run(mut self) {
+    pub async fn run(mut self) -> anyhow::Result<()> {
+        macro_rules! handle {
+            ($self: ident, $fun:ident, $header:expr) => {{
+                let sh = Some(&$header);
+                let payload = self.recv(sh).await?;
+                $self.$fun(&$header, payload).await?;
+            };};
+        }
+
         trace!("Initial handshake");
-        self.send_node_id_handshake()
-            .await
-            .expect("Could not send handshake");
-        //         // trace!("Initial telemetry request");
-        //         // self.send_telemetry_req().await?;
+        self.send_handshake().await?;
+        // trace!("Initial telemetry request");
+        // self.send_telemetry_req().await?;
 
         loop {
-            let data = match self.incoming.recv().await {
-                Some(data) => data,
-                None => return,
-            };
+            let header = self.recv::<Header>(None).await?;
+            header.validate(&self.network)?;
 
-            if !data.is_empty() {
-                dbg!(data);
-            }
+            match header.message_type() {
+                MessageType::Keepalive => handle!(self, handle_keepalive, header),
+                MessageType::Publish => handle!(self, handle_publish, header),
+                MessageType::ConfirmReq => handle!(self, handle_confirm_req, header),
+                MessageType::ConfirmAck => handle!(self, handle_confirm_ack, header),
+                // MessageType::BulkPull => {}
+                // MessageType::BulkPush => {}
+                // MessageType::BulkPullAccount => {}
+                // MessageType::FrontierReq => {}
+                MessageType::Handshake => handle!(self, handle_handshake, header),
+                MessageType::TelemetryReq => handle!(self, handle_telemetry_req, header),
+                MessageType::TelemetryAck => handle!(self, handle_telemetry_ack, header),
+                _ => todo!("{:?}", header),
+            };
         }
     }
+
+    #[instrument(skip(self, header))]
+    async fn recv<T: Wire + Debug>(&mut self, header: Option<&Header>) -> anyhow::Result<T> {
+        let expected_len = T::len(header)?;
+        let buffer = self.recv_buf(expected_len).await?;
+        trace!("HEX: {}", to_hex(&buffer));
+        let result = T::deserialize(header, &buffer)?;
+        debug!("OBJ: {:?}", &result);
+        Ok(result)
+    }
+
+    async fn recv_buf(&mut self, size: usize) -> anyhow::Result<Vec<u8>> {
+        // TODO: Idle timeout so a toxic node can't just leave empty connections running without
+        //       any traffic.
+        loop {
+            if self.incoming_buffer.len() >= size {
+                return self.recv_immediate(size);
+            }
+
+            let data = match self.incoming.recv().await {
+                Some(data) => data,
+                None => return Err(anyhow!("Disconnected")),
+            };
+
+            self.incoming_buffer.extend(data);
+        }
+    }
+
+    fn recv_immediate(&mut self, size: usize) -> anyhow::Result<Vec<u8>> {
+        debug_assert!(self.incoming_buffer.len() >= size);
+
+        // This is super inefficient. Need to use something like
+        // https://crates.io/crates/slice-deque
+        // Might not work in wasm later.
+
+        let buf = self.incoming_buffer[0..size].to_owned();
+        self.incoming_buffer = Vec::from(&self.incoming_buffer[size..]);
+        Ok(buf)
+    }
+
     #[instrument(level = "debug", skip(self, message))]
     async fn send<T: Wire + Debug>(&mut self, message: &T) -> anyhow::Result<()> {
         let data = message.serialize();
@@ -101,25 +160,6 @@ impl Controller {
         Ok(self.send(&header).await?)
     }
 
-    #[instrument(skip(self))]
-    async fn send_node_id_handshake(&mut self) -> anyhow::Result<()> {
-        trace!("Sending handshake");
-        self.send_header(MessageType::Handshake, *Extensions::new().query())
-            .await?;
-
-        // TODO: Track our own cookie?
-        let cookie = Cookie::random();
-        self.state
-            .lock()
-            .await
-            .set_cookie(self.peer_addr, cookie.clone())
-            .await?;
-        let handshake_query = HandshakeQuery::new(cookie);
-        self.send(&handshake_query).await?;
-
-        Ok(())
-    }
-
     /// Set up the genesis block if it hasn't already.
     pub async fn init(&mut self) -> anyhow::Result<()> {
         self.ensure_genesis().await.context("Ensuring genesis")?;
@@ -128,19 +168,6 @@ impl Controller {
 
     /// Update the representative weights based on this block being added to the network.
     pub async fn balance_rep_weights(&mut self, _full_block: &Block) -> anyhow::Result<()> {
-        // match full_block.block() {
-        //     Block::Send(_) => {
-        //         // TODO: Balance rep for send block
-        //     }
-        //     // Block::Receive(_) => {}
-        //     Block::Open(_b) => {
-        //         // Open blocks don't change in balance.
-        //     }
-        //     // Block::Change(_) => {}
-        //     // Block::State(_) => {}
-        //     _ => todo!(),
-        // };
-        // Ok(())
         todo!()
     }
 

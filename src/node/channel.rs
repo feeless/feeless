@@ -129,27 +129,6 @@ pub async fn network_channel(
 //         //         _ => todo!("{:?}", header),
 //         //     }
 //         // }
-//     }
-//     //
-//     // #[instrument(skip(self, header))]
-//     // async fn recv<T: Wire + Debug>(&mut self, header: Option<&Header>) -> anyhow::Result<T> {
-//     //     let expected_len = T::len(header)?;
-//     //     if expected_len > self.buffer.len() {
-//     //         // trace!("Expanding buffer {} -> {}", self.buffer.len(), expected_len);
-//     //         self.buffer.resize(expected_len, 0)
-//     //     }
-//     //
-//     //     let buffer = &mut self.buffer[0..expected_len];
-//     //     let bytes_read = self.stream.read_exact(buffer).await?;
-//     //     expect_len(bytes_read, expected_len, "Recv packet")?;
-//     //     trace!("HEX: {}", to_hex(&buffer));
-//     //
-//     //     let buffer = &self.buffer[0..expected_len];
-//     //     let result = T::deserialize(header, buffer)?;
-//     //     debug!("OBJ: {:?}", &result);
-//     //
-//     //     Ok(result)
-//     // }
 //     //
 //     // #[instrument(skip(self))]
 //     // async fn recv_keepalive(&mut self, header: Header) -> anyhow::Result<()> {
@@ -163,95 +142,6 @@ pub async fn network_channel(
 //     //     let publish = self.recv::<Publish>(Some(&header)).await?;
 //     //     dbg!(publish);
 //     //     // todo!();
-//     //     Ok(())
-//     // }
-//     //
-//     // #[instrument(skip(self))]
-//     // async fn send_node_id_handshake(&mut self) -> anyhow::Result<()> {
-//     //     trace!("Sending handshake");
-//     //     self.send_header(MessageType::Handshake, *Extensions::new().query())
-//     //         .await?;
-//     //
-//     //     // TODO: Move to controller
-//     //     let cookie = Cookie::random();
-//     //     self.state
-//     //         .lock()
-//     //         .await
-//     //         .set_cookie(self.peer_addr, cookie.clone())
-//     //         .await?;
-//     //     let handshake_query = HandshakeQuery::new(cookie);
-//     //     self.send(&handshake_query).await?;
-//     //
-//     //     Ok(())
-//     // }
-//     //
-//     // #[instrument(skip(self, header))]
-//     // async fn recv_node_id_handshake(&mut self, header: Header) -> anyhow::Result<()> {
-//     //     let node_id_handshake = self.recv::<Handshake>(Some(&header)).await?;
-//     //
-//     //     enum ShouldRespond {
-//     //         No,
-//     //         Yes(Public, Signature),
-//     //     }
-//     //     let mut should_respond = ShouldRespond::No;
-//     //
-//     //     if header.ext().is_query() {
-//     //         // This would probably be a programming error if it panicked.
-//     //         let query = node_id_handshake
-//     //             .query
-//     //             .expect("query is None but is_query is True");
-//     //
-//     //         // XXX: Hacky code here just to see if it works!
-//     //         // TODO: Move into state
-//     //         let seed = Seed::random();
-//     //         let private = seed.derive(0);
-//     //         let public = private.to_public();
-//     //         let signature = private.sign(query.cookie().as_bytes())?;
-//     //         public
-//     //             .verify(query.cookie().as_bytes(), &signature)
-//     //             .context("Recv node id handshake")?;
-//     //
-//     //         // Respond at the end because we mess with the header buffer.
-//     //         should_respond = ShouldRespond::Yes(public, signature);
-//     //     }
-//     //
-//     //     if header.ext().is_response() {
-//     //         let response = node_id_handshake
-//     //             .response
-//     //             .expect("response is None but is_response is True");
-//     //         let public = response.public;
-//     //         let signature = response.signature;
-//     //
-//     //         // TODO: Move to controller
-//     //         let cookie = &self
-//     //             .state
-//     //             .lock()
-//     //             .await
-//     //             .cookie_for_socket_addr(&self.peer_addr)
-//     //             .await?;
-//     //         if cookie.is_none() {
-//     //             warn!(
-//     //                 "Peer {:?} has no cookie. Can't verify handshake.",
-//     //                 self.peer_addr
-//     //             );
-//     //             return Ok(());
-//     //         }
-//     //         let cookie = cookie.as_ref().unwrap();
-//     //
-//     //         public
-//     //             .verify(&cookie.as_bytes(), &signature)
-//     //             .context("Invalid signature in node_id_handshake response")?;
-//     //     }
-//     //
-//     //     if let ShouldRespond::Yes(public, signature) = should_respond {
-//     //         let mut header = self.header;
-//     //         header.reset(MessageType::Handshake, *Extensions::new().response());
-//     //         self.send(&header).await?;
-//     //
-//     //         let response = HandshakeResponse::new(public, signature);
-//     //         self.send(&response).await?;
-//     //     }
-//     //
 //     //     Ok(())
 //     // }
 //     //
