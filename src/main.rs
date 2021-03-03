@@ -9,7 +9,7 @@ use crate::DebugCommand::PcapLogToCSV;
 use ansi_term::Color;
 use anyhow::Context;
 use clap::Clap;
-use feeless::debug::parse_log_file_to_csv;
+use feeless::debug::parse_pcap_log_file_to_csv;
 use feeless::encoding::FromHex;
 use feeless::Public;
 use std::net::Ipv4Addr;
@@ -161,7 +161,7 @@ async fn option(opts: Opts) -> anyhow::Result<()> {
         },
 
         Command::Debug(debug) => match debug.command {
-            DebugCommand::PcapLogToCSV(huh) => parse_log_file_to_csv(&huh.src, &huh.dst),
+            DebugCommand::PcapLogToCSV(huh) => parse_pcap_log_file_to_csv(&huh.src, &huh.dst),
         },
     }
 }

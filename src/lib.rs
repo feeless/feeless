@@ -26,7 +26,6 @@ pub mod encoding;
 mod keys;
 pub mod network;
 mod pow;
-mod pretty;
 mod raw;
 
 pub const DEFAULT_PORT: u16 = 7075;
