@@ -395,6 +395,7 @@ dependencies = [
  "bitvec",
  "blake2",
  "bytes",
+ "chrono",
  "clap",
  "ed25519-dalek-bip32",
  "ed25519-dalek-blake2-feeless",

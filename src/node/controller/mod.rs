@@ -260,13 +260,18 @@ mod tests {
     use crate::blocks::{OpenBlock, SendBlock};
     use crate::encoding::FromHex;
     use crate::node::state::MemoryState;
-    use crate::{Address, BlockHash};
+    use crate::{Address, BlockHash, DEFAULT_PORT};
+    use std::net::{Ipv4Addr, SocketAddrV4};
     use std::sync::Arc;
     use tokio::sync::Mutex;
 
     async fn empty_lattice(network: Network) -> Controller {
         let state = Arc::new(Mutex::new(MemoryState::new(network)));
-        let mut controller = Controller::new(network, state);
+        let (mut controller, rx, tx) = Controller::new_with_channels(
+            network,
+            state,
+            SocketAddr::V4(SocketAddrV4::new(Ipv4Addr::LOCALHOST, DEFAULT_PORT)),
+        );
         controller.init().await.unwrap();
         controller
     }

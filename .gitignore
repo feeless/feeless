@@ -4,3 +4,4 @@
 node/*.db
 *.pcapng
 Makefile
+*.log

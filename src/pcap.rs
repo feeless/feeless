@@ -14,6 +14,7 @@ use std::net::{IpAddr, Ipv4Addr, SocketAddr};
 use crate::network::Network;
 use crate::node::controller::{Controller, Packet};
 use crate::node::state::MemoryState;
+use chrono::{DateTime, Utc};
 use std::str::FromStr;
 use std::sync::Arc;
 use tokio::sync::mpsc::{Receiver, Sender};
@@ -47,7 +48,7 @@ pub struct PcapDump {
     frontiers: HashSet<String>,
 
     /// per_stream_controllers
-    controllers: HashMap<String, (Sender<Packet>, Receiver<Packet>)>,
+    controllers: HashMap<String, Sender<Packet>>,
 
     pub start_at: Option<usize>,
     pub end_at: Option<usize>,
@@ -106,6 +107,7 @@ impl PcapDump {
             } else {
                 packet.unwrap()
             };
+            let timestamp: DateTime<Utc> = packet.timestamp.unwrap().into();
             let packet = match SlicedPacket::from_ethernet(&packet.data).with_context(|| {
                 format!(
                     "Parsing packet data to ethernet for packet {}",
@@ -197,13 +199,14 @@ impl PcapDump {
             };
 
             let annotation = format!(
-                "Packet: #{} {} size: {}",
+                "Packet: #{} {} {} size: {}",
                 &self.packet_idx,
+                timestamp.format("%+"),
                 direction_text,
                 data.len(),
             );
 
-            let (tx, _) = match self.controllers.get(&connection_id) {
+            let tx = match self.controllers.get(&connection_id) {
                 Some(z) => z,
                 None => {
                     let state_cloned = state.clone();
@@ -211,6 +214,16 @@ impl PcapDump {
                         SocketAddr::new(IpAddr::V4(ip.destination_addr()), tcp.destination_port());
                     let (mut c, tx, mut rx) =
                         Controller::new_with_channels(network, state_cloned, peer_addr.clone());
+
+                    // Discard all responses from the controller since we are just processing
+                    // packets.
+                    tokio::spawn(async move {
+                        loop {
+                            if rx.recv().await.is_none() {
+                                return;
+                            }
+                        }
+                    });
 
                     tokio::spawn(async move {
                         c.validate_handshakes = false;
@@ -220,7 +233,7 @@ impl PcapDump {
                         }
                     });
 
-                    self.controllers.insert(connection_id.clone(), (tx, rx));
+                    self.controllers.insert(connection_id.clone(), tx);
                     self.controllers.get(&connection_id).unwrap()
                 }
             };

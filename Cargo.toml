@@ -35,6 +35,8 @@ bitvec = "0.20.1"
 regex = "1.4.3"
 rand = "0.8.3"
 tiny-bip39 = "0.8.0"
+chrono = "0.4.19"
+
 ed25519-dalek-bip32 = "0.1.1"
 
 ed25519-dalek = { version = "1.0.1", package = "ed25519-dalek-blake2-feeless" }

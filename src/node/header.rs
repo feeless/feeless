@@ -300,10 +300,11 @@ mod tests {
 
     #[test]
     fn serialize() {
-        let state = MemoryState::new(Network::Live);
+        let network = Network::Live;
+        let state = MemoryState::new(network);
 
         let ext = *Extensions::new().query().response();
-        let h1 = Header::new(state.network(), MessageType::Keepalive, ext);
+        let h1 = Header::new(network, MessageType::Keepalive, ext);
         let s = h1.serialize();
         assert_eq!(s.len(), Header::LEN);
         assert_eq!(s, vec![0x52, 0x43, 18, 18, 18, 2, 3, 0]);

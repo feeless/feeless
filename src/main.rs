@@ -5,19 +5,27 @@ use feeless::node::node_with_single_peer;
 #[cfg(feature = "pcap")]
 use feeless::pcap::{PcapDump, Subject};
 
+use crate::DebugCommand::PcapLogToCSV;
 use ansi_term::Color;
 use anyhow::Context;
 use clap::Clap;
+use feeless::debug::parse_log_file_to_csv;
 use feeless::encoding::FromHex;
 use feeless::Public;
 use std::net::Ipv4Addr;
+use std::path::{Path, PathBuf};
 use std::str::FromStr;
 use tracing::error;
+use tracing_subscriber::EnvFilter;
 
 #[derive(Clap)]
 struct Opts {
     #[clap(subcommand)]
     command: Command,
+
+    /// Don't use ANSI colour codes when logging.
+    #[clap(long)]
+    no_color: bool,
 }
 
 #[derive(Clap)]
@@ -27,6 +35,9 @@ enum Command {
     Convert(ConvertFrom),
 
     Pcap(PcapDumpArgs),
+
+    /// Debugging and experimental tools
+    Debug(Debug),
 }
 
 #[derive(Clap)]
@@ -78,9 +89,25 @@ struct PcapDumpArgs {
     end: Option<usize>,
 }
 
+#[derive(Clap)]
+struct Debug {
+    #[clap(subcommand)]
+    command: DebugCommand,
+}
+
+#[derive(Clap)]
+enum DebugCommand {
+    PcapLogToCSV(PcapLogToCsvArgs),
+}
+
+#[derive(Clap)]
+struct PcapLogToCsvArgs {
+    src: PathBuf,
+    dst: PathBuf,
+}
+
 #[tokio::main]
 async fn main() {
-    tracing_subscriber::fmt::init();
     let result = option(Opts::parse()).await;
     if let Err(err) = result {
         error!("Exiting because of an error: {:?}", err);
@@ -89,6 +116,12 @@ async fn main() {
 }
 
 async fn option(opts: Opts) -> anyhow::Result<()> {
+    let subscriber = tracing_subscriber::fmt::Subscriber::builder()
+        .with_ansi(!opts.no_color)
+        .with_env_filter(tracing_subscriber::EnvFilter::from_default_env())
+        .finish();
+    tracing::subscriber::set_global_default(subscriber).expect("Could not initialize logger");
+
     match opts.command {
         #[cfg(feature = "node")]
         Command::Node(o) => node_with_single_peer(&o.address).await,
@@ -125,6 +158,10 @@ async fn option(opts: Opts) -> anyhow::Result<()> {
                 println!("{}", public.to_address().to_string());
                 Ok(())
             }
+        },
+
+        Command::Debug(debug) => match debug.command {
+            DebugCommand::PcapLogToCSV(huh) => parse_log_file_to_csv(&huh.src, &huh.dst),
         },
     }
 }
