@@ -35,17 +35,16 @@ impl MemoryState {
 
 #[async_trait]
 impl State for MemoryState {
-    async fn add_block(&mut self, block_holder: &Block) -> anyhow::Result<()> {
-        // self.blocks.insert(
-        //     block_holder.hash().context("Add block")?.to_owned(),
-        //     block_holder.to_owned(),
-        // );
-        // self.block_hash_to_account
-        //     .insert(block_holder.hash()?.to_owned(), account.to_owned());
-        // self.latest_block_hash
-        //     .insert(account.to_owned(), block_holder.hash()?.to_owned());
-        // Ok(())
-        todo!()
+    async fn add_block(&mut self, block: &Block) -> anyhow::Result<()> {
+        self.blocks.insert(
+            block.hash().context("Add block")?.to_owned(),
+            block.to_owned(),
+        );
+        self.block_hash_to_account
+            .insert(block.hash()?.to_owned(), block.account().to_owned());
+        self.latest_block_hash
+            .insert(block.account().to_owned(), block.hash()?.to_owned());
+        Ok(())
     }
 
     async fn get_block_by_hash(&self, hash: &BlockHash) -> anyhow::Result<Option<Block>> {
