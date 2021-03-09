@@ -144,14 +144,14 @@ impl Controller {
                     MessageType::Publish => handle!(self, handle_publish, header),
                     MessageType::ConfirmReq => handle!(self, handle_confirm_req, header),
                     MessageType::ConfirmAck => handle!(self, handle_confirm_ack, header),
-                    // MessageType::BulkPull => {}
-                    // MessageType::BulkPush => {}
-                    // MessageType::BulkPullAccount => {}
                     MessageType::FrontierReq => handle!(self, handle_frontier_req, header),
                     MessageType::Handshake => handle!(self, handle_handshake, header),
                     MessageType::TelemetryReq => handle!(self, handle_telemetry_req, header),
                     MessageType::TelemetryAck => handle!(self, handle_telemetry_ack, header),
-                    _ => todo!("{:?}", header),
+                    // MessageType::BulkPull => {}
+                    // MessageType::BulkPush => {}
+                    // MessageType::BulkPullAccount => {}
+                    _ => panic!("{:?}", header),
                 };
             }
         }
@@ -256,11 +256,10 @@ impl Controller {
 #[cfg(test)]
 mod tests {
     use super::*;
-
     use crate::blocks::{OpenBlock, SendBlock};
     use crate::encoding::FromHex;
     use crate::node::state::MemoryState;
-    use crate::{Address, BlockHash, DEFAULT_PORT};
+    use crate::{Address, BlockHash, Previous, DEFAULT_PORT};
     use std::net::{Ipv4Addr, SocketAddrV4};
     use std::sync::Arc;
     use tokio::sync::Mutex;
@@ -361,7 +360,7 @@ mod tests {
                 "signature": "E950FFDF0C9C4DAF43C27AE3993378E4D8AD6FA591C24497C53E07A3BC80468539B0A467992A916F0DDA6F267AD764A3C1A5BDBD8F489DFAE8175EEE0E337402"
             }"#,
         ).unwrap();
-        let mut land_open = Block::from_open_block(&land_open, &BlockHash::zero(), &given);
+        let mut land_open = Block::from_open_block(&land_open, &Previous::Open, &given);
         land_open.calc_hash().unwrap();
         assert_eq!(
             land_open.hash().unwrap(),

@@ -9,6 +9,7 @@ pub mod pcap;
 use anyhow::anyhow;
 pub use blocks::Block;
 pub use blocks::BlockHash;
+pub use blocks::Previous;
 pub use encoding::{hex_formatter, to_hex};
 pub use keys::address::Address;
 pub use keys::phrase::{Language, MnemonicType, Phrase};

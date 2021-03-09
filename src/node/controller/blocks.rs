@@ -1,7 +1,7 @@
 use crate::blocks::BlockType;
 use crate::node::controller::Controller;
 use crate::node::messages::confirm_ack::{Confirm, ConfirmAck};
-use crate::{Block, BlockHash, Public, Raw, Signature};
+use crate::{Block, BlockHash, Previous, Public, Raw, Signature};
 use anyhow::{anyhow, Context};
 use tracing::{debug, instrument, warn};
 
@@ -98,11 +98,20 @@ impl Controller {
         match block.block_type() {
             BlockType::Send => {
                 dbg!(block);
+
+                let previous_hash = match block.previous() {
+                    Previous::Block(h) => h,
+                    Previous::Open => {
+                        return Err(anyhow!("Send block has a blank previous block hash"))
+                            .with_context(context)
+                    }
+                };
+
                 let prev_block = self
                     .state
                     .lock()
                     .await
-                    .get_block_by_hash(block.previous())
+                    .get_block_by_hash(previous_hash)
                     .await
                     .context("Previous block")
                     .with_context(context)?
@@ -145,7 +154,7 @@ impl Controller {
         self.state
             .lock()
             .await
-            .add_block(&block.account(), block)
+            .add_block(block)
             .await
             .with_context(context)?;
 

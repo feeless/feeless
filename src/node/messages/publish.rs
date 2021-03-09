@@ -3,7 +3,7 @@ use crate::node::header::Header;
 use crate::node::wire::Wire;
 
 #[derive(Debug)]
-pub struct Publish(BlockHolder);
+pub struct Publish(pub(crate) BlockHolder);
 
 impl Wire for Publish {
     fn serialize(&self) -> Vec<u8> {

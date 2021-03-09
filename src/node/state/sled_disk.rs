@@ -1,5 +1,6 @@
 use std::net::SocketAddr;
 
+use crate::blocks::{BlockHolder, StateBlock};
 use crate::network::Network;
 use crate::node::cookie::Cookie;
 use crate::node::state::State;
@@ -34,7 +35,7 @@ impl SledDiskState {
 
 #[async_trait]
 impl State for SledDiskState {
-    async fn add_block(&mut self, _account: &Public, _full_block: &Block) -> anyhow::Result<()> {
+    async fn add_block(&mut self, block_holder: &Block) -> anyhow::Result<()> {
         unimplemented!()
     }
 

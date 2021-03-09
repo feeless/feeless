@@ -124,6 +124,21 @@ impl Wire for BlockHolder {
     }
 }
 
+#[derive(Debug, Clone, Serialize, PartialEq, Eq)]
+pub enum Previous {
+    Block(BlockHash),
+    Open,
+}
+
+impl Previous {
+    pub fn to_bytes(&self) -> Vec<u8> {
+        match self {
+            Previous::Block(b) => b.as_bytes().to_vec(),
+            Previous::Open => BlockHash::zero().as_bytes().to_vec(),
+        }
+    }
+}
+
 /// A `Block` contains all block information needed for network and storage.
 ///
 /// It has the fields of a state block, but can handle all block types.
@@ -142,8 +157,8 @@ pub struct Block {
     #[serde(serialize_with = "to_address", deserialize_with = "from_address")]
     account: Public,
 
-    /// Previous block hash on this account. Set to 0 if it's the first block.
-    previous: BlockHash,
+    /// Previous block hash on this account. Set to `None` if it's the first block.
+    previous: Previous,
 
     /// The representative this account is delegating to.
     #[serde(serialize_with = "to_address", deserialize_with = "from_address")]
@@ -178,7 +193,7 @@ impl Block {
     pub fn new(
         block_type: BlockType,
         account: Public,
-        previous: BlockHash,
+        previous: Previous,
         representative: Public,
         balance: Raw,
         link: Link,
@@ -198,7 +213,7 @@ impl Block {
         }
     }
 
-    pub fn from_open_block(open_block: &OpenBlock, previous: &BlockHash, balance: &Raw) -> Self {
+    pub fn from_open_block(open_block: &OpenBlock, previous: &Previous, balance: &Raw) -> Self {
         let mut b = Self::new(
             BlockType::Open,
             open_block.account.to_owned(),
@@ -221,7 +236,7 @@ impl Block {
         let mut b = Self::new(
             BlockType::Send,
             account.to_owned(),
-            send_block.previous.to_owned(),
+            Previous::Block(send_block.previous.to_owned()),
             representative.to_owned(),
             send_block.balance.to_owned(),
             Link::DestinationAccount(send_block.destination.to_owned()),
@@ -236,7 +251,7 @@ impl Block {
         let mut b = Self::new(
             BlockType::State,
             state_block.account.to_owned(),
-            state_block.previous.to_owned(),
+            Previous::Block(state_block.previous.to_owned()),
             state_block.representative.to_owned(),
             state_block.balance.to_owned(),
             state_block.link.to_owned(),
@@ -266,7 +281,7 @@ impl Block {
                 self.account.as_bytes(),
             ]),
             BlockType::Send => hash_block(&[
-                self.previous.as_bytes(),
+                self.previous.to_bytes().as_slice(),
                 self.destination().with_context(context)?.as_bytes(),
                 self.balance.to_vec().as_slice(),
             ]),
@@ -277,7 +292,7 @@ impl Block {
                 hash_block(&[
                     &preamble,
                     self.account.as_bytes(),
-                    self.previous.as_bytes(),
+                    self.previous.to_bytes().as_slice(),
                     self.representative.as_bytes(),
                     self.balance.to_vec().as_slice(),
                     self.link.as_bytes(),
@@ -342,7 +357,7 @@ impl Block {
         &self.balance
     }
 
-    pub fn previous(&self) -> &BlockHash {
+    pub fn previous(&self) -> &Previous {
         &self.previous
     }
 

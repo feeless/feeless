@@ -5,7 +5,7 @@ use anyhow::anyhow;
 use crate::blocks::{Block, OpenBlock};
 
 use crate::encoding::FromHex;
-use crate::{Address, BlockHash, Public, Raw, Signature, Work};
+use crate::{Address, BlockHash, Previous, Public, Raw, Signature, Work};
 
 #[derive(Debug, Clone, Copy, PartialEq)]
 #[repr(u8)]
@@ -40,8 +40,7 @@ impl Network {
         // Give the genesis block the maximum u128 value.
         let balance = Raw::max();
 
-        let previous = BlockHash::zero();
-        let mut block = Block::from_open_block(&open_block, &previous, &balance);
+        let mut block = Block::from_open_block(&open_block, &Previous::Open, &balance);
         block.calc_hash().unwrap();
         block
     }
