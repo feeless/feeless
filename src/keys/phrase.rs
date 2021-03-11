@@ -8,6 +8,7 @@ use ed25519_dalek_bip32::{DerivationPath, ExtendedSecretKey};
 use std::convert::TryFrom;
 use std::fmt::{Display, Formatter};
 
+#[derive(Debug)]
 pub struct Phrase(Mnemonic);
 
 impl Phrase {

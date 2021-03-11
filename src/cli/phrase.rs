@@ -1,3 +1,4 @@
+use crate::cli::StringOrStdin;
 use crate::{Language, MnemonicType};
 use anyhow::anyhow;
 use clap::Clap;
@@ -13,22 +14,9 @@ impl Phrase {
     pub fn handle(&self) -> anyhow::Result<()> {
         match &self.command {
             Command::Random(r) => r.handle(),
+            Command::Private(p) => p.handle(),
         }
     }
-}
-
-#[derive(Clap)]
-pub enum Command {
-    Random(Random),
-}
-
-#[derive(Clap)]
-pub struct Random {
-    #[clap(short, long, default_value = "24")]
-    words: WrappedMnemonicType,
-
-    #[clap(short, long, default_value = "en")]
-    language: WrappedLanguage,
 }
 
 pub struct WrappedLanguage(pub Language);
@@ -56,9 +44,51 @@ impl FromStr for WrappedMnemonicType {
     }
 }
 
+#[derive(Clap)]
+pub enum Command {
+    Random(Random),
+    Private(Private),
+}
+
+#[derive(Clap)]
+pub struct Random {
+    #[clap(short, long, default_value = "24")]
+    words: WrappedMnemonicType,
+
+    #[clap(short, long, default_value = "en")]
+    language: WrappedLanguage,
+}
+
 impl Random {
     pub fn handle(&self) -> anyhow::Result<()> {
         println!("{}", crate::Phrase::random(self.words.0, self.language.0));
+        Ok(())
+    }
+}
+
+/// Convert a phrase to a private key.
+#[derive(Clap)]
+pub struct Private {
+    // Keep this as String because we need `phrase_opts` to work out how to convert into a Phrase.
+    words: StringOrStdin<String>,
+
+    #[clap(short, long, default_value = "en")]
+    language: WrappedLanguage,
+
+    #[clap(short, long, default_value = "0")]
+    account: u32,
+
+    #[clap(short, long, default_value = "")]
+    passphrase: String,
+}
+
+impl Private {
+    pub fn handle(&self) -> anyhow::Result<()> {
+        let words = self.words.to_owned().resolve().unwrap();
+        let phrase = crate::Phrase::from_words(self.language.0, words.as_str())?;
+        dbg!(&phrase);
+        let private = phrase.to_private(self.account, self.passphrase.as_str())?;
+        println!("{}", private);
         Ok(())
     }
 }

@@ -34,7 +34,7 @@ where
     /// Resolve `T` by reading from stdin if necessary.
     pub fn resolve(self) -> anyhow::Result<T>
     where
-        T: FromStr<Err = anyhow::Error>,
+        T: FromStr,
         <T as FromStr>::Err: Debug,
     {
         match self {
@@ -42,7 +42,8 @@ where
             StringOrStdin::Stdin => {
                 let mut buffer = String::new();
                 io::stdin().read_to_string(&mut buffer)?;
-                T::from_str(buffer.trim())
+                Ok(T::from_str(buffer.trim())
+                    .map_err(|e| anyhow!("Conversion from string failed: {:?}", e))?)
             }
         }
     }

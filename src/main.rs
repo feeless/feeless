@@ -39,6 +39,7 @@ enum Command {
 
     Public(cli::Public),
 
+    /// Word mnemonic phrase generation and conversion.
     Phrase(cli::Phrase),
 
     Pcap(PcapDumpArgs),
