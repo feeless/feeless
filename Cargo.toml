@@ -9,8 +9,9 @@ repository = "https://github.com/feeless/feeless"
 
 [features]
 default = ["full"]
-full = ["pcap", "node"]
+full = ["pcap", "node", "wallet"]
 node = ["sled"]
+wallet = []
 
 # pcap needs node for all the messages. This could be moved outside of node in the future.
 pcap = ["node", "pcarp", "etherparse"]

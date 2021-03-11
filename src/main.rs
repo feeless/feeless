@@ -2,6 +2,7 @@
 
 #[cfg(feature = "node")]
 use feeless::node::node_with_single_peer;
+
 #[cfg(feature = "pcap")]
 use feeless::pcap::{PcapDump, Subject};
 
@@ -9,9 +10,10 @@ use crate::DebugCommand::PcapLogToCSV;
 use ansi_term::Color;
 use anyhow::Context;
 use clap::Clap;
+use feeless::cli;
+use feeless::cli::convert::ConvertFrom;
 use feeless::debug::parse_pcap_log_file_to_csv;
 use feeless::encoding::FromHex;
-use feeless::Public;
 use std::net::Ipv4Addr;
 use std::path::{Path, PathBuf};
 use std::str::FromStr;
@@ -19,6 +21,7 @@ use tracing::error;
 use tracing_subscriber::EnvFilter;
 
 #[derive(Clap)]
+#[clap(author, about, version)]
 struct Opts {
     #[clap(subcommand)]
     command: Command,
@@ -34,6 +37,8 @@ enum Command {
 
     Convert(ConvertFrom),
 
+    Public(cli::public::Public),
+
     Pcap(PcapDumpArgs),
 
     /// Debugging and experimental tools
@@ -43,27 +48,6 @@ enum Command {
 #[derive(Clap)]
 struct NodeOpts {
     address: String,
-}
-
-// https://github.com/clap-rs/clap/issues/2005
-// This shim struct required until the issue is fixed.
-// It just temporarily adds another level to Opts.
-#[derive(Clap)]
-struct ConvertFrom {
-    #[clap(subcommand)]
-    command: ConvertFromCommand,
-}
-
-/// Conversions between types, e.g. public key to nano address.
-#[derive(Clap)]
-enum ConvertFromCommand {
-    Public(ConvertFromPublic),
-}
-
-/// Convert from a public key in hex.
-#[derive(Clap)]
-struct ConvertFromPublic {
-    public_key: String,
 }
 
 /// Read a pcapng file containing Nano packets, and print some information about each payload.
@@ -149,19 +133,11 @@ async fn option(opts: Opts) -> anyhow::Result<()> {
         #[cfg(not(feature = "pcap"))]
         Command::Pcap(o) => panic!("Compile with the `pcap` feature to enable this."),
 
-        Command::Convert(from) => match from.command {
-            ConvertFromCommand::Public(public) => {
-                let public = Public::from_hex(&public.public_key).context(
-                    "A valid public key is required, \
-                    e.g. 0E90A70364120708F7CE4D527E66A0FCB9CB90E81054C4ED329C58EFA469F6F7",
-                )?;
-                println!("{}", public.to_address().to_string());
-                Ok(())
-            }
-        },
-
         Command::Debug(debug) => match debug.command {
             DebugCommand::PcapLogToCSV(huh) => parse_pcap_log_file_to_csv(&huh.src, &huh.dst),
         },
+
+        Command::Public(public) => public.handle(),
+        Command::Convert(from) => from.command.handle(),
     }
 }

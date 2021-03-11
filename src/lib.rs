@@ -6,6 +6,9 @@ pub mod node;
 #[cfg(feature = "pcap")]
 pub mod pcap;
 
+#[cfg(feature = "wallet")]
+pub mod wallet;
+
 use anyhow::anyhow;
 pub use blocks::Block;
 pub use blocks::BlockHash;
@@ -22,6 +25,7 @@ pub use raw::Raw;
 
 pub mod blocks;
 mod bytes;
+pub mod cli;
 pub mod debug;
 pub mod encoding;
 mod keys;

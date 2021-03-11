@@ -13,6 +13,7 @@ use serde::de::Error;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use std::convert::TryFrom;
 use std::iter::FromIterator;
+use std::str::FromStr;
 
 #[derive(Clone, Eq, PartialEq, Hash)]
 pub struct Public([u8; Public::LEN]);
@@ -71,6 +72,14 @@ impl FromHex for Public {
 
         let x = <[u8; Self::LEN]>::try_from(bytes).context("Bytes into slice")?;
         Ok(Self(x))
+    }
+}
+
+impl FromStr for Public {
+    type Err = anyhow::Error;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        Self::from_hex(s)
     }
 }
 

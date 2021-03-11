@@ -157,7 +157,7 @@ pub struct Block {
     #[serde(serialize_with = "to_address", deserialize_with = "from_address")]
     account: Public,
 
-    /// Previous block hash on this account. Set to `None` if it's the first block.
+    /// Previous block hash on this account.
     previous: Previous,
 
     /// The representative this account is delegating to.
