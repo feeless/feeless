@@ -78,8 +78,9 @@ pub struct Private {
     #[clap(short, long, default_value = "0")]
     account: u32,
 
-    #[clap(short, long, default_value = "")]
-    passphrase: String,
+    // I tried using default_value = "" but clap still complained about the field being required.
+    #[clap(short, long)]
+    passphrase: Option<String>,
 }
 
 impl Private {
@@ -87,7 +88,7 @@ impl Private {
         let words = self.words.to_owned().resolve().unwrap();
         let phrase = crate::Phrase::from_words(self.language.0, words.as_str())?;
         dbg!(&phrase);
-        let private = phrase.to_private(self.account, self.passphrase.as_str())?;
+        let private = phrase.to_private(self.account.to_owned(), self.passphrase.as_ref().unwrap_or(&"".to_string()).as_str())?;
         println!("{}", private);
         Ok(())
     }
