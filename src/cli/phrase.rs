@@ -2,7 +2,10 @@ use crate::cli::StringOrStdin;
 use crate::{Language, MnemonicType};
 use anyhow::anyhow;
 use clap::Clap;
+use std::ops::Deref;
 use std::str::FromStr;
+
+static LANGUAGES: &str = "en, zh-hans, zh-hant, fr, it, ja, ko, es";
 
 #[derive(Clap)]
 pub struct Phrase {
@@ -27,9 +30,8 @@ impl FromStr for WrappedLanguage {
     type Err = anyhow::Error;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        let language = Language::from_language_code(s).ok_or(anyhow!(
-            "Possible language codes are en, zh-hans, zh-hant, fr, it, ja, ko, es"
-        ))?;
+        let language = Language::from_language_code(s)
+            .ok_or(anyhow!("Possible language codes are {}", LANGUAGES))?;
         Ok(WrappedLanguage(language))
     }
 }
@@ -54,18 +56,36 @@ pub enum Command {
     Address(Address),
 }
 
+// This is used with `#[clap(flatten)]` to prevent have duplicate code.
 #[derive(Clap)]
-pub struct Random {
-    #[clap(short, long, default_value = "24")]
-    words: WrappedMnemonicType,
-
+pub struct LanguageOpt {
+    /// Word list language: en, zh-hans, zh-hant, fr, it, ja, ko, es
     #[clap(short, long, default_value = "en")]
     language: WrappedLanguage,
 }
 
+impl Deref for LanguageOpt {
+    type Target = Language;
+
+    fn deref(&self) -> &Self::Target {
+        &self.language.0
+    }
+}
+
+/// Generate a random phrase. By default the word list is English with 24 words.
+#[derive(Clap)]
+pub struct Random {
+    /// Number of words. Possible values are: 12, 15, 18, 21, 24.
+    #[clap(short, long, default_value = "24")]
+    words: WrappedMnemonicType,
+
+    #[clap(flatten)]
+    language: LanguageOpt,
+}
+
 impl Random {
     pub fn handle(&self) -> anyhow::Result<()> {
-        println!("{}", crate::Phrase::random(self.words.0, self.language.0));
+        println!("{}", crate::Phrase::random(self.words.0, *self.language));
         Ok(())
     }
 }
@@ -75,8 +95,8 @@ pub struct FromPhraseOpts {
     // Keep this as String because we need `phrase_opts` to work out how to convert into a Phrase.
     words: StringOrStdin<String>,
 
-    #[clap(short, long, default_value = "en")]
-    language: WrappedLanguage,
+    #[clap(flatten)]
+    language: LanguageOpt,
 
     #[clap(short, long, default_value = "0")]
     account: u32,
@@ -89,7 +109,7 @@ pub struct FromPhraseOpts {
 impl FromPhraseOpts {
     pub fn to_private(&self) -> anyhow::Result<crate::Private> {
         let words = self.words.to_owned().resolve().unwrap();
-        let phrase = crate::Phrase::from_words(self.language.0, words.as_str())?;
+        let phrase = crate::Phrase::from_words(*self.language, words.as_str())?;
         let private = phrase.to_private(
             self.account.to_owned(),
             self.passphrase.as_ref().unwrap_or(&"".to_string()).as_str(),
