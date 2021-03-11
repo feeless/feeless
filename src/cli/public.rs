@@ -1,10 +1,9 @@
-use crate::cli::OptionPipe;
+use crate::cli::StringOrStdin;
 use clap::Clap;
 
 #[derive(Clap)]
 pub struct Public {
-    /// The public key in hex or `-` if reading from stdin.
-    pub key: OptionPipe<crate::Public>,
+    pub key: StringOrStdin<crate::Public>,
 
     #[clap(subcommand)]
     pub to: PublicTo,

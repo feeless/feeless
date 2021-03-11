@@ -7,20 +7,26 @@ use std::io::Read;
 use std::str::FromStr;
 
 pub mod convert;
-pub mod public;
+mod phrase;
+mod public;
 
-/// Similar to `Option`, except it will be explicitly a Pipe or a value.
+pub use phrase::Phrase;
+pub use public::Public;
+
+/// The a `T` or the String "-" if reading from stdin.
+///
+/// Use `resolve()` to turn the enum into `T` by maybe reading from stdin.
 #[derive(Copy, Clone)]
-pub enum OptionPipe<T>
+pub enum StringOrStdin<T>
 where
     T: FromStr,
     <T as FromStr>::Err: Debug,
 {
-    Some(T),
-    Pipe,
+    String(T),
+    Stdin,
 }
 
-impl<T> OptionPipe<T>
+impl<T> StringOrStdin<T>
 where
     T: FromStr,
     <T as FromStr>::Err: Debug,
@@ -32,8 +38,8 @@ where
         <T as FromStr>::Err: Debug,
     {
         match self {
-            OptionPipe::Some(t) => Ok(t),
-            OptionPipe::Pipe => {
+            StringOrStdin::String(t) => Ok(t),
+            StringOrStdin::Stdin => {
                 let mut buffer = String::new();
                 io::stdin().read_to_string(&mut buffer)?;
                 T::from_str(buffer.trim())
@@ -42,18 +48,20 @@ where
     }
 }
 
-impl<T> FromStr for OptionPipe<T>
+impl<T> FromStr for StringOrStdin<T>
 where
     T: FromStr,
     <T as FromStr>::Err: Debug,
 {
     type Err = anyhow::Error;
 
+    // This wasn't done in one step because I think clap calls from_str twice, and the second time
+    // around stdin is empty.
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         match s.as_ref() {
-            "-" => Ok(OptionPipe::Pipe),
+            "-" => Ok(StringOrStdin::Stdin),
             x => match T::from_str(x) {
-                Ok(x) => Ok(OptionPipe::Some(x)),
+                Ok(x) => Ok(StringOrStdin::String(x)),
                 Err(e) => Err(anyhow!("Could not parse string: {:?}", e)),
             },
         }

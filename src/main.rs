@@ -37,7 +37,9 @@ enum Command {
 
     Convert(ConvertFrom),
 
-    Public(cli::public::Public),
+    Public(cli::Public),
+
+    Phrase(cli::Phrase),
 
     Pcap(PcapDumpArgs),
 
@@ -138,6 +140,7 @@ async fn option(opts: Opts) -> anyhow::Result<()> {
         },
 
         Command::Public(public) => public.handle(),
+        Command::Phrase(phrase) => phrase.handle(),
         Command::Convert(from) => from.command.handle(),
     }
 }

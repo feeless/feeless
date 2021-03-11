@@ -5,7 +5,7 @@ use crate::node::wire::Wire;
 use crate::node::header::Header;
 
 use crate::encoding::{deserialize_hex, FromHex};
-use crate::{encoding, len_err_msg, to_hex, Address, Signature};
+use crate::{encoding, expect_len, len_err_msg, to_hex, Address, Signature};
 use anyhow::{anyhow, Context};
 use bitvec::prelude::*;
 use ed25519_dalek::Verifier;
@@ -67,10 +67,12 @@ impl Public {
 
 impl FromHex for Public {
     fn from_hex(s: &str) -> anyhow::Result<Self> {
+        expect_len(s.len(), Self::LEN * 2, "hex public key")?;
         let vec = hex::decode(s.as_bytes()).context("Decoding hex public key")?;
         let bytes = vec.as_slice();
 
-        let x = <[u8; Self::LEN]>::try_from(bytes).context("Bytes into slice")?;
+        let x = <[u8; Self::LEN]>::try_from(bytes)
+            .with_context(|| format!("Could not convert bytes into slice {:?}", bytes))?;
         Ok(Self(x))
     }
 }

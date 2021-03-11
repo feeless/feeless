@@ -6,6 +6,7 @@ pub use bip39::MnemonicType;
 use ed25519_dalek_bip32::{DerivationPath, ExtendedSecretKey};
 
 use std::convert::TryFrom;
+use std::fmt::{Display, Formatter};
 
 pub struct Phrase(Mnemonic);
 
@@ -42,6 +43,12 @@ impl Phrase {
 
     pub fn from_words(language: Language, words: &str) -> anyhow::Result<Self> {
         Ok(Self(Mnemonic::from_phrase(words, language)?))
+    }
+}
+
+impl Display for Phrase {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", &self.0.phrase())
     }
 }
 
