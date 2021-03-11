@@ -13,8 +13,10 @@ pub struct Phrase {
 impl Phrase {
     pub fn handle(&self) -> anyhow::Result<()> {
         match &self.command {
-            Command::Random(r) => r.handle(),
-            Command::Private(p) => p.handle(),
+            Command::Random(x) => x.handle(),
+            Command::Private(x) => x.handle(),
+            Command::Public(x) => x.handle(),
+            Command::Address(x) => x.handle(),
         }
     }
 }
@@ -48,6 +50,8 @@ impl FromStr for WrappedMnemonicType {
 pub enum Command {
     Random(Random),
     Private(Private),
+    Public(Public),
+    Address(Address),
 }
 
 #[derive(Clap)]
@@ -66,9 +70,8 @@ impl Random {
     }
 }
 
-/// Convert a phrase to a private key.
 #[derive(Clap)]
-pub struct Private {
+pub struct FromPhraseOpts {
     // Keep this as String because we need `phrase_opts` to work out how to convert into a Phrase.
     words: StringOrStdin<String>,
 
@@ -83,13 +86,59 @@ pub struct Private {
     passphrase: Option<String>,
 }
 
-impl Private {
-    pub fn handle(&self) -> anyhow::Result<()> {
+impl FromPhraseOpts {
+    pub fn to_private(&self) -> anyhow::Result<crate::Private> {
         let words = self.words.to_owned().resolve().unwrap();
         let phrase = crate::Phrase::from_words(self.language.0, words.as_str())?;
-        dbg!(&phrase);
-        let private = phrase.to_private(self.account.to_owned(), self.passphrase.as_ref().unwrap_or(&"".to_string()).as_str())?;
+        let private = phrase.to_private(
+            self.account.to_owned(),
+            self.passphrase.as_ref().unwrap_or(&"".to_string()).as_str(),
+        )?;
+        Ok(private)
+    }
+}
+
+/// Convert a phrase to a private key.
+#[derive(Clap)]
+pub struct Private {
+    #[clap(flatten)]
+    opts: FromPhraseOpts,
+}
+
+impl Private {
+    pub fn handle(&self) -> anyhow::Result<()> {
+        let private = self.opts.to_private()?;
         println!("{}", private);
+        Ok(())
+    }
+}
+
+/// Convert a phrase to a public key.
+#[derive(Clap)]
+pub struct Public {
+    #[clap(flatten)]
+    opts: FromPhraseOpts,
+}
+
+impl Public {
+    pub fn handle(&self) -> anyhow::Result<()> {
+        let public = self.opts.to_private()?.to_public();
+        println!("{}", public);
+        Ok(())
+    }
+}
+
+/// Convert a phrase to an address.
+#[derive(Clap)]
+pub struct Address {
+    #[clap(flatten)]
+    opts: FromPhraseOpts,
+}
+
+impl Address {
+    pub fn handle(&self) -> anyhow::Result<()> {
+        let address = self.opts.to_private()?.to_public().to_address();
+        println!("{}", address);
         Ok(())
     }
 }
