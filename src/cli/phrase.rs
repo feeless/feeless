@@ -16,7 +16,7 @@ pub struct Phrase {
 impl Phrase {
     pub fn handle(&self) -> anyhow::Result<()> {
         match &self.command {
-            Command::Random(x) => x.handle(),
+            Command::New(x) => x.handle(),
             Command::Private(x) => x.handle(),
             Command::Public(x) => x.handle(),
             Command::Address(x) => x.handle(),
@@ -50,7 +50,7 @@ impl FromStr for WrappedMnemonicType {
 
 #[derive(Clap)]
 pub enum Command {
-    Random(Random),
+    New(New),
     Private(Private),
     Public(Public),
     Address(Address),
@@ -74,7 +74,7 @@ impl Deref for LanguageOpt {
 
 /// Generate a random phrase. By default the word list is English with 24 words.
 #[derive(Clap)]
-pub struct Random {
+pub struct New {
     /// Number of words. Possible values are: 12, 15, 18, 21, 24.
     #[clap(short, long, default_value = "24")]
     words: WrappedMnemonicType,
@@ -83,7 +83,7 @@ pub struct Random {
     language: LanguageOpt,
 }
 
-impl Random {
+impl New {
     pub fn handle(&self) -> anyhow::Result<()> {
         println!("{}", crate::Phrase::random(self.words.0, *self.language));
         Ok(())

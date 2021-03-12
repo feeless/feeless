@@ -18,11 +18,12 @@ fn main() -> anyhow::Result<()> {
     assert!(cmd!(bin, "--help").read()?.contains("cryptocurrency"));
 
     // This is just a sanity check since it is non-deterministic, we can't check the result, only
-    // to see if there is an error.
-    cmd!(bin, "phrase", "random")
-        .pipe(cmd!(bin, "phrase", "-", "public"))
-        .pipe(cmd!(bin, "public", "-", "address"))
-        .run()?;
+    // to see if there is an address and no error.
+    assert!(cmd!(bin, "phrase", "new")
+        .pipe(cmd!(bin, "phrase", "public", "-"))
+        .pipe(cmd!(bin, "public", "address", "-"))
+        .read()?
+        .contains("nano_"));
 
     Ok(())
 }
