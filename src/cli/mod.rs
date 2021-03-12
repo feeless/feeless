@@ -6,10 +6,12 @@ use std::io;
 use std::io::Read;
 use std::str::FromStr;
 
+mod address;
 pub mod convert;
 mod phrase;
 mod public;
 
+pub use address::Address;
 pub use phrase::Phrase;
 pub use public::Public;
 

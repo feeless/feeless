@@ -39,6 +39,8 @@ enum Command {
 
     Public(cli::Public),
 
+    Address(cli::Address),
+
     /// Word mnemonic phrase generation and conversion.
     Phrase(cli::Phrase),
 
@@ -143,5 +145,6 @@ async fn option(opts: Opts) -> anyhow::Result<()> {
         Command::Public(public) => public.handle(),
         Command::Phrase(phrase) => phrase.handle(),
         Command::Convert(from) => from.command.handle(),
+        Command::Address(address) => address.handle(),
     }
 }
