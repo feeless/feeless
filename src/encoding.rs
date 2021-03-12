@@ -80,6 +80,7 @@ pub fn decode_nano_base_32(s: &str) -> anyhow::Result<BitVec<Msb0, u8>> {
 mod tests {
     use super::*;
     use crate::Address;
+    use std::str::FromStr;
 
     #[test]
     fn encode_decode() {

@@ -81,7 +81,7 @@ mod tests {
             "3BE4FC2EF3F3B7374E6FC4FB6E7BB153F8A2998B3B3DAB50853EABE128024143"
         );
 
-        let address = private.to_public().to_address();
+        let address = private.to_public().unwrap().to_address();
         assert_eq!(
             address.to_string(),
             "nano_1pu7p5n3ghq1i1p4rhmek41f5add1uh34xpb94nkbxe8g4a6x1p69emk8y1d"

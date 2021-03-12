@@ -4,7 +4,9 @@ use crate::{expect_len, Private};
 use bytes::{BufMut, BytesMut};
 use rand::RngCore;
 use std::convert::TryFrom;
+use std::str::FromStr;
 
+#[derive(Clone)]
 pub struct Seed(pub [u8; Seed::LEN]);
 
 impl Seed {
@@ -35,15 +37,13 @@ impl Seed {
     }
 }
 
-impl TryFrom<&str> for Seed {
-    type Error = anyhow::Error;
+impl FromStr for Seed {
+    type Err = anyhow::Error;
 
-    /// Expecting a hex string.
-    /// TODO: Move into Seed::from_hex()
-    fn try_from(value: &str) -> Result<Self, Self::Error> {
-        expect_len(value.len(), Seed::LEN * 2, "Seed")?;
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        expect_len(s.len(), Seed::LEN * 2, "Seed")?;
         let mut seed = Seed::zero();
-        hex::decode_to_slice(value, &mut seed.0)?;
+        hex::decode_to_slice(s, &mut seed.0)?;
         Ok(seed)
     }
 }

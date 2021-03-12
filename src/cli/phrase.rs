@@ -142,7 +142,7 @@ pub struct Public {
 
 impl Public {
     pub fn handle(&self) -> anyhow::Result<()> {
-        let public = self.opts.to_private()?.to_public();
+        let public = self.opts.to_private()?.to_public()?;
         println!("{}", public);
         Ok(())
     }
@@ -157,7 +157,7 @@ pub struct Address {
 
 impl Address {
     pub fn handle(&self) -> anyhow::Result<()> {
-        let address = self.opts.to_private()?.to_public().to_address();
+        let address = self.opts.to_private()?.to_public()?.to_address();
         println!("{}", address);
         Ok(())
     }

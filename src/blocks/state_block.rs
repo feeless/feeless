@@ -91,6 +91,7 @@ mod tests {
 
     use super::StateBlock;
     use super::{Block, BlockHash, Raw};
+    use std::str::FromStr;
 
     #[test]
     fn hash_a_real_state_block() {

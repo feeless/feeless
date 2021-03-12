@@ -196,7 +196,7 @@ mod tests {
         .unwrap();
         dbg!(&threshold);
 
-        let public = Seed::zero().derive(0).to_public();
+        let public = Seed::zero().derive(0).to_public().unwrap();
         dbg!(&public);
         let subject = Subject::Public(public);
         let work = Work::generate(&subject, &threshold).unwrap();

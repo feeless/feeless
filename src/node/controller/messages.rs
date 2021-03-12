@@ -53,7 +53,7 @@ impl Controller {
             // TODO: Move into state
             let seed = Seed::random();
             let private = seed.derive(0);
-            let public = private.to_public();
+            let public = private.to_public()?;
             let signature = private.sign(query.cookie().as_bytes())?;
             public
                 .verify(query.cookie().as_bytes(), &signature)

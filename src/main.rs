@@ -37,12 +37,16 @@ enum Command {
 
     Convert(ConvertFrom),
 
+    /// Word mnemonic phrase generation and conversion.
+    Phrase(cli::Phrase),
+
+    Seed(cli::Seed),
+
+    Private(cli::Private),
+
     Public(cli::Public),
 
     Address(cli::Address),
-
-    /// Word mnemonic phrase generation and conversion.
-    Phrase(cli::Phrase),
 
     Pcap(PcapDumpArgs),
 
@@ -142,6 +146,8 @@ async fn option(opts: Opts) -> anyhow::Result<()> {
             DebugCommand::PcapLogToCSV(huh) => parse_pcap_log_file_to_csv(&huh.src, &huh.dst),
         },
 
+        Command::Seed(seed) => seed.handle(),
+        Command::Private(private) => private.handle(),
         Command::Public(public) => public.handle(),
         Command::Phrase(phrase) => phrase.handle(),
         Command::Convert(from) => from.command.handle(),

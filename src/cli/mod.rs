@@ -9,11 +9,15 @@ use std::str::FromStr;
 mod address;
 pub mod convert;
 mod phrase;
+mod private;
 mod public;
+mod seed;
 
 pub use address::Address;
 pub use phrase::Phrase;
+pub use private::Private;
 pub use public::Public;
+pub use seed::Seed;
 
 /// The a `T` or the String "-" if reading from stdin.
 ///
