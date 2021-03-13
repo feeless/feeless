@@ -12,13 +12,6 @@ pub struct Private([u8; Private::LEN]);
 impl Private {
     pub(crate) const LEN: usize = 32;
 
-    fn to_ed25519_dalek(&self) -> anyhow::Result<ed25519_dalek::SecretKey> {
-        Ok(ed25519_dalek::SecretKey::from_bytes(&self.0)?)
-    }
-
-    /// ```
-    /// println!("hello");
-    /// ```
     /// Generate the public key for this private key.
     ///
     /// If you wish to convert this private key to a Nano address you will need to take another
@@ -47,6 +40,10 @@ impl Private {
         let expanded_secret = ExpandedSecretKey::from(&dalek);
         let internal_signed = expanded_secret.sign(message, &self.internal_public()?);
         Signature::try_from(internal_signed.as_bytes())
+    }
+
+    fn to_ed25519_dalek(&self) -> anyhow::Result<ed25519_dalek::SecretKey> {
+        Ok(ed25519_dalek::SecretKey::from_bytes(&self.0)?)
     }
 }
 
