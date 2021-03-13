@@ -1,8 +1,8 @@
 #[cfg(feature = "node")]
-use crate::node::header::Header;
+use crate::node::Header;
 
 #[cfg(feature = "node")]
-use crate::node::wire::Wire;
+use crate::node::Wire;
 
 use crate::{BlockHash, Public};
 use serde::{Deserialize, Serialize};

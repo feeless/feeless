@@ -1,13 +1,11 @@
-use std::convert::{TryFrom, TryInto};
-use std::result::Result;
-
-use anyhow::{anyhow, Context};
-use bitvec::prelude::*;
-
 use crate::blocks::BlockType;
 use crate::expect_len;
 use crate::network::Network;
 use crate::node::wire::Wire;
+use anyhow::{anyhow, Context};
+use bitvec::prelude::*;
+use std::convert::{TryFrom, TryInto};
+use std::result::Result;
 
 // TODO: Have header internally only contain [u8; 8] and use accessors, so that the header doesn't
 //       have to be encoded/decoded when sending/receiving.

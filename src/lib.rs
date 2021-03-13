@@ -7,15 +7,15 @@ pub mod node;
 pub mod pcap;
 
 #[cfg(feature = "wallet")]
-pub mod wallet;
+mod wallet;
 
 use anyhow::anyhow;
 pub use blocks::Block;
 pub use blocks::BlockHash;
 pub use blocks::Previous;
-pub use encoding::{hex_formatter, to_hex};
+pub(crate) use encoding::{hex_formatter, to_hex};
 pub use keys::address::Address;
-pub use keys::phrase::{Language, MnemonicType, Phrase};
+pub(crate) use keys::phrase::{Language, MnemonicType, Phrase};
 pub use keys::private::Private;
 pub use keys::public::Public;
 pub use keys::seed::Seed;
@@ -23,13 +23,13 @@ pub use keys::signature::Signature;
 pub use pow::work::Work;
 pub use raw::Raw;
 
-pub mod blocks;
+mod blocks;
 mod bytes;
 pub mod cli;
-pub mod debug;
-pub mod encoding;
+mod debug;
+mod encoding;
 mod keys;
-pub mod network;
+mod network;
 mod pow;
 mod raw;
 

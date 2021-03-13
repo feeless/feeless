@@ -1,24 +1,24 @@
-use std::sync::Arc;
+mod channel;
+mod controller;
+mod cookie;
+mod header;
+mod messages;
+mod peer;
+mod state;
+mod timestamp;
+mod wire;
 
+use crate::network::Network;
+use channel::network_channel;
+pub use controller::{Controller, Packet};
+pub use header::Header;
+use state::DynState;
+pub use state::{MemoryState, SledDiskState};
+use std::sync::Arc;
 use tokio::net::TcpStream;
 use tokio::sync::Mutex;
 use tracing::info;
-
-use state::SledDiskState;
-
-use crate::network::Network;
-use crate::node::channel::network_channel;
-use crate::node::state::{DynState, MemoryState};
-
-mod channel;
-pub mod controller;
-pub mod cookie;
-pub mod header;
-pub mod messages;
-pub mod peer;
-pub mod state;
-pub mod timestamp;
-pub mod wire;
+pub use wire::Wire;
 
 pub async fn node_with_single_peer(address: &str) -> anyhow::Result<()> {
     let network = Network::Live;

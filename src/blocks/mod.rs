@@ -1,8 +1,10 @@
-#[cfg(feature = "node")]
-use crate::node::wire::Wire;
+/// Contains functionality around handling, creating and parsing blocks.
 
 #[cfg(feature = "node")]
-use crate::node::header::Header;
+use crate::node::Wire;
+
+#[cfg(feature = "node")]
+use crate::node::Header;
 
 use crate::encoding::blake2b;
 use crate::keys::public::to_address;

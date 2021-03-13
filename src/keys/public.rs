@@ -1,8 +1,8 @@
 #[cfg(feature = "node")]
-use crate::node::wire::Wire;
+use crate::node::Wire;
 
 #[cfg(feature = "node")]
-use crate::node::header::Header;
+use crate::node::Header;
 
 use crate::encoding::deserialize_hex;
 use crate::{encoding, expect_len, len_err_msg, to_hex, Address, Signature};

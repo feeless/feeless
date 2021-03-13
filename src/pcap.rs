@@ -1,20 +1,17 @@
-use crate::node::wire::Wire;
+use crate::network::Network;
+use crate::node::Wire;
+use crate::node::{Controller, MemoryState, Packet};
 use crate::DEFAULT_PORT;
 use ansi_term;
 use anyhow::Context;
+use chrono::{DateTime, Utc};
 use etherparse::{InternetSlice, SlicedPacket};
 use etherparse::{Ipv4HeaderSlice, TcpHeaderSlice, TransportSlice};
 use pcarp::Capture;
 use std::collections::{HashMap, HashSet};
-
 use std::fs::File;
 use std::io::Read;
 use std::net::{IpAddr, Ipv4Addr, SocketAddr};
-
-use crate::network::Network;
-use crate::node::controller::{Controller, Packet};
-use crate::node::state::MemoryState;
-use chrono::{DateTime, Utc};
 use std::str::FromStr;
 use std::sync::Arc;
 use tokio::sync::mpsc::{Receiver, Sender};
@@ -30,7 +27,7 @@ use tracing::{debug, error, info, trace, warn};
 // ignore it.
 // Or... just assume the first packet sent is from the subject.
 #[derive(Debug, PartialEq, Eq)]
-pub enum Subject {
+pub(crate) enum Subject {
     AutoFirstSource,
     Specified(Ipv4Addr),
 }
@@ -40,7 +37,7 @@ enum Direction {
     Recv,
 }
 
-pub struct PcapDump {
+pub(crate) struct PcapDump {
     /// Storage to continue a TCP payload for the next packet in a stream.
     stream_cont: HashMap<String, (usize, Vec<u8>)>,
 
