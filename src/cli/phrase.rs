@@ -16,11 +16,24 @@ pub struct Phrase {
 impl Phrase {
     pub fn handle(&self) -> anyhow::Result<()> {
         match &self.command {
-            Command::New(x) => x.handle(),
-            Command::Private(x) => x.handle(),
-            Command::Public(x) => x.handle(),
-            Command::Address(x) => x.handle(),
+            Command::New(x) => {
+                let phrase = crate::Phrase::random(x.words.0, *x.language);
+                println!("{}", phrase);
+            }
+            Command::Private(x) => {
+                let private = x.opts.to_private()?;
+                println!("{}", private);
+            }
+            Command::Public(x) => {
+                let public = x.opts.to_private()?.to_public()?;
+                println!("{}", public);
+            }
+            Command::Address(x) => {
+                let address = x.opts.to_private()?.to_public()?.to_address();
+                println!("{}", address);
+            }
         }
+        Ok(())
     }
 }
 
@@ -83,13 +96,6 @@ pub struct New {
     language: LanguageOpt,
 }
 
-impl New {
-    pub fn handle(&self) -> anyhow::Result<()> {
-        println!("{}", crate::Phrase::random(self.words.0, *self.language));
-        Ok(())
-    }
-}
-
 #[derive(Clap)]
 pub struct FromPhraseOpts {
     // Keep this as String because we need `phrase_opts` to work out how to convert into a Phrase.
@@ -125,14 +131,6 @@ pub struct Private {
     opts: FromPhraseOpts,
 }
 
-impl Private {
-    pub fn handle(&self) -> anyhow::Result<()> {
-        let private = self.opts.to_private()?;
-        println!("{}", private);
-        Ok(())
-    }
-}
-
 /// Convert a phrase to a public key.
 #[derive(Clap)]
 pub struct Public {
@@ -140,25 +138,9 @@ pub struct Public {
     opts: FromPhraseOpts,
 }
 
-impl Public {
-    pub fn handle(&self) -> anyhow::Result<()> {
-        let public = self.opts.to_private()?.to_public()?;
-        println!("{}", public);
-        Ok(())
-    }
-}
-
 /// Convert a phrase to an address.
 #[derive(Clap)]
 pub struct Address {
     #[clap(flatten)]
     opts: FromPhraseOpts,
-}
-
-impl Address {
-    pub fn handle(&self) -> anyhow::Result<()> {
-        let address = self.opts.to_private()?.to_public()?.to_address();
-        println!("{}", address);
-        Ok(())
-    }
 }

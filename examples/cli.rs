@@ -62,17 +62,11 @@ fn main() -> anyhow::Result<()> {
     test.assert(
         "A known seed piped through several stages into an address.",
         || {
-            Ok(cmd!(
-                bin,
-                "seed",
-                "private",
-                "0000000000000000000000000000000000000000000000000000000000000000",
-                "-i",
-                "0"
-            )
-            .pipe(cmd!(bin, "private", "address", "-"))
-            .read()?
-            .contains("nano_3i1aq1cchnmbn9x5rsbap8b15akfh7wj7pwskuzi7ahz8oq6cobd99d4r3b7"))
+            let zeros = "0000000000000000000000000000000000000000000000000000000000000000";
+            Ok(cmd!(bin, "seed", "private", zeros, "-i", "0")
+                .pipe(cmd!(bin, "private", "address", "-"))
+                .read()?
+                .contains("nano_3i1aq1cchnmbn9x5rsbap8b15akfh7wj7pwskuzi7ahz8oq6cobd99d4r3b7"))
         },
     );
 
@@ -95,10 +89,10 @@ impl Test {
     {
         let (ok, msg) = match result() {
             Ok(r) => match r {
-                true => (true, Color::Green.paint("PASS")),
-                false => (false, Color::Red.paint("FAIL")),
+                true => (true, Color::Green.bold().paint("PASS")),
+                false => (false, Color::Red.bold().paint("FAIL")),
             },
-            Err(err) => (false, Color::Red.paint("ERRO")),
+            Err(err) => (false, Color::Red.bold().paint("ERRO")),
         };
         println!("{} {}", msg, desc);
         if !ok {
