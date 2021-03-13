@@ -4,7 +4,7 @@
 //!
 //! feeless can be used as:
 //! * This crate.
-//! * A command line tool with piping capability.
+//! * A command line tool with piping capability. See <https://github.com/feeless/feeless/blob/main/examples/cli.rs> for examples.
 //! * A node. ⚠ WIP. Not a proper node yet, but lots of groundwork so far!
 
 #[cfg(feature = "node")]
@@ -16,9 +16,11 @@ mod pcap;
 #[cfg(feature = "wallet")]
 mod wallet;
 
+#[doc(hidden)]
+pub mod cli;
+
 pub mod blocks;
 mod bytes;
-pub mod cli;
 mod debug;
 mod encoding;
 mod keys;

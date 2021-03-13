@@ -6,7 +6,7 @@ use regex::Regex;
 use std::convert::TryFrom;
 use std::str::FromStr;
 
-/// A Nano address. e.g. `nano_3o3nkaqbgxbuhmcrf38tpxyhsf5semmcahejyk9z5ybffm7tjhizrfqo7xkg`
+/// Nano address. e.g. `nano_3o3nkaqbgxbuhmcrf38tpxyhsf5semmcahejyk9z5ybffm7tjhizrfqo7xkg`
 ///
 /// You can parse and validate a Nano address using [trait@FromStr]:
 /// ```

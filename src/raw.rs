@@ -11,6 +11,7 @@ use std::str::FromStr;
 const RAW_TO_MNANO: u128 = 1_000_000_000_000_000_000_000_000_000_000;
 const RAW_TO_NANO: u128 = 1_000_000_000_000_000_000_000_000;
 
+/// Container for the smallest Nano unit. It can convert from/into Mnano, nano, hex, [`String`], and [`BigDecimal`] for decimal accuracy.
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct Raw(u128);
 

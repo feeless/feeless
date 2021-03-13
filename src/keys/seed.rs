@@ -6,6 +6,9 @@ use rand::RngCore;
 use std::convert::TryFrom;
 use std::str::FromStr;
 
+/// 256 bit seed used to derive multiple addresses.
+///
+/// See https://docs.nano.org/integration-guides/the-basics/#seed for details.
 #[derive(Clone)]
 pub struct Seed(pub [u8; Seed::LEN]);
 
@@ -16,6 +19,7 @@ impl Seed {
         Self([0; Self::LEN])
     }
 
+    /// Generate a secure random seed.
     pub fn random() -> Self {
         let mut seed = Seed::zero();
         rand::thread_rng().fill_bytes(&mut seed.0);

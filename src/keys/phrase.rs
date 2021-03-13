@@ -7,7 +7,7 @@ use ed25519_dalek_bip32::{DerivationPath, ExtendedSecretKey};
 use std::convert::TryFrom;
 use std::fmt::{Display, Formatter};
 
-/// A BIP39 and BIP44 mnemonic seed phrase that can generate keys.
+/// BIP39 and BIP44 mnemonic seed phrase that can generate keys.
 #[derive(Debug)]
 pub struct Phrase(Mnemonic);
 

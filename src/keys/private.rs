@@ -5,7 +5,7 @@ use ed25519_dalek::ExpandedSecretKey;
 use std::convert::TryFrom;
 use std::str::FromStr;
 
-/// A 256 bit private key which can generate a public key.
+/// 256 bit private key which can generate a public key.
 #[derive(Clone)]
 pub struct Private([u8; Private::LEN]);
 

@@ -15,6 +15,7 @@ use std::convert::TryFrom;
 use std::iter::FromIterator;
 use std::str::FromStr;
 
+/// Public key which can be converted into an address or verify a signature.
 #[derive(Clone, Eq, PartialEq, Hash)]
 pub struct Public([u8; Public::LEN]);
 
