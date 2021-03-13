@@ -1,5 +1,9 @@
 # ⋰·⋰ Feeless
 
+![Crates.io](https://img.shields.io/crates/v/feeless?style=flat-square)
+![GitHub last commit](https://img.shields.io/github/last-commit/feeless/feeless?style=flat-square)
+![Crates.io](https://img.shields.io/crates/l/feeless?style=flat-square)
+
 ## What is Feeless?
 
 **Feeless** is a **Nano** cryptocurrency node, wallet, tools, and Rust crate. This is not the official project for Nano,
