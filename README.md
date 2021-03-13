@@ -6,7 +6,7 @@
 only an implementation written in Rust. The official Nano node
 implementation [lives here](https://github.com/nanocurrency/nano-node).
 
-⚠ This is a work in progress. It's not ready to use as a real node! ⚠
+⚠ This is a work in progress. ⚠
 
 I decided to start this project as a personal adventure of understanding Nano. I give no promises about my future
 motivation to complete this project 🤐.
@@ -15,8 +15,9 @@ motivation to complete this project 🤐.
 
 | Feature           | Progress | Notes |
 | ----------------- | -------- | ----- |
-| [Rust crate](https://crates.io/crates/feeless) | 90% | Please [suggest](https://github.com/feeless/feeless/discussions/new) if something is missing. |
+| [Rust crate](https://crates.io/crates/feeless) | 80% | Please [suggest](https://github.com/feeless/feeless/discussions/new) if something is missing. |
 | [CLI tool](https://github.com/feeless/feeless/blob/main/examples/cli.rs) | 60% | Seeds, phrases, public, private, addresses, parse a wireshark network capture<sup>1</sup>. |
+| Wallet | 0% | No wallet code yet, but should be quick to implement. |
 | Node | 20% | Lots of the groundwork done. Can connect and communicate. No voting, storage, chain validation, etc. |
 
 <sup>1. `feeless pcap [file.pcapng]` can dump a capture file and dissect the packets. There are additional arguments you
