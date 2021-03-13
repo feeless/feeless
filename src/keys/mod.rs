@@ -9,11 +9,12 @@ pub mod signature;
 mod tests {
     use crate::*;
     use std::convert::TryFrom;
+    use std::str::FromStr;
 
     #[test]
     fn conversions() {
         let seed =
-            Seed::try_from("0000000000000000000000000000000000000000000000000000000000000000")
+            Seed::from_str("0000000000000000000000000000000000000000000000000000000000000000")
                 .unwrap();
         let private: Private = seed.derive(0);
         assert_eq!(
@@ -54,7 +55,7 @@ mod tests {
         );
 
         let seed =
-            Seed::try_from("1BC5FB0ECB41B07AE3272FE2CB037864382167ECE9ECEFB31237EE555627B891")
+            Seed::from_str("1BC5FB0ECB41B07AE3272FE2CB037864382167ECE9ECEFB31237EE555627B891")
                 .unwrap();
         let address = seed.derive(0).to_public().unwrap().to_address();
         assert_eq!(

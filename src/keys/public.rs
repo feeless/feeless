@@ -4,7 +4,7 @@ use crate::node::wire::Wire;
 #[cfg(feature = "node")]
 use crate::node::header::Header;
 
-use crate::encoding::{deserialize_hex, FromHex};
+use crate::encoding::deserialize_hex;
 use crate::{encoding, expect_len, len_err_msg, to_hex, Address, Signature};
 use anyhow::{anyhow, Context};
 use bitvec::prelude::*;
@@ -65,8 +65,10 @@ impl Public {
     }
 }
 
-impl FromHex for Public {
-    fn from_hex(s: &str) -> anyhow::Result<Self> {
+impl FromStr for Public {
+    type Err = anyhow::Error;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
         expect_len(s.len(), Self::LEN * 2, "hex public key")?;
         let vec = hex::decode(s.as_bytes()).context("Decoding hex public key")?;
         let bytes = vec.as_slice();
@@ -74,14 +76,6 @@ impl FromHex for Public {
         let x = <[u8; Self::LEN]>::try_from(bytes)
             .with_context(|| format!("Could not convert bytes into slice {:?}", bytes))?;
         Ok(Self(x))
-    }
-}
-
-impl FromStr for Public {
-    type Err = anyhow::Error;
-
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        Self::from_hex(s)
     }
 }
 
@@ -184,9 +178,9 @@ where
 #[cfg(test)]
 mod tests {
     use super::Public;
-    use crate::encoding::FromHex;
     use crate::Private;
     use std::convert::TryFrom;
+    use std::str::FromStr;
 
     /// Example private -> public conversion:
     /// https://docs.nano.org/protocol-design/signing-hashing-and-key-derivation/#signing-algorithm-ed25519
@@ -207,6 +201,6 @@ mod tests {
     #[test]
     fn hex() {
         let s = "19D3D919475DEED4696B5D13018151D1AF88B2BD3BCFF048B45031C1F36D1858";
-        assert_eq!(s, &Public::from_hex(&s).unwrap().as_hex());
+        assert_eq!(s, &Public::from_str(&s).unwrap().as_hex());
     }
 }

@@ -257,7 +257,6 @@ impl Controller {
 mod tests {
     use super::*;
     use crate::blocks::{OpenBlock, SendBlock};
-    use crate::encoding::FromHex;
     use crate::node::state::MemoryState;
     use crate::{Address, BlockHash, Previous, DEFAULT_PORT};
     use std::net::{Ipv4Addr, SocketAddrV4};
@@ -365,7 +364,7 @@ mod tests {
         land_open.calc_hash().unwrap();
         assert_eq!(
             land_open.hash().unwrap(),
-            &BlockHash::from_hex(
+            &BlockHash::from_str(
                 "90D0C16AC92DD35814E84BFBCC739A039615D0A42A76EF44ADAEF1D99E9F8A35"
             )
             .unwrap()

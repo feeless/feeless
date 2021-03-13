@@ -86,7 +86,6 @@ impl Wire for StateBlock {
 #[cfg(test)]
 mod tests {
     use crate::blocks::state_block::Link;
-    use crate::encoding::FromHex;
     use crate::{Address, Signature, Work};
 
     use super::StateBlock;
@@ -100,17 +99,17 @@ mod tests {
                 .unwrap()
                 .to_public();
         let parent =
-            BlockHash::from_hex("7837C80964CAD551DEABE162C7FC4BB58688A0C6EB6D9907C0D2A7C74A33C7EB")
+            BlockHash::from_str("7837C80964CAD551DEABE162C7FC4BB58688A0C6EB6D9907C0D2A7C74A33C7EB")
                 .unwrap();
         let representative = account.clone();
         let balance = Raw::from_raw(2711469892748129430069222848295u128);
         let link = Link::Source(
-            BlockHash::from_hex("0399B19B022D260F3DDFBA26D0306D423F1890D3AE06136FAB16802D1F2B87A7")
+            BlockHash::from_str("0399B19B022D260F3DDFBA26D0306D423F1890D3AE06136FAB16802D1F2B87A7")
                 .unwrap(),
         );
         // Signature and work aren't hashed, but left them as the real data anyway.
-        let signature = Signature::from_hex("BCF9F123138355AE9E741912D319FF48E5FCCA39D9E5DD74411D32C69B1C7501A0BF001C45D4F68CB561B902A42711E6166B9018E76C50CC868EF2E32B78F200").unwrap();
-        let work = Work::from_hex("d4757052401b9e08").unwrap();
+        let signature = Signature::from_str("BCF9F123138355AE9E741912D319FF48E5FCCA39D9E5DD74411D32C69B1C7501A0BF001C45D4F68CB561B902A42711E6166B9018E76C50CC868EF2E32B78F200").unwrap();
+        let work = Work::from_str("d4757052401b9e08").unwrap();
 
         let block = StateBlock::new(account, parent, representative, balance, link);
         let mut block = Block::from_state_block(&block);
@@ -121,7 +120,7 @@ mod tests {
 
         assert_eq!(
             block.hash().unwrap(),
-            &BlockHash::from_hex(
+            &BlockHash::from_str(
                 "6F050D3D0B19C2C206046AAE2D46661B57E1B7D890DE8398D203A025E29A4AD9"
             )
             .unwrap()
@@ -152,7 +151,7 @@ impl Link {
         Self::Nothing
     }
 
-    pub fn unsure_from_hex(s: &str) -> anyhow::Result<Self> {
+    pub fn unsure_from_str(s: &str) -> anyhow::Result<Self> {
         expect_len(s.len(), Self::LEN * 2, "Link")?;
         let mut slice = [0u8; Self::LEN];
         hex::decode_to_slice(s, &mut slice)?;

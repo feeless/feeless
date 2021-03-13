@@ -1,7 +1,7 @@
-use crate::encoding::FromHex;
 use crate::Public;
 use anyhow::Context;
 use clap::Clap;
+use std::str::FromStr;
 
 #[derive(Clap)]
 pub struct ConvertFrom {
@@ -19,7 +19,7 @@ impl ConvertFromCommand {
     pub fn handle(&self) -> anyhow::Result<()> {
         match &self {
             ConvertFromCommand::Public(public) => {
-                let address = Public::from_hex(&public.public_key)?.to_address();
+                let address = Public::from_str(&public.public_key)?.to_address();
                 println!("{}", address);
             }
         }

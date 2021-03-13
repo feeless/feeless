@@ -13,7 +13,6 @@ use clap::Clap;
 use feeless::cli;
 use feeless::cli::convert::ConvertFrom;
 use feeless::debug::parse_pcap_log_file_to_csv;
-use feeless::encoding::FromHex;
 use std::net::Ipv4Addr;
 use std::path::{Path, PathBuf};
 use std::str::FromStr;

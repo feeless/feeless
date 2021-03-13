@@ -119,19 +119,19 @@ impl Wire for ConfirmAck {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::encoding::FromHex;
+    use std::str::FromStr;
 
     #[test]
     fn verify_sig() {
         let account =
-            Public::from_hex("2994D330022A052DF83E10FCE1B3E140496CDCD7E0C0F2FF6DE2670291B88011")
+            Public::from_str("2994D330022A052DF83E10FCE1B3E140496CDCD7E0C0F2FF6DE2670291B88011")
                 .unwrap();
-        let signature = Signature::from_hex("721C6CAFD61C2D7ED27643C556F77AE900308BD5AAF458E74310E42773BB45494A138EE0291B6868C360EB983AB5CE8FF2EFF6A66044CBA2B128047ACDBD4402").unwrap();
+        let signature = Signature::from_str("721C6CAFD61C2D7ED27643C556F77AE900308BD5AAF458E74310E42773BB45494A138EE0291B6868C360EB983AB5CE8FF2EFF6A66044CBA2B128047ACDBD4402").unwrap();
         let hash1 =
-            BlockHash::from_hex("C3A3FE56D584CB997199E3B09EC454F62DED3B7EF875D9D7E8E5011AC34C77A5")
+            BlockHash::from_str("C3A3FE56D584CB997199E3B09EC454F62DED3B7EF875D9D7E8E5011AC34C77A5")
                 .unwrap();
         let hash2 =
-            BlockHash::from_hex("139E1064D7CCC26495EFB4030015C02CE78556EBE3547192843B0E71C91599FC")
+            BlockHash::from_str("139E1064D7CCC26495EFB4030015C02CE78556EBE3547192843B0E71C91599FC")
                 .unwrap();
         let timestamp = Timestamp::from_u64(2019626603);
         let confirm_ack = ConfirmAck::new(

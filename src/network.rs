@@ -4,8 +4,8 @@ use anyhow::anyhow;
 
 use crate::blocks::{Block, OpenBlock};
 
-use crate::encoding::FromHex;
 use crate::{Address, BlockHash, Previous, Public, Raw, Signature, Work};
+use std::str::FromStr;
 
 #[derive(Debug, Clone, Copy, PartialEq)]
 #[repr(u8)]
@@ -47,7 +47,7 @@ impl Network {
 
     pub fn genesis_hash(&self) -> BlockHash {
         match self {
-            Self::Live => BlockHash::from_hex(
+            Self::Live => BlockHash::from_str(
                 "991CF190094C00F0B68E2E5F75F6BEE95A2E0BD93CEAA4A6734DB9F19B728948",
             )
             .unwrap(),

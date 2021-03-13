@@ -1,4 +1,3 @@
-use crate::encoding::FromHex;
 use crate::{expect_len, to_hex};
 use anyhow::Context;
 use bigdecimal::BigDecimal;
@@ -126,7 +125,7 @@ where
     D: Deserializer<'de>,
 {
     let s: &str = Deserialize::deserialize(deserializer)?;
-    Ok(Raw::from_hex(s).map_err(de::Error::custom)?)
+    Ok(Raw::from_str(s).map_err(de::Error::custom)?)
 }
 
 impl Display for Raw {
@@ -153,8 +152,10 @@ impl TryFrom<&[u8]> for Raw {
     }
 }
 
-impl FromHex for Raw {
-    fn from_hex(s: &str) -> anyhow::Result<Self> {
+impl FromStr for Raw {
+    type Err = anyhow::Error;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
         expect_len(s.len(), Raw::LEN * 2, "Hex raw")?;
         let vec = hex::decode(s.as_bytes()).context("Decoding hex raw")?;
         Ok(Raw::try_from(vec.as_slice())?)

@@ -1,8 +1,9 @@
-use crate::encoding::{deserialize_hex, hex_formatter, FromHex};
+use crate::encoding::{deserialize_hex, hex_formatter};
 use crate::{expect_len, to_hex};
 
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use std::convert::TryFrom;
+use std::str::FromStr;
 
 #[derive(Clone, PartialEq, Eq)]
 pub struct Signature([u8; Signature::LEN]);
@@ -23,8 +24,10 @@ impl Signature {
     }
 }
 
-impl FromHex for Signature {
-    fn from_hex(s: &str) -> anyhow::Result<Self> {
+impl FromStr for Signature {
+    type Err = anyhow::Error;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
         Signature::try_from(hex::decode(s.as_bytes())?.as_slice())
     }
 }

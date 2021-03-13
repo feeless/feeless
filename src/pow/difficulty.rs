@@ -13,7 +13,7 @@ impl Difficulty {
         Self(v)
     }
 
-    pub fn from_hex(s: &str) -> anyhow::Result<Self> {
+    pub fn from_str(s: &str) -> anyhow::Result<Self> {
         expect_len(s.len(), Self::HEX_LEN, "Difficulty")?;
         let mut slice = [0u8; Self::LEN];
         hex::decode_to_slice(s, &mut slice)?;
@@ -59,7 +59,7 @@ mod tests {
     #[test]
     fn conversions() {
         assert_eq!(
-            Difficulty::from_hex("ffffffc000000000").unwrap().as_u64(),
+            Difficulty::from_str("ffffffc000000000").unwrap().as_u64(),
             18446743798831644672u64
         );
     }

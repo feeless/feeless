@@ -1,4 +1,4 @@
-use crate::encoding::{blake2b, deserialize_hex, FromHex};
+use crate::encoding::{blake2b, deserialize_hex};
 use crate::pow::difficulty::Difficulty;
 use crate::{expect_len, hex_formatter, to_hex, BlockHash, Public};
 use rand::RngCore;
@@ -6,6 +6,7 @@ use rand::RngCore;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use std::convert::TryFrom;
 use std::fmt::Debug;
+use std::str::FromStr;
 
 #[derive(Debug)]
 pub enum Subject {
@@ -92,10 +93,12 @@ impl std::fmt::Debug for Work {
     }
 }
 
-impl FromHex for Work {
-    fn from_hex(s: &str) -> anyhow::Result<Self> {
-        let value = hex::decode(s)?;
-        let value = value.as_slice();
+impl FromStr for Work {
+    type Err = anyhow::Error;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        let vec = hex::decode(s)?;
+        let value = vec.as_slice();
         Work::try_from(value)
     }
 }
@@ -167,13 +170,13 @@ mod tests {
             ),
         ];
 
-        let threshold = Difficulty::from_hex("ffffffc000000000").unwrap();
+        let threshold = Difficulty::from_str("ffffffc000000000").unwrap();
         for fixture in fixtures {
             let (hash, work, expected_difficulty, is_enough_work) = &fixture;
-            let hash = BlockHash::from_hex(hash).unwrap();
+            let hash = BlockHash::from_str(hash).unwrap();
             let subject = Subject::Hash(hash);
-            let work = Work::from_hex(work).unwrap();
-            let expected_difficulty = Difficulty::from_hex(expected_difficulty).unwrap();
+            let work = Work::from_str(work).unwrap();
+            let expected_difficulty = Difficulty::from_str(expected_difficulty).unwrap();
             let difficulty = work.difficulty(&subject).unwrap();
             assert_eq!(difficulty, expected_difficulty, "{:?}", &fixture);
             assert_eq!(
@@ -189,9 +192,9 @@ mod tests {
     fn generate_work() {
         // Let's use a low difficulty in debug mode, it doesn't take forever.
         let threshold = if cfg!(debug_assertions) {
-            Difficulty::from_hex("ffff000000000000")
+            Difficulty::from_str("ffff000000000000")
         } else {
-            Difficulty::from_hex("ffffffc000000000")
+            Difficulty::from_str("ffffffc000000000")
         }
         .unwrap();
         dbg!(&threshold);

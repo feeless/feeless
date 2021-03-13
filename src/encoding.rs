@@ -4,13 +4,8 @@ use blake2::digest::{Update, VariableOutput};
 use blake2::VarBlake2b;
 use serde::de::Error;
 use serde::{Deserialize, Deserializer};
-
-pub trait FromHex
-where
-    Self: Sized,
-{
-    fn from_hex(s: &str) -> anyhow::Result<Self>;
-}
+use std::fmt::Display;
+use std::str::FromStr;
 
 pub fn to_hex(bytes: &[u8]) -> String {
     let mut s = String::with_capacity(bytes.len() * 2);
@@ -30,10 +25,11 @@ pub fn hex_formatter(f: &mut std::fmt::Formatter<'_>, bytes: &[u8]) -> std::fmt:
 pub fn deserialize_hex<'de, T, D>(deserializer: D) -> Result<T, <D as Deserializer<'de>>::Error>
 where
     D: Deserializer<'de>,
-    T: FromHex,
+    T: FromStr,
+    <T as std::str::FromStr>::Err: std::fmt::Display,
 {
     let s: &str = Deserialize::deserialize(deserializer)?;
-    Ok(T::from_hex(s).map_err(D::Error::custom)?)
+    Ok(T::from_str(s).map_err(D::Error::custom)?)
 }
 
 pub fn blake2b(size: usize, data: &[u8]) -> Box<[u8]> {
