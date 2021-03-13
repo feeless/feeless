@@ -17,16 +17,7 @@ motivation to complete this project 🤐.
 
 ## Working Features
 
-<table>
-<tr>
-<th style="width: 200px">Features</th>
-</tr>
-<tr>
-<td>github test</td>
-</tr>
-</table>
-
-| <img width=200/><span style="width:80px; display: inline-block">Feature</div> | Progress | Notes |
+| Feature<img width=200/> | Progress | Notes |
 | --- | --- | --- |
 | [Rust crate](https://crates.io/crates/feeless) | 80% | Please [suggest](https://github.com/feeless/feeless/discussions/new) if something is missing. |
 | [CLI tool](https://github.com/feeless/feeless/blob/main/examples/cli.rs) | 60% | Seeds, phrases, public, private, addresses, parse a wireshark network capture<sup>1</sup>. |
