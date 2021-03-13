@@ -1,8 +1,8 @@
 # ⋰·⋰ Feeless
 
-![Crates.io](https://img.shields.io/crates/v/feeless?style=flat-square)
+[![Crates.io](https://img.shields.io/crates/v/feeless?style=flat-square)](https://crates.io/crates/feeless)
 ![GitHub last commit](https://img.shields.io/github/last-commit/feeless/feeless?style=flat-square)
-![Crates.io](https://img.shields.io/crates/l/feeless?style=flat-square)
+![MIT OR Apache-2.0 Licence](https://img.shields.io/crates/l/feeless?style=flat-square)
 
 ## What is Feeless?
 
