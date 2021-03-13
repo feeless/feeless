@@ -1,7 +1,7 @@
 use ansi_term::Color;
 use clap::Clap;
-use cmd_lib::{run_cmd, run_fun};
-use std::path::PathBuf;
+use cmd_lib::{run_fun};
+
 
 // These `Opts` are only for the path to feeless, not the actual feeless CLI.
 #[derive(Clap)]
