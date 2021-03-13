@@ -10,11 +10,11 @@ pub struct Private {
 impl Private {
     pub fn handle(&self) -> anyhow::Result<()> {
         match &self.command {
-            Command::Public(a) => {
+            Command::ToPublic(a) => {
                 let public = a.private.to_owned().resolve()?.to_public()?;
                 println!("{}", public);
             }
-            Command::Address(a) => {
+            Command::ToAddress(a) => {
                 let address = a.private.to_owned().resolve()?.to_public()?.to_address();
                 println!("{}", address);
             }
@@ -25,8 +25,8 @@ impl Private {
 
 #[derive(Clap)]
 pub enum Command {
-    Public(Public),
-    Address(Address),
+    ToPublic(Public),
+    ToAddress(Address),
 }
 
 #[derive(Clap)]

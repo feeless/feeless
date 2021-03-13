@@ -20,15 +20,15 @@ impl Phrase {
                 let phrase = crate::Phrase::random(x.words.0, *x.language);
                 println!("{}", phrase);
             }
-            Command::Private(x) => {
+            Command::ToPrivate(x) => {
                 let private = x.opts.to_private()?;
                 println!("{}", private);
             }
-            Command::Public(x) => {
+            Command::ToPublic(x) => {
                 let public = x.opts.to_private()?.to_public()?;
                 println!("{}", public);
             }
-            Command::Address(x) => {
+            Command::ToAddress(x) => {
                 let address = x.opts.to_private()?.to_public()?.to_address();
                 println!("{}", address);
             }
@@ -64,9 +64,9 @@ impl FromStr for WrappedMnemonicType {
 #[derive(Clap)]
 pub enum Command {
     New(New),
-    Private(Private),
-    Public(Public),
-    Address(Address),
+    ToPrivate(Private),
+    ToPublic(Public),
+    ToAddress(Address),
 }
 
 // This is used with `#[clap(flatten)]` to prevent have duplicate code.

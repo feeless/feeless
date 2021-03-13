@@ -14,15 +14,15 @@ impl Seed {
     pub fn handle(&self) -> anyhow::Result<()> {
         match &self.command {
             Command::New => println!("{}", crate::Seed::random()),
-            Command::Private(o) => {
+            Command::ToPrivate(o) => {
                 let private = o.seed.to_owned().resolve()?.derive(o.index);
                 println!("{}", private)
             }
-            Command::Public(o) => {
+            Command::ToPublic(o) => {
                 let public = o.seed.to_owned().resolve()?.derive(o.index).to_public()?;
                 println!("{}", public)
             }
-            Command::Address(o) => {
+            Command::ToAddress(o) => {
                 let address = o
                     .seed
                     .to_owned()
@@ -40,9 +40,9 @@ impl Seed {
 #[derive(Clap)]
 pub enum Command {
     New,
-    Private(Opts),
-    Public(Opts),
-    Address(Opts),
+    ToPrivate(Opts),
+    ToPublic(Opts),
+    ToAddress(Opts),
 }
 
 #[derive(Clap)]

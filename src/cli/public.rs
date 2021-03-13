@@ -10,7 +10,7 @@ pub struct Public {
 impl Public {
     pub fn handle(&self) -> anyhow::Result<()> {
         match &self.command {
-            Command::Address(a) => println!("{}", a.public.to_owned().resolve()?.to_address()),
+            Command::ToAddress(a) => println!("{}", a.public.to_owned().resolve()?.to_address()),
         };
         Ok(())
     }
@@ -18,7 +18,7 @@ impl Public {
 
 #[derive(Clap)]
 pub enum Command {
-    Address(Address),
+    ToAddress(Address),
 }
 
 #[derive(Clap)]

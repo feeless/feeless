@@ -29,9 +29,9 @@ fn main() -> anyhow::Result<()> {
         || {
             Ok(run_fun!(
                 $feeless phrase new |
-                $feeless phrase private - |
-                $feeless private public - |
-                $feeless public address -
+                $feeless phrase to-private - |
+                $feeless private to-public - |
+                $feeless public to-address -
             )?
             .contains("nano_"))
         },
@@ -45,7 +45,7 @@ fn main() -> anyhow::Result<()> {
 
     test.assert("A phrase converted directly to an address.", || {
         Ok(run_fun!(
-            $feeless phrase address -l zh-hant -a 5 "$phrase"
+            $feeless phrase to-address -l zh-hant -a 5 "$phrase"
         )?
         .contains(addr))
     });
@@ -54,9 +54,9 @@ fn main() -> anyhow::Result<()> {
         "A phrase piped through several stages into an address.",
         || {
             Ok(run_fun!(
-                $feeless phrase private -l zh-hant -a 5 "$phrase" |
-                $feeless private public - |
-                $feeless public address -
+                $feeless phrase to-private -l zh-hant -a 5 "$phrase" |
+                $feeless private to-public - |
+                $feeless public to-address -
             )?
             .contains(addr))
         },
@@ -65,15 +65,15 @@ fn main() -> anyhow::Result<()> {
     test.assert("A seed directly converted to a public key.", || {
         let zeros = "0000000000000000000000000000000000000000000000000000000000000000";
         Ok(run_fun!(
-            $feeless seed public $zeros -i 0
+            $feeless seed to-public $zeros -i 0
         )?
-        .contains("???"))
+        .contains("C008B814A7D269A1FA3C6528B19201A24D797912DB9996FF02A1FF356E45552B"))
     });
 
     test.assert("A seed directly converted to an address.", || {
         let zeros = "0000000000000000000000000000000000000000000000000000000000000000";
         Ok(run_fun!(
-            $feeless seed address $zeros -i 0
+            $feeless seed to-address $zeros -i 0
         )?
         .contains("nano_3i1aq1cchnmbn9x5rsbap8b15akfh7wj7pwskuzi7ahz8oq6cobd99d4r3b7"))
     });
@@ -81,7 +81,7 @@ fn main() -> anyhow::Result<()> {
     test.assert("A seed piped through to convert it to an address.", || {
         let zeros = "0000000000000000000000000000000000000000000000000000000000000000";
         Ok(run_fun!(
-            $feeless seed private $zeros -i 0 | $feeless private address -
+            $feeless seed to-private $zeros -i 0 | $feeless private to-address -
         )?
         .contains("nano_3i1aq1cchnmbn9x5rsbap8b15akfh7wj7pwskuzi7ahz8oq6cobd99d4r3b7"))
     });
