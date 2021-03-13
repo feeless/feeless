@@ -1,11 +1,10 @@
 use ansi_term::Color;
-
 use clap::Clap;
-use duct::cmd;
-
+use duct::{cmd, Expression};
+use shell_words;
 use std::path::PathBuf;
 
-// These Opts are only for the path to feeless, not the actual feeless CLI.
+// These `Opts` are only for the path to feeless, not the actual feeless CLI.
 #[derive(Clap)]
 struct Opts {
     /// Specify the path to the feeless binary, e.g. "target/Debug/feeless"
@@ -18,6 +17,9 @@ fn main() -> anyhow::Result<()> {
     let bin = &opts.feeless_path;
 
     let mut test = Test::new();
+
+    let hmm = run(bin, "feeless phrase new | feeless phrase private -");
+    dbg!(hmm);
 
     test.assert("Correctly display the help screen.", || {
         Ok(cmd!(bin, "--help").read()?.contains("cryptocurrency"))
@@ -99,4 +101,30 @@ impl Test {
             self.has_failed = true;
         }
     }
+}
+
+/// Convert a normal looking command into a `duct` chain.
+///
+/// ```
+/// feeless phrase new | feeless phrase private -
+/// ```
+///
+/// Is translated to this during runtime:
+/// ```
+/// cmd!(bin, "phrase", "new").pipe(cmd!(bin, "phrase", "private", "-"))
+/// ```
+fn run(bin: &PathBuf, full_cmd: &str) -> anyhow::Result<String> {
+    let cmds = full_cmd.split("|").collect::<Vec<_>>();
+    let mut expression = cmd_to_duct(bin, cmds[0])?;
+    for cmd in &cmds[1..] {
+        let next_expression = cmd_to_duct(bin, cmd)?;
+        expression = expression.pipe(next_expression);
+    }
+    Ok(expression.read()?)
+}
+
+fn cmd_to_duct(bin: &PathBuf, cmd: &str) -> anyhow::Result<Expression> {
+    let mut parts = shell_words::split(cmd)?;
+    parts.remove(0);
+    Ok(cmd!(bin, parts))
 }
