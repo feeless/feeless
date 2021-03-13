@@ -42,7 +42,7 @@ impl Controller {
         Ok(())
     }
 
-    #[instrument(skip(self, signature))]
+    #[instrument(skip(self))]
     pub async fn validate_vote(
         &mut self,
         hash: &BlockHash,
