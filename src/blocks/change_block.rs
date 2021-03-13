@@ -1,9 +1,3 @@
-#[cfg(feature = "node")]
-
-
-#[cfg(feature = "node")]
-
-
 use crate::blocks::BlockHash;
 use crate::Public;
 use serde::{Deserialize, Serialize};
