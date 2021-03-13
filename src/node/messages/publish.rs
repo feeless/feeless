@@ -1,4 +1,4 @@
-use crate::blocks::{Block, BlockHolder, BlockType, StateBlock};
+use crate::blocks::BlockHolder;
 use crate::node::header::Header;
 use crate::node::wire::Wire;
 

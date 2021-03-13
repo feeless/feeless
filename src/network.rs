@@ -1,5 +1,5 @@
 use crate::blocks::{Block, BlockHash, OpenBlock, Previous};
-use crate::{Address, Public, Raw, Signature, Work};
+use crate::Raw;
 use anyhow::anyhow;
 use std::convert::TryFrom;
 use std::str::FromStr;

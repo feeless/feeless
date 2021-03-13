@@ -2,7 +2,7 @@ use crate::blocks::BlockHash;
 use crate::bytes::Bytes;
 use crate::node::header::Header;
 use crate::node::wire::Wire;
-use crate::{to_hex, Private, Public, Seed, Signature};
+use crate::{Public, Signature};
 use anyhow::Context;
 use std::convert::TryFrom;
 use tracing::warn;

@@ -21,7 +21,6 @@ use serde;
 use serde::{Deserialize, Serialize};
 use state_block::Link;
 pub use state_block::StateBlock;
-use std::hash::Hash;
 
 mod block_hash;
 mod change_block;

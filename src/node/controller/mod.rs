@@ -4,23 +4,17 @@ mod messages;
 
 use crate::blocks::Block;
 use crate::network::Network;
-
 use crate::node::header::{Extensions, Header, MessageType};
 use crate::node::messages::frontier_resp::FrontierResp;
-
-
-use crate::node::state::{ArcState};
+use crate::node::state::ArcState;
 use crate::node::wire::Wire;
 use crate::{to_hex, Public, Raw};
 use anyhow::{anyhow, Context};
-
 use std::fmt::Debug;
-use std::net::{SocketAddr};
-
+use std::net::SocketAddr;
 use tokio::sync::mpsc;
 use tokio::sync::mpsc::{Receiver, Sender};
-use tracing::{debug, instrument, span, trace, warn, Level};
-
+use tracing::{debug, instrument, trace};
 
 /// A message sent between channels that contains a peer's network data.
 #[derive(Debug)]
