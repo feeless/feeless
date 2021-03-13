@@ -1,7 +1,7 @@
-use crate::blocks::BlockType;
+use crate::blocks::{Block, BlockHash, BlockType, Previous};
 use crate::node::controller::Controller;
 use crate::node::messages::confirm_ack::{Confirm, ConfirmAck};
-use crate::{Block, BlockHash, Previous, Public, Raw, Signature};
+use crate::{Public, Raw, Signature};
 use anyhow::{anyhow, Context};
 use tracing::{debug, instrument, warn};
 

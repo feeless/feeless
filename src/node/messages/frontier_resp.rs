@@ -1,7 +1,8 @@
+use crate::blocks::BlockHash;
 use crate::bytes::Bytes;
 use crate::node::header::Header;
 use crate::node::wire::Wire;
-use crate::{BlockHash, Public};
+use crate::Public;
 use anyhow::Context;
 use std::convert::TryFrom;
 

@@ -1,10 +1,7 @@
-use std::convert::TryFrom;
-
+use crate::blocks::{Block, BlockHash, OpenBlock, Previous};
+use crate::{Address, Public, Raw, Signature, Work};
 use anyhow::anyhow;
-
-use crate::blocks::{Block, OpenBlock};
-
-use crate::{Address, BlockHash, Previous, Public, Raw, Signature, Work};
+use std::convert::TryFrom;
 use std::str::FromStr;
 
 #[derive(Debug, Clone, Copy, PartialEq)]

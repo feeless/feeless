@@ -1,8 +1,8 @@
+use crate::blocks::BlockHash;
 use crate::encoding::{blake2b, deserialize_hex};
 use crate::pow::difficulty::Difficulty;
-use crate::{expect_len, hex_formatter, to_hex, BlockHash, Public};
+use crate::{expect_len, hex_formatter, to_hex, Public};
 use rand::RngCore;
-
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use std::convert::TryFrom;
 use std::fmt::Debug;

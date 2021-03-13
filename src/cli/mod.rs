@@ -161,7 +161,7 @@ pub async fn run() -> anyhow::Result<()> {
 ///
 /// Use `resolve()` to turn the enum into `T` by maybe reading from stdin.
 #[derive(Copy, Clone)]
-pub enum StringOrStdin<T>
+enum StringOrStdin<T>
 where
     T: FromStr,
     <T as FromStr>::Err: std::fmt::Debug,

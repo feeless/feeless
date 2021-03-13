@@ -1,13 +1,11 @@
-use std::convert::TryFrom;
-
-use anyhow::Context;
-use tracing::info;
-
-use crate::blocks::{Block, BlockHolder, BlockType};
+use crate::blocks::{Block, BlockHash, BlockHolder, BlockType};
 use crate::bytes::Bytes;
+use crate::expect_len;
 use crate::node::header::Header;
 use crate::node::wire::Wire;
-use crate::{expect_len, BlockHash};
+use anyhow::Context;
+use std::convert::TryFrom;
+use tracing::info;
 
 /// Requests confirmation of the given block or list of root/hash pairs.
 //

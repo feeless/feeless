@@ -1,5 +1,6 @@
+use crate::blocks::BlockHash;
 use crate::keys::public::{from_address, to_address};
-use crate::{BlockHash, Public, Signature, Work};
+use crate::{Public, Signature, Work};
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]

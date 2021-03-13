@@ -1,14 +1,12 @@
-use std::net::SocketAddr;
-
+use crate::blocks::{Block, BlockHash, BlockHolder, StateBlock};
 use crate::network::Network;
 use crate::node::cookie::Cookie;
 use crate::node::state::State;
-
-use crate::blocks::{BlockHolder, StateBlock};
-use crate::{Block, BlockHash, Public};
+use crate::Public;
 use anyhow::Context;
 use async_trait::async_trait;
 use std::collections::{HashMap, HashSet};
+use std::net::SocketAddr;
 
 #[derive(Debug)]
 pub struct MemoryState {

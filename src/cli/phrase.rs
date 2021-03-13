@@ -1,5 +1,5 @@
 use crate::cli::StringOrStdin;
-use crate::{Language, MnemonicType};
+use crate::phrase::{Language, MnemonicType};
 use anyhow::anyhow;
 use clap::Clap;
 use std::ops::Deref;

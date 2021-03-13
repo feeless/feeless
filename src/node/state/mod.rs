@@ -1,7 +1,7 @@
-use crate::blocks::{BlockHolder, StateBlock};
+use crate::blocks::{Block, BlockHash, BlockHolder, StateBlock};
 use crate::network::Network;
 use crate::node::cookie::Cookie;
-use crate::{Block, BlockHash, Public};
+use crate::Public;
 use async_trait::async_trait;
 pub use memory::MemoryState;
 pub use sled_disk::SledDiskState;
@@ -9,7 +9,6 @@ use std::fmt::Debug;
 use std::net::SocketAddr;
 use std::sync::Arc;
 use tokio::sync::Mutex;
-
 mod memory;
 mod sled_disk;
 

@@ -2,6 +2,7 @@ mod blocks;
 mod genesis;
 mod messages;
 
+use crate::blocks::Block;
 use crate::network::Network;
 use crate::node::cookie::Cookie;
 use crate::node::header::{Extensions, Header, MessageType};
@@ -10,7 +11,7 @@ use crate::node::messages::handshake::HandshakeQuery;
 use crate::node::messages::keepalive::Keepalive;
 use crate::node::state::{ArcState, DynState};
 use crate::node::wire::Wire;
-use crate::{expect_len, to_hex, Block, Public, Raw};
+use crate::{expect_len, to_hex, Public, Raw};
 use anyhow::{anyhow, Context};
 use std::collections::VecDeque;
 use std::fmt::Debug;
@@ -256,9 +257,9 @@ impl Controller {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::blocks::{OpenBlock, SendBlock};
+    use crate::blocks::{Block, BlockHash, OpenBlock, Previous, SendBlock};
     use crate::node::state::MemoryState;
-    use crate::{Address, BlockHash, Previous, DEFAULT_PORT};
+    use crate::{Address, DEFAULT_PORT};
     use std::net::{Ipv4Addr, SocketAddrV4};
     use std::str::FromStr;
     use std::sync::Arc;

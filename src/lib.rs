@@ -1,29 +1,15 @@
 #![forbid(unsafe_code)]
 
 #[cfg(feature = "node")]
-pub mod node;
+mod node;
 
 #[cfg(feature = "pcap")]
-pub mod pcap;
+mod pcap;
 
 #[cfg(feature = "wallet")]
 mod wallet;
 
-use anyhow::anyhow;
-pub use blocks::Block;
-pub use blocks::BlockHash;
-pub use blocks::Previous;
-pub(crate) use encoding::{hex_formatter, to_hex};
-pub use keys::address::Address;
-pub(crate) use keys::phrase::{Language, MnemonicType, Phrase};
-pub use keys::private::Private;
-pub use keys::public::Public;
-pub use keys::seed::Seed;
-pub use keys::signature::Signature;
-pub use pow::work::Work;
-pub use raw::Raw;
-
-mod blocks;
+pub mod blocks;
 mod bytes;
 pub mod cli;
 mod debug;
@@ -33,9 +19,21 @@ mod network;
 mod pow;
 mod raw;
 
+use anyhow::anyhow;
+pub(crate) use encoding::{hex_formatter, to_hex};
+pub use keys::address::Address;
+pub use keys::phrase;
+pub use keys::phrase::Phrase;
+pub use keys::private::Private;
+pub use keys::public::Public;
+pub use keys::seed::Seed;
+pub use keys::signature::Signature;
+pub use pow::work::Work;
+pub use raw::Raw;
+
 pub const DEFAULT_PORT: u16 = 7075;
 
-pub fn expect_len(got_len: usize, expected_len: usize, msg: &str) -> anyhow::Result<()> {
+fn expect_len(got_len: usize, expected_len: usize, msg: &str) -> anyhow::Result<()> {
     if got_len != expected_len {
         return Err(anyhow!(
             "{} is the wrong length: got: {} expected: {}",
@@ -47,7 +45,7 @@ pub fn expect_len(got_len: usize, expected_len: usize, msg: &str) -> anyhow::Res
     Ok(())
 }
 
-pub fn len_err_msg(got_len: usize, expected_len: usize, msg: &str) -> String {
+fn len_err_msg(got_len: usize, expected_len: usize, msg: &str) -> String {
     format!(
         "{} is the wrong length: got: {} expected: {}",
         msg, got_len, expected_len,

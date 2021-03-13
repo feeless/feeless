@@ -1,10 +1,10 @@
-use crate::blocks::{Block, BlockType};
+use crate::blocks::{Block, BlockHash, BlockType};
 use crate::bytes::Bytes;
 use crate::encoding::blake2b;
 use crate::node::header::Header;
 use crate::node::timestamp::Timestamp;
 use crate::node::wire::Wire;
-use crate::{BlockHash, Public, Signature};
+use crate::{Public, Signature};
 use anyhow::Context;
 use std::convert::TryFrom;
 use tracing::trace;

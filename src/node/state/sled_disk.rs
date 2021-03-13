@@ -1,12 +1,11 @@
-use std::net::SocketAddr;
-
-use crate::blocks::{BlockHolder, StateBlock};
+use crate::blocks::{Block, BlockHash, BlockHolder, StateBlock};
 use crate::network::Network;
 use crate::node::cookie::Cookie;
 use crate::node::state::State;
-use crate::{Block, BlockHash, Public};
+use crate::Public;
 use async_trait::async_trait;
 use std::convert::TryFrom;
+use std::net::SocketAddr;
 
 /// Sled is an on disk key value pair.
 #[derive(Clone, Debug)]

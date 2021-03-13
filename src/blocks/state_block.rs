@@ -4,9 +4,9 @@ use crate::node::Header;
 #[cfg(feature = "node")]
 use crate::node::Wire;
 
-use crate::blocks::BlockType;
+use crate::blocks::{BlockHash, BlockType};
 use crate::bytes::Bytes;
-use crate::{expect_len, Block, BlockHash, Public, Raw, Signature, Work};
+use crate::{expect_len, Public, Raw, Signature, Work};
 use anyhow::anyhow;
 use serde::{Deserialize, Serialize};
 use std::convert::TryFrom;
@@ -88,8 +88,9 @@ mod tests {
     use crate::blocks::state_block::Link;
     use crate::{Address, Signature, Work};
 
+    use super::Raw;
     use super::StateBlock;
-    use super::{Block, BlockHash, Raw};
+    use crate::blocks::{Block, BlockHash};
     use std::str::FromStr;
 
     #[test]
