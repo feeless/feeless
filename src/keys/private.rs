@@ -2,6 +2,7 @@ use crate::{expect_len, Public, Signature};
 use anyhow::Context;
 use ed25519_dalek::ed25519::signature::Signature as InternalSignature;
 use ed25519_dalek::ExpandedSecretKey;
+use rand::RngCore;
 use std::convert::TryFrom;
 use std::str::FromStr;
 
@@ -11,6 +12,12 @@ pub struct Private([u8; Private::LEN]);
 
 impl Private {
     pub(crate) const LEN: usize = 32;
+
+    pub fn random() -> Self {
+        let mut private = Private::zero();
+        rand::thread_rng().fill_bytes(&mut private.0);
+        private
+    }
 
     /// Generate the public key for this private key.
     ///
@@ -40,6 +47,11 @@ impl Private {
         let expanded_secret = ExpandedSecretKey::from(&dalek);
         let internal_signed = expanded_secret.sign(message, &self.internal_public()?);
         Signature::try_from(internal_signed.as_bytes())
+    }
+
+    // Not public because we don't want users to accidentally generate this key.
+    fn zero() -> Self {
+        Self([0u8; 32])
     }
 
     fn to_ed25519_dalek(&self) -> anyhow::Result<ed25519_dalek::SecretKey> {

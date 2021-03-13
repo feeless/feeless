@@ -95,6 +95,13 @@ fn main() -> anyhow::Result<()> {
         .contains("nano_3i1aq1cchnmbn9x5rsbap8b15akfh7wj7pwskuzi7ahz8oq6cobd99d4r3b7"))
     });
 
+    test.assert("A random private key into an address.", || {
+        Ok(run_fun!(
+            $feeless private new | $feeless private to-address -
+        )?
+        .contains("nano_"))
+    });
+
     Ok(())
 }
 

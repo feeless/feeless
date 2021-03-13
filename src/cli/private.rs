@@ -10,6 +10,10 @@ pub struct Private {
 impl Private {
     pub fn handle(&self) -> anyhow::Result<()> {
         match &self.command {
+            Command::New => {
+                let private = crate::Private::random();
+                println!("{}", private);
+            }
             Command::ToPublic(a) => {
                 let public = a.private.to_owned().resolve()?.to_public()?;
                 println!("{}", public);
@@ -25,6 +29,7 @@ impl Private {
 
 #[derive(Clap)]
 pub enum Command {
+    New,
     ToPublic(Public),
     ToAddress(Address),
 }
