@@ -1,6 +1,7 @@
 # ⋰·⋰ Feeless
 
 [![Crates.io](https://img.shields.io/crates/v/feeless?style=flat-square)](https://crates.io/crates/feeless)
+[![docs.rs](https://img.shields.io/docsrs/feeless?style=flat-square)](https://docs.rs/feeless/)
 ![GitHub last commit](https://img.shields.io/github/last-commit/feeless/feeless?style=flat-square)
 ![MIT OR Apache-2.0 Licence](https://img.shields.io/crates/l/feeless?style=flat-square)
 
@@ -19,7 +20,7 @@ motivation to complete this project 🤐.
 
 | Feature | Progress | Notes |
 | --- | --- | --- |
-| [Rust crate](https://crates.io/crates/feeless) | 80% | Please [suggest](https://github.com/feeless/feeless/discussions/new) if something is missing. |
+| [Rust crate](https://crates.io/crates/feeless) | 80% | See the [documentation](https://docs.rs/feeless/). Please [suggest](https://github.com/feeless/feeless/discussions/new) if a feature is missing. |
 | [CLI tool](https://github.com/feeless/feeless/blob/main/examples/cli.rs) | 60% | Seeds, phrases, public, private, addresses, parse a wireshark network capture<sup>1</sup>. |
 | Wallet | 0% | No wallet code yet, but should be quick to implement. |
 | Node | 20% | Can connect and communicate. No voting, storage, chain validation, etc. |
