@@ -9,8 +9,8 @@ use phrase::Phrase;
 use private::Private;
 use public::Public;
 use seed::Seed;
-use std::convert::{TryFrom, TryInto};
-use std::error::Error;
+
+
 use std::io;
 use std::io::Read;
 use std::net::Ipv4Addr;

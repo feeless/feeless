@@ -1,4 +1,4 @@
-use crate::blocks::{Block, BlockHash, BlockHolder, StateBlock};
+use crate::blocks::{Block, BlockHash};
 use crate::network::Network;
 use crate::node::cookie::Cookie;
 use crate::node::state::State;
@@ -67,7 +67,7 @@ impl State for MemoryState {
     }
 
     async fn add_vote(&mut self, hash: &BlockHash, representative: &Public) -> anyhow::Result<()> {
-        let mut entry = self
+        let entry = self
             .votes
             .entry(hash.to_owned())
             .or_insert_with(|| HashSet::new());

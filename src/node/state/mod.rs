@@ -1,5 +1,5 @@
-use crate::blocks::{Block, BlockHash, BlockHolder, StateBlock};
-use crate::network::Network;
+use crate::blocks::{Block, BlockHash};
+
 use crate::node::cookie::Cookie;
 use crate::Public;
 use async_trait::async_trait;

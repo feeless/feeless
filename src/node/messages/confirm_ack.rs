@@ -7,7 +7,7 @@ use crate::node::wire::Wire;
 use crate::{Public, Signature};
 use anyhow::Context;
 use std::convert::TryFrom;
-use tracing::trace;
+
 
 /// This is a vote on the network by a representative for one or more block hashes.
 #[derive(Debug)]

@@ -107,7 +107,7 @@ impl Controller {
 
     pub async fn handle_keepalive(
         &mut self,
-        header: &Header,
+        _header: &Header,
         keepalive: Keepalive,
     ) -> anyhow::Result<()> {
         // dbg!(keepalive);
@@ -117,8 +117,8 @@ impl Controller {
 
     pub async fn handle_telemetry_req(
         &mut self,
-        header: &Header,
-        telemetry_req: TelemetryReq,
+        _header: &Header,
+        _telemetry_req: TelemetryReq,
     ) -> anyhow::Result<()> {
         // dbg!(telemetry_req);
         Ok(())
@@ -126,8 +126,8 @@ impl Controller {
 
     pub async fn handle_telemetry_ack(
         &mut self,
-        header: &Header,
-        telemetry_ack: TelemetryAck,
+        _header: &Header,
+        _telemetry_ack: TelemetryAck,
     ) -> anyhow::Result<()> {
         // dbg!(telemetry_ack);
         Ok(())
@@ -135,8 +135,8 @@ impl Controller {
 
     pub async fn handle_publish(
         &mut self,
-        header: &Header,
-        publish: Publish,
+        _header: &Header,
+        _publish: Publish,
     ) -> anyhow::Result<()> {
         // dbg!(publish);
 
@@ -148,8 +148,8 @@ impl Controller {
 
     pub async fn handle_confirm_req(
         &mut self,
-        header: &Header,
-        confirm_req: ConfirmReq,
+        _header: &Header,
+        _confirm_req: ConfirmReq,
     ) -> anyhow::Result<()> {
         // dbg!(confirm_req);
         Ok(())
@@ -157,8 +157,8 @@ impl Controller {
 
     pub async fn handle_confirm_ack(
         &mut self,
-        header: &Header,
-        confirm_ack: ConfirmAck,
+        _header: &Header,
+        _confirm_ack: ConfirmAck,
     ) -> anyhow::Result<()> {
         // dbg!(confirm_ack);
         Ok(())
@@ -166,8 +166,8 @@ impl Controller {
 
     pub async fn handle_frontier_req(
         &mut self,
-        header: &Header,
-        frontier_req: FrontierReq,
+        _header: &Header,
+        _frontier_req: FrontierReq,
     ) -> anyhow::Result<()> {
         // The rest of this connection will be a bunch of frontiers without any headers.
         self.frontier_stream = true;
@@ -177,7 +177,7 @@ impl Controller {
 
     pub async fn handle_frontier_resp(
         &mut self,
-        frontier_resp: FrontierResp,
+        _frontier_resp: FrontierResp,
     ) -> anyhow::Result<()> {
         // dbg!(frontier_resp);
         // dbg!("----------------------------------------------------------------------");

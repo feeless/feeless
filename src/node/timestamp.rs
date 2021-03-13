@@ -56,7 +56,7 @@ mod tests {
 
     #[test]
     fn encoding() {
-        let mut it = Timestamp::now();
+        let it = Timestamp::now();
         let bytes = it.to_bytes();
         dbg!(&bytes);
         let back = Timestamp::try_from(bytes.as_ref()).unwrap();

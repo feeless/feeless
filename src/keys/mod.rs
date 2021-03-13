@@ -8,7 +8,7 @@ pub mod signature;
 #[cfg(test)]
 mod tests {
     use crate::*;
-    use std::convert::TryFrom;
+    
     use std::str::FromStr;
 
     #[test]

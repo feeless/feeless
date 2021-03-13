@@ -7,7 +7,7 @@ use std::path::Path;
 
 // Mar 03 11:24:17.166 DEBUG feeless::node::controller: Packet: #377 2021-02-26T00:46:42.042497+00:00
 // >>> 165.227.25.198:7075 size: 40 Handshake { query: Some(HandshakeQuery(Cookie(DFD998DCA7 ...
-pub fn parse_pcap_log_file_to_csv(input: &Path, output: &Path) -> anyhow::Result<()> {
+pub fn parse_pcap_log_file_to_csv(input: &Path, _output: &Path) -> anyhow::Result<()> {
     let input = File::open(input)?;
     let re = Regex::new("Packet: #(?P<packet>[0-9]+).*size: (?P<size>[0-9]+) (?P<msg>[a-zA-z]+)")
         .unwrap();

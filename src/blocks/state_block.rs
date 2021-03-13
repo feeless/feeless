@@ -7,7 +7,7 @@ use crate::node::Wire;
 use crate::blocks::{BlockHash, BlockType};
 use crate::bytes::Bytes;
 use crate::{expect_len, Public, Raw, Signature, Work};
-use anyhow::anyhow;
+
 use serde::{Deserialize, Serialize};
 use std::convert::TryFrom;
 
@@ -50,7 +50,7 @@ impl Wire for StateBlock {
         unimplemented!()
     }
 
-    fn deserialize(header: Option<&Header>, data: &[u8]) -> anyhow::Result<Self>
+    fn deserialize(_header: Option<&Header>, data: &[u8]) -> anyhow::Result<Self>
     where
         Self: Sized,
     {

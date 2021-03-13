@@ -1,5 +1,5 @@
 use crate::Public;
-use anyhow::Context;
+
 use clap::Clap;
 use std::str::FromStr;
 

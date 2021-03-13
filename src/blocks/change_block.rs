@@ -1,8 +1,8 @@
 #[cfg(feature = "node")]
-use crate::node::Header;
+
 
 #[cfg(feature = "node")]
-use crate::node::Wire;
+
 
 use crate::blocks::BlockHash;
 use crate::Public;

@@ -292,14 +292,14 @@ mod tests {
     use std::fmt::Debug;
 
     use crate::node::state::MemoryState;
-    use crate::node::state::State;
+    
 
     use super::*;
 
     #[test]
     fn serialize() {
         let network = Network::Live;
-        let state = MemoryState::new(network);
+        let _state = MemoryState::new(network);
 
         let ext = *Extensions::new().query().response();
         let h1 = Header::new(network, MessageType::Keepalive, ext);

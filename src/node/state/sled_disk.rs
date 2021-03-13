@@ -1,4 +1,4 @@
-use crate::blocks::{Block, BlockHash, BlockHolder, StateBlock};
+use crate::blocks::{Block, BlockHash};
 use crate::network::Network;
 use crate::node::cookie::Cookie;
 use crate::node::state::State;
@@ -34,7 +34,7 @@ impl SledDiskState {
 
 #[async_trait]
 impl State for SledDiskState {
-    async fn add_block(&mut self, block_holder: &Block) -> anyhow::Result<()> {
+    async fn add_block(&mut self, _block_holder: &Block) -> anyhow::Result<()> {
         unimplemented!()
     }
 
@@ -56,7 +56,7 @@ impl State for SledDiskState {
         unimplemented!()
     }
 
-    async fn add_vote(&mut self, hash: &BlockHash, representative: &Public) -> anyhow::Result<()> {
+    async fn add_vote(&mut self, _hash: &BlockHash, _representative: &Public) -> anyhow::Result<()> {
         unimplemented!()
     }
 

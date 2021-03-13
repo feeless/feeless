@@ -4,7 +4,7 @@ use blake2::digest::{Update, VariableOutput};
 use blake2::VarBlake2b;
 use serde::de::Error;
 use serde::{Deserialize, Deserializer};
-use std::fmt::Display;
+
 use std::str::FromStr;
 
 pub fn to_hex(bytes: &[u8]) -> String {

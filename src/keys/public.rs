@@ -6,7 +6,7 @@ use crate::node::Header;
 
 use crate::encoding::deserialize_hex;
 use crate::{encoding, expect_len, len_err_msg, to_hex, Address, Signature};
-use anyhow::{anyhow, Context};
+use anyhow::{Context};
 use bitvec::prelude::*;
 use ed25519_dalek::Verifier;
 use serde::de::Error;
@@ -143,14 +143,14 @@ impl Wire for Public {
         unimplemented!()
     }
 
-    fn deserialize(header: Option<&Header>, data: &[u8]) -> anyhow::Result<Self>
+    fn deserialize(_header: Option<&Header>, _data: &[u8]) -> anyhow::Result<Self>
     where
         Self: Sized,
     {
         unimplemented!()
     }
 
-    fn len(header: Option<&Header>) -> anyhow::Result<usize>
+    fn len(_header: Option<&Header>) -> anyhow::Result<usize>
     where
         Self: Sized,
     {

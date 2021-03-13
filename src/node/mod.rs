@@ -12,7 +12,7 @@ use crate::network::Network;
 use channel::network_channel;
 pub use controller::{Controller, Packet};
 pub use header::Header;
-use state::DynState;
+
 pub use state::{MemoryState, SledDiskState};
 use std::sync::Arc;
 use tokio::net::TcpStream;
@@ -30,7 +30,7 @@ pub async fn node_with_single_peer(address: &str) -> anyhow::Result<()> {
 
     // TODO: peering.nano.org
 
-    let state_clone = Arc::clone(&state);
+    let _state_clone = Arc::clone(&state);
     info!("Spawning a channel to {}", &address);
     let handle = tokio::spawn(async move {
         let stream = TcpStream::connect(&address).await.unwrap();

@@ -4,23 +4,23 @@ mod messages;
 
 use crate::blocks::Block;
 use crate::network::Network;
-use crate::node::cookie::Cookie;
+
 use crate::node::header::{Extensions, Header, MessageType};
 use crate::node::messages::frontier_resp::FrontierResp;
-use crate::node::messages::handshake::HandshakeQuery;
-use crate::node::messages::keepalive::Keepalive;
-use crate::node::state::{ArcState, DynState};
+
+
+use crate::node::state::{ArcState};
 use crate::node::wire::Wire;
-use crate::{expect_len, to_hex, Public, Raw};
+use crate::{to_hex, Public, Raw};
 use anyhow::{anyhow, Context};
-use std::collections::VecDeque;
+
 use std::fmt::Debug;
-use std::net::{IpAddr, SocketAddr};
-use tokio::io::AsyncRead;
+use std::net::{SocketAddr};
+
 use tokio::sync::mpsc;
 use tokio::sync::mpsc::{Receiver, Sender};
 use tracing::{debug, instrument, span, trace, warn, Level};
-use tracing_subscriber::fmt::layer;
+
 
 /// A message sent between channels that contains a peer's network data.
 #[derive(Debug)]
@@ -86,7 +86,7 @@ impl Controller {
         // Packets coming in from a remote host.
         let (incoming_tx, incoming_rx) = mpsc::channel::<Packet>(100);
         // Packets to be sent out to a remote host.
-        let (outgoing_tx, mut outgoing_rx) = mpsc::channel::<Packet>(100);
+        let (outgoing_tx, outgoing_rx) = mpsc::channel::<Packet>(100);
 
         let s = Self {
             validate_handshakes: true,
@@ -267,7 +267,7 @@ mod tests {
 
     async fn empty_lattice(network: Network) -> Controller {
         let state = Arc::new(Mutex::new(MemoryState::new(network)));
-        let (mut controller, rx, tx) = Controller::new_with_channels(
+        let (mut controller, _rx, _tx) = Controller::new_with_channels(
             network,
             state,
             SocketAddr::V4(SocketAddrV4::new(Ipv4Addr::LOCALHOST, DEFAULT_PORT)),

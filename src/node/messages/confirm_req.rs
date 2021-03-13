@@ -1,4 +1,4 @@
-use crate::blocks::{Block, BlockHash, BlockHolder, BlockType};
+use crate::blocks::{BlockHash, BlockHolder, BlockType};
 use crate::bytes::Bytes;
 use crate::expect_len;
 use crate::node::header::Header;
