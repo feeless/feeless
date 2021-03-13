@@ -15,7 +15,7 @@ pub struct Seed(pub [u8; Seed::LEN]);
 impl Seed {
     const LEN: usize = 32;
 
-    pub(crate) fn zero() -> Self {
+    pub fn zero() -> Self {
         Self([0; Self::LEN])
     }
 

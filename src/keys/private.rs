@@ -37,7 +37,7 @@ impl Private {
         Ok(Public::from(self.internal_public()?))
     }
 
-    pub fn internal_public(&self) -> anyhow::Result<ed25519_dalek::PublicKey> {
+    pub(crate) fn internal_public(&self) -> anyhow::Result<ed25519_dalek::PublicKey> {
         let dalek = self.to_ed25519_dalek()?;
         Ok(ed25519_dalek::PublicKey::from(&dalek))
     }
