@@ -16,7 +16,7 @@ motivation to complete this project 🤐.
 | Feature           | Progress | Status |
 | ----------------- | -------- | ------ |
 | [Rust crate](https://crates.io/crates/feeless) | 90% | Can do most things you would need. Please [suggest](https://github.com/feeless/feeless/discussions/new) if something is missing. |
-| [Command-line tool](https://github.com/feeless/feeless/blob/main/examples/cli.rs) | 60% | Seeds, phrases, public, private, addresses, parse a wireshark network capture<sup>1</sup>. |
+| [CLI tool](https://github.com/feeless/feeless/blob/main/examples/cli.rs) | 60% | Seeds, phrases, public, private, addresses, parse a wireshark network capture<sup>1</sup>. |
 | Node | 20% | Lots of the groundwork done. Can connect and communicate. No voting, storage, chain validation. |
 
 <sup>1. `feeless pcap [file.pcapng]` can dump a capture file and dissect the packets. There are additional arguments you
