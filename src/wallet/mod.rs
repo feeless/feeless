@@ -9,5 +9,5 @@ pub enum Source {
 
 pub struct Wallet {
     source: Source,
-    file: PathBuf,
+    path: PathBuf,
 }
