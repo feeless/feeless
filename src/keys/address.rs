@@ -1,5 +1,4 @@
 use crate::encoding;
-
 use crate::keys::public::Public;
 use anyhow::anyhow;
 use bitvec::prelude::*;
@@ -7,28 +6,45 @@ use regex::Regex;
 use std::convert::TryFrom;
 use std::str::FromStr;
 
-// nano_3i1aq1cchnmbn9x5rsbap8b15akfh7wj7pwskuzi7ahz8oq6cobd99d4r3b7
+/// A Nano address. e.g. `nano_3o3nkaqbgxbuhmcrf38tpxyhsf5semmcahejyk9z5ybffm7tjhizrfqo7xkg`
+///
+/// You can parse and validate a Nano address using [trait@FromStr]:
+/// ```
+/// use feeless::Address;
+/// use std::str::FromStr;
+///
+/// # fn main() -> anyhow::Result<()> {
+/// let s = "nano_3o3nkaqbgxbuhmcrf38tpxyhsf5semmcahejyk9z5ybffm7tjhizrfqo7xkg";
+/// let address = Address::from_str(s)?;
+/// # Ok(())
+/// # }
+/// ```
+//
+// The structure of an address is:
+// ```
+// nano_3o3nkaqbgxbuhmcrf38tpxyhsf5semmcahejyk9z5ybffm7tjhizrfqo7xkg
 // [   ][encoded public key                                ][chksum]
 // [5  ][52                                                ][8     ] <-- Bytes
-
 #[derive(Debug, PartialEq, Clone)]
 pub struct Address(String);
 
 impl Address {
     /// Length of a Nano address.
-    pub const LEN: usize = 65; // 5 + 52 + 8
+    pub(crate) const LEN: usize = 65; // 5 + 52 + 8
 
     /// Length of "nano_".
-    pub const PREFIX_LEN: usize = 5;
+    pub(crate) const PREFIX_LEN: usize = 5;
 
     /// Length of the encoded public key.
-    pub const ENCODED_PUBLIC_KEY_LEN: usize = 52;
+    pub(crate) const ENCODED_PUBLIC_KEY_LEN: usize = 52;
 
     /// 4 bits of padding in the front of the public key when encoding.
-    pub const ENCODED_PADDED_BITS: usize = 4;
+    pub(crate) const ENCODED_PADDED_BITS: usize = 4;
 
+    /// Convert this Nano address into a [struct@Public] key.
     pub fn to_public(&self) -> Public {
         // We don't need to check the checksum because we assume if it's already stored, it's valid.
+        // TODO: Is this actually true?
         self.extract_public_key().unwrap()
     }
 
@@ -40,7 +56,7 @@ impl Address {
         let bits = encoding::decode_nano_base_32(&public_key_part)?;
         debug_assert_eq!(bits.len(), 8 * Public::LEN + Self::ENCODED_PADDED_BITS);
 
-        // Remove padding
+        // Remove padding.
         // The to_owned() here is necessary to ensure the vec is aligned half way through the byte.
         // Otherwise it will essentially ignore the [ENCODED_PADDED_BITS..] offset.
         let bits: &BitVec<Msb0, u8> = &bits[Self::ENCODED_PADDED_BITS..].to_owned();
@@ -80,10 +96,10 @@ impl FromStr for Address {
     }
 }
 
+/// Convert from a public key to an address.
+///
+/// https://docs.nano.org/integration-guides/the-basics/#account-public-address
 impl From<&Public> for Address {
-    /// Convert from a public key to an address.
-    ///
-    /// https://docs.nano.org/integration-guides/the-basics/#account-public-address
     fn from(public: &Public) -> Self {
         let mut s = String::with_capacity(Self::LEN);
         s.push_str("nano_");

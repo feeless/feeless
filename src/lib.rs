@@ -1,4 +1,11 @@
 #![forbid(unsafe_code)]
+// #![warn(missing_docs)] LOL not yet.
+//! A set of tools to handle many aspects of the Nano cryptocurrency.
+//!
+//! feeless can be used as:
+//! * This crate.
+//! * A command line tool with piping capability.
+//! * A node. ⚠ WIP. Not a proper node yet, but lots of groundwork so far!
 
 #[cfg(feature = "node")]
 mod node;
@@ -31,6 +38,7 @@ pub use keys::signature::Signature;
 pub use pow::work::Work;
 pub use raw::Raw;
 
+/// The default TCP port that Nano nodes use.
 pub const DEFAULT_PORT: u16 = 7075;
 
 fn expect_len(got_len: usize, expected_len: usize, msg: &str) -> anyhow::Result<()> {

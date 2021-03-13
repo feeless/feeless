@@ -5,16 +5,34 @@ use ed25519_dalek::ExpandedSecretKey;
 use std::convert::TryFrom;
 use std::str::FromStr;
 
+/// A 256 bit private key which can generate a public key.
 #[derive(Clone)]
 pub struct Private([u8; Private::LEN]);
 
 impl Private {
-    pub const LEN: usize = 32;
+    pub(crate) const LEN: usize = 32;
 
-    pub fn to_ed25519_dalek(&self) -> anyhow::Result<ed25519_dalek::SecretKey> {
+    fn to_ed25519_dalek(&self) -> anyhow::Result<ed25519_dalek::SecretKey> {
         Ok(ed25519_dalek::SecretKey::from_bytes(&self.0)?)
     }
 
+    /// ```
+    /// println!("hello");
+    /// ```
+    /// Generate the public key for this private key.
+    ///
+    /// If you wish to convert this private key to a Nano address you will need to take another
+    /// step:
+    /// ```
+    /// use feeless::Private;
+    /// use std::str::FromStr;
+    ///
+    /// # fn main() -> anyhow::Result<()> {
+    /// let s = "0000000000000000000000000000000000000000000000000000000000000000";
+    /// let address = Private::from_str(s)?.to_public()?.to_address();
+    /// # Ok(())
+    /// # }
+    /// ```
     pub fn to_public(&self) -> anyhow::Result<Public> {
         Ok(Public::from(self.internal_public()?))
     }
