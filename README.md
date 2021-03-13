@@ -13,11 +13,11 @@ motivation to complete this project 🤐.
 
 ## Working Features
 
-| Feature           | Progress | Status |
-| ----------------- | -------- | ------ |
+| Feature           | Progress | Notes |
+| ----------------- | -------- | ----- |
 | [Rust crate](https://crates.io/crates/feeless) | 90% | Please [suggest](https://github.com/feeless/feeless/discussions/new) if something is missing. |
 | [CLI tool](https://github.com/feeless/feeless/blob/main/examples/cli.rs) | 60% | Seeds, phrases, public, private, addresses, parse a wireshark network capture<sup>1</sup>. |
-| Node | 20% | Lots of the groundwork done. Can connect and communicate. No voting, storage, chain validation. |
+| Node | 20% | Lots of the groundwork done. Can connect and communicate. No voting, storage, chain validation, etc. |
 
 <sup>1. `feeless pcap [file.pcapng]` can dump a capture file and dissect the packets. There are additional arguments you
 can see with `--help`. To do this as successfully as possible, capture with Wireshark, set the filter to `nano`
