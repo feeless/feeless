@@ -1,8 +1,8 @@
 use ansi_term::Color;
-use anyhow::{Error, Result};
+
 use clap::Clap;
 use duct::cmd;
-use std::io::BufWriter;
+
 use std::path::PathBuf;
 
 // These Opts are only for the path to feeless, not the actual feeless CLI.
@@ -92,7 +92,7 @@ impl Test {
                 true => (true, Color::Green.bold().paint("PASS")),
                 false => (false, Color::Red.bold().paint("FAIL")),
             },
-            Err(err) => (false, Color::Red.bold().paint("ERRO")),
+            Err(_err) => (false, Color::Red.bold().paint("ERRO")),
         };
         println!("{} {}", msg, desc);
         if !ok {

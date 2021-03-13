@@ -6,18 +6,15 @@ use feeless::node::node_with_single_peer;
 #[cfg(feature = "pcap")]
 use feeless::pcap::{PcapDump, Subject};
 
-use crate::DebugCommand::PcapLogToCSV;
-use ansi_term::Color;
 use anyhow::Context;
 use clap::Clap;
 use feeless::cli;
 use feeless::cli::convert::ConvertFrom;
 use feeless::debug::parse_pcap_log_file_to_csv;
 use std::net::Ipv4Addr;
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 use std::str::FromStr;
 use tracing::error;
-use tracing_subscriber::EnvFilter;
 
 #[derive(Clap)]
 #[clap(author, about, version)]
