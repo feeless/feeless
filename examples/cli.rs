@@ -17,9 +17,7 @@ fn main() -> anyhow::Result<()> {
 
     let mut test = Test::new();
 
-    cmd_lib::set_pipefail(true);
-
-    test.assert("Correctly display the help screen.", || {
+    test.assert("Display the help screen.", || {
         Ok(run_fun!(
             $feeless --help
         )?
@@ -45,7 +43,7 @@ fn main() -> anyhow::Result<()> {
     // This is address 5 from the phrase.
     let addr = "nano_3tr7wk6ebc6ujptdnf471d8knnfaz1r469u83biws5s5jntb3hpe8oh65ogi";
 
-    test.assert("A known phrase converted directly to an address.", || {
+    test.assert("A phrase converted directly to an address.", || {
         Ok(run_fun!(
             $feeless phrase address -l zh-hant -a 5 "$phrase"
         )?
@@ -53,7 +51,7 @@ fn main() -> anyhow::Result<()> {
     });
 
     test.assert(
-        "A known phrase piped through several stages into an address.",
+        "A phrase piped through several stages into an address.",
         || {
             Ok(run_fun!(
                 $feeless phrase private -l zh-hant -a 5 "$phrase" |
@@ -64,16 +62,29 @@ fn main() -> anyhow::Result<()> {
         },
     );
 
-    test.assert(
-        "A known seed piped through several stages into an address.",
-        || {
-            let zeros = "0000000000000000000000000000000000000000000000000000000000000000";
-            Ok(run_fun!(
-                $feeless seed private $zeros -i 0 | $feeless private address -
-            )?
-            .contains("nano_3i1aq1cchnmbn9x5rsbap8b15akfh7wj7pwskuzi7ahz8oq6cobd99d4r3b7"))
-        },
-    );
+    test.assert("A seed directly converted to a public key.", || {
+        let zeros = "0000000000000000000000000000000000000000000000000000000000000000";
+        Ok(run_fun!(
+            $feeless seed public $zeros -i 0
+        )?
+        .contains("???"))
+    });
+
+    test.assert("A seed directly converted to an address.", || {
+        let zeros = "0000000000000000000000000000000000000000000000000000000000000000";
+        Ok(run_fun!(
+            $feeless seed address $zeros -i 0
+        )?
+        .contains("nano_3i1aq1cchnmbn9x5rsbap8b15akfh7wj7pwskuzi7ahz8oq6cobd99d4r3b7"))
+    });
+
+    test.assert("A seed piped through to convert it to an address.", || {
+        let zeros = "0000000000000000000000000000000000000000000000000000000000000000";
+        Ok(run_fun!(
+            $feeless seed private $zeros -i 0 | $feeless private address -
+        )?
+        .contains("nano_3i1aq1cchnmbn9x5rsbap8b15akfh7wj7pwskuzi7ahz8oq6cobd99d4r3b7"))
+    });
 
     Ok(())
 }

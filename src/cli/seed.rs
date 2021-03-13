@@ -14,7 +14,24 @@ impl Seed {
     pub fn handle(&self) -> anyhow::Result<()> {
         match &self.command {
             Command::New => println!("{}", crate::Seed::random()),
-            Command::Private(p) => println!("{}", p.seed.to_owned().resolve()?.derive(p.index)),
+            Command::Private(o) => {
+                let private = o.seed.to_owned().resolve()?.derive(o.index);
+                println!("{}", private)
+            }
+            Command::Public(o) => {
+                let public = o.seed.to_owned().resolve()?.derive(o.index).to_public()?;
+                println!("{}", public)
+            }
+            Command::Address(o) => {
+                let address = o
+                    .seed
+                    .to_owned()
+                    .resolve()?
+                    .derive(o.index)
+                    .to_public()?
+                    .to_address();
+                println!("{}", address)
+            }
         }
         Ok(())
     }
@@ -23,11 +40,13 @@ impl Seed {
 #[derive(Clap)]
 pub enum Command {
     New,
-    Private(Private),
+    Private(Opts),
+    Public(Opts),
+    Address(Opts),
 }
 
 #[derive(Clap)]
-pub struct Private {
+pub struct Opts {
     seed: StringOrStdin<crate::Seed>,
 
     #[clap(short, long, default_value = "0")]
