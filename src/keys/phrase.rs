@@ -1,3 +1,5 @@
+//! BIP39 and BIP44 mnemonic seed phrase.
+
 use crate::Private;
 use anyhow::anyhow;
 pub use bip39::Language;

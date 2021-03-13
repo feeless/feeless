@@ -3,8 +3,8 @@
 //! A set of tools to handle many aspects of the Nano cryptocurrency.
 //!
 //! feeless can be used as:
-//! * This crate.
-//! * A command line tool with piping capability. See <https://github.com/feeless/feeless/blob/main/examples/cli.rs> for examples.
+//! * A library. (This crate!)
+//! * A command line tool with piping capability. See [examples/cli.rs](https://github.com/feeless/feeless/blob/main/examples/cli.rs) for example usage.
 //! * A node. ⚠ WIP. Not a proper node yet, but lots of groundwork so far!
 
 #[cfg(feature = "node")]

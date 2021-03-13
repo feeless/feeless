@@ -1,4 +1,10 @@
-/// Contains functionality around handling, creating and parsing blocks.
+//! Handling, creating and parsing blocks.
+mod block_hash;
+mod change_block;
+mod open_block;
+mod receive_block;
+mod send_block;
+mod state_block;
 
 #[cfg(feature = "node")]
 use crate::node::Wire;
@@ -21,13 +27,6 @@ use serde;
 use serde::{Deserialize, Serialize};
 use state_block::Link;
 pub use state_block::StateBlock;
-
-mod block_hash;
-mod change_block;
-mod open_block;
-mod receive_block;
-mod send_block;
-mod state_block;
 
 #[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]

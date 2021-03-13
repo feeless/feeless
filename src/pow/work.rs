@@ -23,6 +23,7 @@ impl Subject {
     }
 }
 
+/// The result of some proof of work (PoW). Can verify and inefficiently generate PoW using the CPU.
 #[derive(Clone, PartialEq, Eq)]
 pub struct Work([u8; Work::LEN]);
 

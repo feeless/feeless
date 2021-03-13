@@ -5,18 +5,19 @@ use serde::{de, Deserialize, Deserializer, Serialize, Serializer};
 use std::cmp::Ordering;
 use std::convert::TryFrom;
 use std::fmt::Display;
-
 use std::str::FromStr;
 
 const RAW_TO_MNANO: u128 = 1_000_000_000_000_000_000_000_000_000_000;
 const RAW_TO_NANO: u128 = 1_000_000_000_000_000_000_000_000;
 
-/// Container for the smallest Nano unit. It can convert from/into Mnano, nano, hex, [`String`], and [`BigDecimal`] for decimal accuracy.
+/// Container for the smallest Nano unit, with conversion functionality, e.g. from raw [to Mnano](Raw::to_mnano_bigdecimal).
+///
+/// It can convert from/into Mnano, nano, hex, [`String`], and [`BigDecimal`] for decimal accuracy.
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct Raw(u128);
 
 impl Raw {
-    pub const LEN: usize = 16;
+    pub(crate) const LEN: usize = 16;
 
     pub fn zero() -> Self {
         Self(0)

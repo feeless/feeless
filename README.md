@@ -11,6 +11,19 @@ implementation [lives here](https://github.com/nanocurrency/nano-node).
 I decided to start this project as a personal adventure of understanding Nano. I give no promises about my future
 motivation to complete this project 🤐.
 
+## Working Features
+
+| Feature           | Progress | Status |
+| ----------------- | -------- | ------ |
+| [Rust crate](https://crates.io/crates/feeless) | 90% | Can do most things you would need. Please [suggest](https://github.com/feeless/feeless/discussions/new) if something is missing. |
+| [Command-line tool](https://github.com/feeless/feeless/blob/main/examples/cli.rs) | 60% | Seeds, phrases, public, private, addresses, parse a wireshark network capture<sup>1</sup>. |
+| Node | 20% | Lots of the groundwork done. Can connect and communicate. No voting, storage, chain validation. |
+
+<sup>1. `feeless pcap [file.pcapng]` can dump a capture file and dissect the packets. There are additional arguments you
+can see with `--help`. To do this as successfully as possible, capture with Wireshark, set the filter to `nano`
+, `File -> Export Specified Packets`, make sure `Displayed` is selected.
+</sup>
+
 ## What is Nano?
 
 **Nano** is digital money that significantly improves on **Bitcoin** and other cryptocurrencies.
@@ -40,14 +53,6 @@ Nano is also known as: Nano cryptocurrency, Nano coin, RaiBlocks.
 3. List of representative nodes showing a Nakamoto coefficient of 8 at the time of writing (2021-02) https://nanocharts.info/
 
 </sup>
-
-## Working Features
-
-* Can be used as [a crate](https://crates.io/crates/feeless). No examples or documentation yet. The source code is fairly straightforward if you want to
-  take a look.
-* `feeless pcap [file.pcapng]` can dump a capture file and dissect the packets. There are additional arguments you can
-  see with `--help`. To do this as successfully as possible, capture with Wireshark, set the filter to `nano`, `File ->
-  Export Specified Packets`, make sure "Displayed" is selected.
 
 ## Installation
 
@@ -88,146 +93,147 @@ create a file in your rust's bin directory, or to specify a location run `cargo 
 A medium term task list:
 
 - [x] Seeds
-  - [x] Mnemonic (word list) seed generation/parsing (BIP39)
-  - [x] Derive keys from mnemonic (BIP33)
-  - [x] Hex seeds
+    - [x] Mnemonic (word list) seed generation/parsing (BIP39)
+    - [x] Derive keys from mnemonic (BIP33)
+    - [x] Hex seeds
 - [x] Keys (ed25519/blake2b)
-  - [x] Private keys
-  - [x] Public keys
-  - [x] Nano addresses
-    - [x] Validation
-    - [x] Parsing
-    - [x] Conversion to/from public keys
+    - [x] Private keys
+    - [x] Public keys
+    - [x] Nano addresses
+        - [x] Validation
+        - [x] Parsing
+        - [x] Conversion to/from public keys
 - [x] Nano amount conversions
-  - [x] raw
-  - [x] nano
-  - [x] Mnano/NANO
+    - [x] raw
+    - [x] nano
+    - [x] Mnano/NANO
 - [x] Proof of work (core)
-  - [x] Verification against a threshold
-  - [x] Generation
-  - [x] Dynamic threshold
+    - [x] Verification against a threshold
+    - [x] Generation
+    - [x] Dynamic threshold
 - [ ] Blocks
-  - [x] Hashing
-  - [ ] Work
-  - [x] State blocks
-  - [ ] <v18 blocks?
+    - [x] Hashing
+    - [ ] Work
+    - [x] State blocks
+    - [ ] <v18 blocks?
 - [ ] Packet dissector
-  - [x] Parse pcap file
-  - [x] Dump some message types to console
-  - [ ] Mark this done when all packets are decoded successfully (see below)
+    - [x] Parse pcap file
+    - [x] Dump some message types to console
+    - [ ] Mark this done when all packets are decoded successfully (see below)
 - [ ] Node
-  - [ ] Configuration
-    - [x] Initial command line interface
-    - [ ] Network
-    - [ ] Database
-    - [ ] ...
-  - [ ] Networks
-    - [x] Live (Don't worry, I'm only connecting to my own node at the moment!)
-    - [ ] Test
-    - [ ] Beta
-  - [ ] Bootstrap peer connection (peering.nano.org)
-  - [x] Validate given peer network
-  - [ ] Validate given peer versions
-  - [ ] Multiple peer connectivity (currently only connects to one peer)
-    - [ ] Configurable maximum peer limit
-  - [x] Header parsing
-    - [x] Network
-    - [x] Versions
-    - [x] Extensions
-      - [x] Handshake query/response flags
-      - [x] Count
-      - [x] Block type
-      - [ ] Telemetry size
-      - [ ] Extended params present
-  - [ ] Logic
-    - [ ] Rebroadcasting
-    - [ ] Representatives
-    - [ ] Publish retries (difficulty changes)
-    - [ ] Respond to telemetry request
-    - [ ] ...
-  - [ ] Messages
-    - [ ] Node ID Handshake
-      - [x] Serialize (TODO: needs small refactor)
-      - [x] Deserialize
-      - [x] Send cookie
-      - [ ] Cookie/peer store and logic
-      - [x] Validate response
-      - [x] Validate signature
-    - [ ] Confirm Req
-      - [ ] Serialize
-      - [x] Deserialize
-        - [x] Hash pairs
-        - [x] Block selector
-      - [ ] Handle response
-    - [ ] Confirm Ack
-      - [ ] Serialize
-      - [ ] Deserialize
-        - [x] Vote by hash
-        - [ ] Block
-      - [x] Validate signature
-    - [ ] Keepalive
-      - [ ] Serialize
-      - [x] Deserialize
-    - [ ] Publish
-      - [ ] Serialize
-      - [x] Deserialize
-        - [x] State blocks
-        - [ ] Other blocks
-    - [ ] Bulk pull
-    - [ ] Bulk pull account
-    - [ ] Bulk pull blocks
-    - [ ] Bulk push
-    - [x] Telemetry Req
-      - [x] Serialize
-      - [x] Deserialize
-    - [ ] Telemetry Ack
-      - [ ] Serialize
-      - [x] Deserialize
-        - [x] Most fields
-        - [ ] Timestamp
-        - [ ] Active difficulty
-      - [ ] Validate signature
-    - [ ] Frontier Req
-      - [ ] Serialize
-      - [x] Deserialize
-  - [ ] Storage
-    - [x] Basic KV store to file
-    - [x] Basic cookie/peer storage
-    - [ ] Peers
-    - [ ] Blocks
-    - [ ] ...
-  - [ ] RPC
+    - [ ] Configuration
+        - [x] Initial command line interface
+        - [ ] Network
+        - [ ] Database
+        - [ ] ...
+    - [ ] Networks
+        - [x] Live (Don't worry, I'm only connecting to my own node at the moment!)
+        - [ ] Test
+        - [ ] Beta
+    - [ ] Bootstrap peer connection (peering.nano.org)
+    - [x] Validate given peer network
+    - [ ] Validate given peer versions
+    - [ ] Multiple peer connectivity (currently only connects to one peer)
+        - [ ] Configurable maximum peer limit
+    - [x] Header parsing
+        - [x] Network
+        - [x] Versions
+        - [x] Extensions
+            - [x] Handshake query/response flags
+            - [x] Count
+            - [x] Block type
+            - [ ] Telemetry size
+            - [ ] Extended params present
+    - [ ] Logic
+        - [ ] Rebroadcasting
+        - [ ] Representatives
+        - [ ] Publish retries (difficulty changes)
+        - [ ] Respond to telemetry request
+        - [ ] ...
+    - [ ] Messages
+        - [ ] Node ID Handshake
+            - [x] Serialize (TODO: needs small refactor)
+            - [x] Deserialize
+            - [x] Send cookie
+            - [ ] Cookie/peer store and logic
+            - [x] Validate response
+            - [x] Validate signature
+        - [ ] Confirm Req
+            - [ ] Serialize
+            - [x] Deserialize
+                - [x] Hash pairs
+                - [x] Block selector
+            - [ ] Handle response
+        - [ ] Confirm Ack
+            - [ ] Serialize
+            - [ ] Deserialize
+                - [x] Vote by hash
+                - [ ] Block
+            - [x] Validate signature
+        - [ ] Keepalive
+            - [ ] Serialize
+            - [x] Deserialize
+        - [ ] Publish
+            - [ ] Serialize
+            - [x] Deserialize
+                - [x] State blocks
+                - [ ] Other blocks
+        - [ ] Bulk pull
+        - [ ] Bulk pull account
+        - [ ] Bulk pull blocks
+        - [ ] Bulk push
+        - [x] Telemetry Req
+            - [x] Serialize
+            - [x] Deserialize
+        - [ ] Telemetry Ack
+            - [ ] Serialize
+            - [x] Deserialize
+                - [x] Most fields
+                - [ ] Timestamp
+                - [ ] Active difficulty
+            - [ ] Validate signature
+        - [ ] Frontier Req
+            - [ ] Serialize
+            - [x] Deserialize
+    - [ ] Storage
+        - [x] Basic KV store to file
+        - [x] Basic cookie/peer storage
+        - [ ] Peers
+        - [ ] Blocks
+        - [ ] ...
+    - [ ] RPC
 - [ ] Rust
-  - [ ] Ask around for a code review
-  - [ ] Use either `zerocopy` or make all core types zero-copy with storing `[u8]` and methods as accessors. `zerocopy`
-    did work for most things when I tried but had problems with enums. Might revisit.
-  - [ ] Use `thiserror` instead of `anyhow` in certain places.
-  - [ ] Github actions CI (including `cargo clippy`)
+    - [ ] Ask around for a code review
+    - [ ] Use either `zerocopy` or make all core types zero-copy with storing `[u8]` and methods as
+      accessors. `zerocopy`
+      did work for most things when I tried but had problems with enums. Might revisit.
+    - [ ] Use `thiserror` instead of `anyhow` in certain places.
+    - [ ] Github actions CI (including `cargo clippy`)
 - [ ] Future things
-  - [ ] Fast bootstrapping related to the user's wallet
-  - [ ] Performance
-    - [ ] Automated comparison
-  - [ ] Proof of work
-    - [ ] Server
-    - [ ] GPU
-  - [ ] WASM
+    - [ ] Fast bootstrapping related to the user's wallet
+    - [ ] Performance
+        - [ ] Automated comparison
+    - [ ] Proof of work
+        - [ ] Server
+        - [ ] GPU
+    - [ ] WASM
 
 ## Credits and references
 
 * Thanks to the hard work from the Nano Foundation.
 * https://github.com/nanocurrency/nano-node
-  * The actual Nano implementation as a source of truth.
+    * The actual Nano implementation as a source of truth.
 * https://forum.nano.org/, https://old.reddit.com/r/nanocurrency/, Nano Discord: https://chat.nano.org/
-  * A very friendly community helping out others and myself.
+    * A very friendly community helping out others and myself.
 * https://docs.nano.org/
-  * General useful information.
+    * General useful information.
 * https://nanoo.tools/
-  * Helped me understand technical details on state blocks and hashing, and also with validating conversions between
-    things.
+    * Helped me understand technical details on state blocks and hashing, and also with validating conversions between
+      things.
 * https://github.com/nanocurrency/protocol/blob/master/reference
-  * Node protocol specification.
+    * Node protocol specification.
 * https://iancoleman.io/bip39/
-  * Helped me test out my BIP 39/BIP 44 implementations.
+    * Helped me test out my BIP 39/BIP 44 implementations.
 
 ## Other implementations
 

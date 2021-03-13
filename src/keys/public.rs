@@ -6,7 +6,7 @@ use crate::node::Header;
 
 use crate::encoding::deserialize_hex;
 use crate::{encoding, expect_len, len_err_msg, to_hex, Address, Signature};
-use anyhow::{Context};
+use anyhow::Context;
 use bitvec::prelude::*;
 use ed25519_dalek::Verifier;
 use serde::de::Error;
@@ -15,7 +15,7 @@ use std::convert::TryFrom;
 use std::iter::FromIterator;
 use std::str::FromStr;
 
-/// Public key which can be converted into an address or verify a signature.
+/// 256 bit public key which can be converted into an [Address](crate::Address) or verify a [Signature](crate::Signature).
 #[derive(Clone, Eq, PartialEq, Hash)]
 pub struct Public([u8; Public::LEN]);
 

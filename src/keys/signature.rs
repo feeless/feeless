@@ -5,13 +5,15 @@ use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use std::convert::TryFrom;
 use std::str::FromStr;
 
+/// A ed25519+blake2 signature that can be generated with [Private](crate::Private) and
+/// checked with [Public](crate::Public).
 #[derive(Clone, PartialEq, Eq)]
 pub struct Signature([u8; Signature::LEN]);
 
 impl Signature {
-    pub const LEN: usize = 64;
+    pub(crate) const LEN: usize = 64;
 
-    pub fn zero() -> Self {
+    pub(crate) fn zero() -> Self {
         Self([0u8; Signature::LEN])
     }
 
@@ -19,7 +21,7 @@ impl Signature {
         &self.0
     }
 
-    pub fn internal(&self) -> ed25519_dalek::Signature {
+    pub(crate) fn internal(&self) -> ed25519_dalek::Signature {
         ed25519_dalek::Signature::new(self.0)
     }
 }
