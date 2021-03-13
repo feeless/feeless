@@ -1,63 +1,66 @@
 use ansi_term::Color;
 use clap::Clap;
-use duct::{cmd, Expression};
-use shell_words;
+use cmd_lib::{run_cmd, run_fun};
 use std::path::PathBuf;
 
 // These `Opts` are only for the path to feeless, not the actual feeless CLI.
 #[derive(Clap)]
 struct Opts {
     /// Specify the path to the feeless binary, e.g. "target/Debug/feeless"
-    feeless_path: PathBuf,
+    feeless_path: String,
 }
 
 /// This example is to show how to use the CLI, and also acts as an integration test.
 fn main() -> anyhow::Result<()> {
     let opts = Opts::parse();
-    let bin = &opts.feeless_path;
+    let feeless = &opts.feeless_path;
 
     let mut test = Test::new();
 
-    let hmm = run(bin, "feeless phrase new | feeless phrase private -");
-    dbg!(hmm);
+    cmd_lib::set_pipefail(true);
 
     test.assert("Correctly display the help screen.", || {
-        Ok(cmd!(bin, "--help").read()?.contains("cryptocurrency"))
+        Ok(run_fun!(
+            $feeless --help
+        )?
+        .contains("cryptocurrency"))
     });
 
     test.assert(
         "A new phrase piped through several stages into an address.",
         || {
-            Ok(cmd!(bin, "phrase", "new")
-                .pipe(cmd!(bin, "phrase", "private", "-"))
-                .pipe(cmd!(bin, "private", "public", "-"))
-                .pipe(cmd!(bin, "public", "address", "-"))
-                .read()?
-                .contains("nano_"))
+            Ok(run_fun!(
+                $feeless phrase new |
+                $feeless phrase private - |
+                $feeless private public - |
+                $feeless public address -
+            )?
+            .contains("nano_"))
         },
     );
 
+    // A zh-hant phrase
     let phrase = "讓 步 械 遞 窮 針 柳 擾 逃 湯 附 剛";
+
     // This is address 5 from the phrase.
     let addr = "nano_3tr7wk6ebc6ujptdnf471d8knnfaz1r469u83biws5s5jntb3hpe8oh65ogi";
+
     test.assert("A known phrase converted directly to an address.", || {
-        Ok(
-            cmd!(bin, "phrase", "address", "-l", "zh-hant", "-a", "5", phrase)
-                .read()?
-                .contains(addr),
-        )
+        Ok(run_fun!(
+            $feeless phrase address -l zh-hant -a 5 "$phrase"
+        )?
+        .contains(addr))
     });
 
     test.assert(
         "A known phrase piped through several stages into an address.",
         || {
-            Ok(
-                cmd!(bin, "phrase", "private", "-l", "zh-hant", "-a", "5", phrase)
-                    .pipe(cmd!(bin, "private", "public", "-"))
-                    .pipe(cmd!(bin, "public", "address", "-"))
-                    .read()?
-                    .contains(addr),
-            )
+            Ok(run_fun!(
+                $feeless phrase private -l zh-hant -a 5 "$phrase" |
+                $feeless private public - |
+                $feeless public address -
+            )?
+            .contains(addr))
         },
     );
 
@@ -65,10 +68,10 @@ fn main() -> anyhow::Result<()> {
         "A known seed piped through several stages into an address.",
         || {
             let zeros = "0000000000000000000000000000000000000000000000000000000000000000";
-            Ok(cmd!(bin, "seed", "private", zeros, "-i", "0")
-                .pipe(cmd!(bin, "private", "address", "-"))
-                .read()?
-                .contains("nano_3i1aq1cchnmbn9x5rsbap8b15akfh7wj7pwskuzi7ahz8oq6cobd99d4r3b7"))
+            Ok(run_fun!(
+                $feeless seed private $zeros -i 0 | $feeless private address -
+            )?
+            .contains("nano_3i1aq1cchnmbn9x5rsbap8b15akfh7wj7pwskuzi7ahz8oq6cobd99d4r3b7"))
         },
     );
 
@@ -89,42 +92,19 @@ impl Test {
     where
         F: Fn() -> anyhow::Result<bool>,
     {
-        let (ok, msg) = match result() {
+        let (ok, msg, maybe_err) = match result() {
             Ok(r) => match r {
-                true => (true, Color::Green.bold().paint("PASS")),
-                false => (false, Color::Red.bold().paint("FAIL")),
+                true => (true, Color::Green.bold().paint("PASS"), None),
+                false => (false, Color::Red.bold().paint("FAIL"), None),
             },
-            Err(_err) => (false, Color::Red.bold().paint("ERRO")),
+            Err(err) => (false, Color::Red.bold().paint("ERRO"), Some(err)),
         };
         println!("{} {}", msg, desc);
+        if let Some(err) = maybe_err {
+            println!("{:?}", err);
+        }
         if !ok {
             self.has_failed = true;
         }
     }
-}
-
-/// Convert a normal looking command into a `duct` chain.
-///
-/// ```
-/// feeless phrase new | feeless phrase private -
-/// ```
-///
-/// Is translated to this during runtime:
-/// ```
-/// cmd!(bin, "phrase", "new").pipe(cmd!(bin, "phrase", "private", "-"))
-/// ```
-fn run(bin: &PathBuf, full_cmd: &str) -> anyhow::Result<String> {
-    let cmds = full_cmd.split("|").collect::<Vec<_>>();
-    let mut expression = cmd_to_duct(bin, cmds[0])?;
-    for cmd in &cmds[1..] {
-        let next_expression = cmd_to_duct(bin, cmd)?;
-        expression = expression.pipe(next_expression);
-    }
-    Ok(expression.read()?)
-}
-
-fn cmd_to_duct(bin: &PathBuf, cmd: &str) -> anyhow::Result<Expression> {
-    let mut parts = shell_words::split(cmd)?;
-    parts.remove(0);
-    Ok(cmd!(bin, parts))
 }
