@@ -37,6 +37,16 @@ fn main() -> anyhow::Result<()> {
         },
     );
 
+    // Example from https://docs.nano.org/integration-guides/key-management/#test-vectors
+    test.assert("A phrase with a passphrase converted to an address.", || {
+
+        Ok(run_fun!(
+            $feeless phrase to-address -p "some password"
+            "edge defense waste choose enrich upon flee junk siren film clown finish luggage leader kid quick brick print evidence swap drill paddle truly occur"
+        )?
+        .contains("nano_1pu7p5n3ghq1i1p4rhmek41f5add1uh34xpb94nkbxe8g4a6x1p69emk8y1d"))
+    });
+
     // A zh-hant phrase
     let phrase = "讓 步 械 遞 窮 針 柳 擾 逃 湯 附 剛";
 
