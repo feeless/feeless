@@ -19,12 +19,13 @@ use std::str::FromStr;
 /// # Ok(())
 /// # }
 /// ```
-//
-// The structure of an address is:
-// ```
-// nano_3o3nkaqbgxbuhmcrf38tpxyhsf5semmcahejyk9z5ybffm7tjhizrfqo7xkg
-// [   ][encoded public key                                ][chksum]
-// [5  ][52                                                ][8     ] <-- Bytes
+///
+/// The structure of an address is:
+/// ```text
+/// nano_3o3nkaqbgxbuhmcrf38tpxyhsf5semmcahejyk9z5ybffm7tjhizrfqo7xkg
+/// [   ][encoded public key                                ][chksum]
+/// [5  ][52                                                ][8     ] <-- Bytes
+/// ```
 #[derive(Debug, PartialEq, Clone)]
 pub struct Address(String);
 

@@ -10,6 +10,7 @@ static TO_RAI: Lazy<BigDecimal> = Lazy::new(|| {
     BigDecimal::from_str("1_000_000_000_000_000_000_000_000_000_000").unwrap()
 });
 
+#[derive(Debug, Clone)]
 pub struct Nano(BigDecimal);
 
 /// Nano (10<sup>30</sup> rai). Overflow and negative numbers allowed, except when converting to [Rai].
@@ -47,7 +48,7 @@ mod tests {
             u64::MAX.to_string(),
             BigDecimal::from_u64(u64::MAX).unwrap().to_string()
         );
-        // XXX: This doesn't work
+        // TODO: This doesn't work
         // assert_eq!(
         //     u128::MAX.to_string(),
         //     BigDecimal::from_u128(u128::MAX).unwrap().to_string()
