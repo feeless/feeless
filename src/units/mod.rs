@@ -6,6 +6,8 @@ pub use rai::Rai;
 use std::convert::TryFrom;
 use std::str::FromStr;
 
+/// This macro creates a struct to handle a specific denomination with arithmetic and conversions
+/// to/from [Rai].
 macro_rules! unit {
     ($struct_name:ident, $multiplier:expr) => {
         #[derive(Debug, Clone, Eq, PartialEq)]
@@ -81,12 +83,38 @@ macro_rules! unit {
                 Self::new(self.0 * rhs.0)
             }
         }
+
+        impl std::ops::AddAssign for $struct_name {
+            fn add_assign(&mut self, rhs: Self) {
+                self.0 += rhs.0;
+            }
+        }
+
+        impl std::ops::SubAssign for $struct_name {
+            fn sub_assign(&mut self, rhs: Self) {
+                self.0 -= rhs.0;
+            }
+        }
+
+        impl std::ops::MulAssign for $struct_name {
+            fn mul_assign(&mut self, rhs: Self) {
+                self.0 *= rhs.0;
+            }
+        }
+
+        // TODO: binary assignment operation `/=` cannot be applied to type `bigdecimal::BigDecimal`
+        // impl std::ops::DivAssign for $struct_name {
+        //     fn div_assign(&mut self, rhs: Self) {
+        //         self.0 /= rhs.0;
+        //     }
+        // }
     };
 }
 
 unit!(Nano, 1_000_000_000_000_000_000_000_000_000_000u128);
 unit!(Cents, 10_000_000_000_000_000_000_000_000_000u128);
 unit!(MicroNano, 1_000_000_000_000_000_000_000_000u128);
+unit!(UnboundedRai, 1);
 
 #[cfg(test)]
 mod tests {
@@ -146,5 +174,26 @@ mod tests {
         assert_eq!(Nano::new(2) - Nano::new(1), Nano::new(1));
         assert_eq!(Nano::new(10) / Nano::new(2), Nano::new(5));
         assert_eq!(Nano::new(10) * Nano::new(2), Nano::new(20));
+
+        let mut n = Nano::new(1);
+        n += Nano::new(2);
+        assert_eq!(n, Nano::new(3));
+        n -= Nano::new(1);
+        assert_eq!(n, Nano::new(2));
+        n *= Nano::new(4);
+        assert_eq!(n, Nano::new(8));
+    }
+
+    #[test]
+    fn cents() {
+        let nano = Nano::new(1).to_rai().unwrap();
+        let cents = nano.to_cents();
+        assert_eq!(cents.to_string(), "100");
+
+        let nano = Nano::new(BigDecimal::from_f64(0.01f64).unwrap())
+            .to_rai()
+            .unwrap();
+        let cents = nano.to_cents();
+        assert_eq!(cents.to_string(), "1");
     }
 }

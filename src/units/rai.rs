@@ -1,5 +1,5 @@
 use super::{MicroNano, Nano};
-use crate::units::Cents;
+use crate::units::{Cents, UnboundedRai};
 use crate::{expect_len, to_hex};
 use anyhow::Context;
 use bigdecimal::BigDecimal;
@@ -42,12 +42,16 @@ impl Rai {
         Nano::from(self)
     }
 
+    pub fn to_cents(&self) -> Cents {
+        Cents::from(self)
+    }
+
     pub fn to_micro_nano(&self) -> MicroNano {
         MicroNano::from(self)
     }
 
-    pub fn to_cents(&self) -> Cents {
-        Cents::from(self)
+    pub fn to_unbounded(&self) -> UnboundedRai {
+        UnboundedRai::from(self)
     }
 
     pub fn to_vec(&self) -> Vec<u8> {
@@ -120,7 +124,6 @@ where
     D: Deserializer<'de>,
 {
     let s: &str = Deserialize::deserialize(deserializer)?;
-    dbg!(&s);
     Ok(Rai::from_hex(s).map_err(de::Error::custom)?)
 }
 
@@ -158,13 +161,10 @@ impl TryFrom<&BigDecimal> for Rai {
     /// One Rai is monetarily insignificant, but if you're using division and trying to encode data
     /// this might bite you!
     fn try_from(value: &BigDecimal) -> Result<Self, Self::Error> {
-        dbg!(&value);
         // Remove decimals.
         let value = value.with_scale(0);
-        dbg!(&value);
         // TODO: Don't use strings here.
         // TODO: from_u128 seems broken so we're using strings.
-        dbg!(value.to_string());
         Self::from_str(value.to_string().as_str())
     }
 }
@@ -327,5 +327,11 @@ mod tests {
             serde_json::from_str::<HexRaw>(&json).unwrap().hex_rai,
             hex_rai.hex_rai
         );
+    }
+
+    #[test]
+    fn negative_unbounded() {
+        let mut v = Rai::zero().to_unbounded();
+        v -= UnboundedRai::new(1);
     }
 }
