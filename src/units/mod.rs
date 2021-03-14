@@ -16,8 +16,9 @@ macro_rules! unit {
         impl $struct_name {
             fn lazy_multiplier() -> Lazy<BigDecimal> {
                 let multiplier: Lazy<BigDecimal> = Lazy::new(|| {
+                    let value = 10u128.pow($multiplier);
                     // For some reason from_u128 fails with `None`.
-                    BigDecimal::from_str($multiplier.to_string().as_str()).unwrap()
+                    BigDecimal::from_str(value.to_string().as_str()).unwrap()
                 });
                 multiplier
             }
@@ -111,10 +112,10 @@ macro_rules! unit {
     };
 }
 
-unit!(Nano, 1_000_000_000_000_000_000_000_000_000_000u128);
-unit!(Cents, 10_000_000_000_000_000_000_000_000_000u128);
-unit!(MicroNano, 1_000_000_000_000_000_000_000_000u128);
-unit!(UnboundedRai, 1);
+unit!(Nano, 30);
+unit!(Cents, 28);
+unit!(MicroNano, 24);
+unit!(UnboundedRai, 0);
 
 #[cfg(test)]
 mod tests {
