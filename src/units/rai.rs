@@ -8,7 +8,9 @@ use std::convert::TryFrom;
 use std::fmt::Display;
 use std::str::FromStr;
 
-/// Container for the smallest Nano unit, with conversion functionality, e.g. from rai [to Mnano](Raw::to_mnano_bigdecimal).
+/// Container for the smallest unit, with conversion functionality, e.g. from rai to nano
+///
+/// Can not contain values outside of 0 to u128::MAX. TODO: To do this use UnboundedRai
 ///
 /// It can convert from/into Mnano, nano, hex, [`String`], and [`BigDecimal`] for decimal accuracy.
 #[derive(Clone, Debug, Eq, PartialEq)]
