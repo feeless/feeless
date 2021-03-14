@@ -25,9 +25,8 @@
 //! let private_key = phrase.to_private(0, "some password")?;
 //! let public_key = private_key.to_public()?;
 //! let address = public_key.to_address();
-//! # assert_eq!(address.to_string(), "nano_1pu7p5n3ghq1i1p4rhmek41f5add1uh34xpb94nkbxe8g4a6x1p69emk8y1d");
 //!
-//! // The above three can be inlined like this:
+//! // The above three lines can be chained like this:
 //! let address = phrase.to_private(0, "some password")?.to_public()?.to_address();
 //! assert_eq!(address.to_string(), "nano_1pu7p5n3ghq1i1p4rhmek41f5add1uh34xpb94nkbxe8g4a6x1p69emk8y1d");
 //!     
