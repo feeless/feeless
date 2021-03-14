@@ -2,10 +2,46 @@
 // #![warn(missing_docs)] LOL not yet.
 //! A set of tools to handle many aspects of the Nano cryptocurrency.
 //!
-//! feeless can be used as:
+//! # About
+//! **feeless** can be used as:
 //! * A library. (This crate!)
 //! * A command line tool with piping capability. See [examples/cli.rs](https://github.com/feeless/feeless/blob/main/examples/cli.rs) for example usage.
 //! * A node. ⚠ WIP. Not a proper node yet, but lots of groundwork so far!
+//!
+//! ## Keys and signing example
+//! ```
+//! use feeless::Phrase;
+//! use feeless::phrase::Language;
+//!
+//! # fn main() -> anyhow::Result<()> {
+//! // Example phrase from https://docs.nano.org/integration-guides/key-management/#test-vectors
+//! let words = "edge defense waste choose enrich upon flee junk siren film clown finish
+//!              luggage leader kid quick brick print evidence swap drill paddle truly occur";
+//!
+//! // Generate the private key from seed phrase.
+//! let phrase = Phrase::from_words(Language::English, words)?;
+//!
+//! // First account with the password `some password`.
+//! let private_key = phrase.to_private(0, "some password")?;
+//! let public_key = private_key.to_public()?;
+//! let address = public_key.to_address();
+//! # assert_eq!(address.to_string(), "nano_1pu7p5n3ghq1i1p4rhmek41f5add1uh34xpb94nkbxe8g4a6x1p69emk8y1d");
+//!
+//! // The above three can be inlined like this:
+//! let address = phrase.to_private(0, "some password")?.to_public()?.to_address();
+//! assert_eq!(address.to_string(), "nano_1pu7p5n3ghq1i1p4rhmek41f5add1uh34xpb94nkbxe8g4a6x1p69emk8y1d");
+//!     
+//! // Sign a message.
+//! let message = "secret message!".as_bytes();
+//! let signature = private_key.sign(message)?;
+//!
+//! // Someone else can verify the message based on your address or public key.
+//! address.to_public().verify(message, &signature)?;
+//! public_key.verify(message, &signature)?;
+//!     
+//! # Ok(())
+//! # }
+//! ```
 
 #[cfg(feature = "node")]
 mod node;
