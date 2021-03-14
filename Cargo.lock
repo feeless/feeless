@@ -424,6 +424,7 @@ dependencies = [
  "funty",
  "hex",
  "num",
+ "num-traits",
  "once_cell",
  "pcarp",
  "rand 0.8.3",

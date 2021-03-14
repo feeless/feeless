@@ -1,14 +1,14 @@
 use crate::blocks::{Block, BlockHash, BlockType, Previous};
 use crate::node::controller::Controller;
 use crate::node::messages::confirm_ack::{Confirm, ConfirmAck};
-use crate::{Public, Raw, Signature};
+use crate::{Public, Rai, Signature};
 use anyhow::{anyhow, Context};
 use tracing::{debug, instrument, warn};
 
 struct AccountDelta {
     from: Public,
     to: Public,
-    amount: Raw,
+    amount: Rai,
 }
 
 impl Controller {

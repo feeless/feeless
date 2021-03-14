@@ -15,7 +15,7 @@ use crate::node::Header;
 use crate::encoding::blake2b;
 use crate::keys::public::to_address;
 use crate::network::Network;
-use crate::{Private, Public, Raw, Signature, Work};
+use crate::{Private, Public, Rai, Signature, Work};
 use anyhow::{anyhow, Context};
 pub use block_hash::BlockHash;
 pub use change_block::ChangeBlock;
@@ -165,7 +165,7 @@ pub struct Block {
     representative: Public,
 
     /// The new balance of this account.
-    balance: Raw,
+    balance: Rai,
 
     /// Link to either a send block, or a destination account.
     link: Link,
@@ -195,7 +195,7 @@ impl Block {
         account: Public,
         previous: Previous,
         representative: Public,
-        balance: Raw,
+        balance: Rai,
         link: Link,
         state: ValidationState,
     ) -> Self {
@@ -213,7 +213,7 @@ impl Block {
         }
     }
 
-    pub fn from_open_block(open_block: &OpenBlock, previous: &Previous, balance: &Raw) -> Self {
+    pub fn from_open_block(open_block: &OpenBlock, previous: &Previous, balance: &Rai) -> Self {
         let mut b = Self::new(
             BlockType::Open,
             open_block.account.to_owned(),
@@ -353,7 +353,7 @@ impl Block {
         Ok(())
     }
 
-    pub fn balance(&self) -> &Raw {
+    pub fn balance(&self) -> &Rai {
         &self.balance
     }
 

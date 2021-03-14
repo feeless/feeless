@@ -42,6 +42,19 @@
 //! # }
 //! ```
 
+use anyhow::anyhow;
+
+pub(crate) use encoding::{hex_formatter, to_hex};
+pub use keys::address::Address;
+pub use keys::phrase;
+pub use keys::phrase::Phrase;
+pub use keys::private::Private;
+pub use keys::public::Public;
+pub use keys::seed::Seed;
+pub use keys::signature::Signature;
+pub use pow::work::Work;
+pub use units::rai::Rai;
+
 #[cfg(feature = "node")]
 mod node;
 
@@ -61,19 +74,7 @@ mod encoding;
 mod keys;
 mod network;
 mod pow;
-mod raw;
-
-use anyhow::anyhow;
-pub(crate) use encoding::{hex_formatter, to_hex};
-pub use keys::address::Address;
-pub use keys::phrase;
-pub use keys::phrase::Phrase;
-pub use keys::private::Private;
-pub use keys::public::Public;
-pub use keys::seed::Seed;
-pub use keys::signature::Signature;
-pub use pow::work::Work;
-pub use raw::Raw;
+pub mod units;
 
 /// The default TCP port that Nano nodes use.
 pub const DEFAULT_PORT: u16 = 7075;

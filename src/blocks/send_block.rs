@@ -7,8 +7,8 @@ use crate::node::Wire;
 use crate::blocks::{BlockHash, BlockType};
 use crate::bytes::Bytes;
 use crate::keys::public::{from_address, to_address};
-use crate::raw::{deserialize_from_hex, serialize_to_hex};
-use crate::{Public, Raw, Signature, Work};
+use crate::units::rai::{deserialize_from_hex, serialize_to_hex};
+use crate::{Public, Rai, Signature, Work};
 
 use serde::{Deserialize, Serialize};
 use std::convert::TryFrom;
@@ -25,7 +25,7 @@ pub struct SendBlock {
         serialize_with = "serialize_to_hex",
         deserialize_with = "deserialize_from_hex"
     )]
-    pub balance: Raw,
+    pub balance: Rai,
 
     pub work: Option<Work>,
     pub signature: Option<Signature>,
@@ -34,7 +34,7 @@ pub struct SendBlock {
 impl SendBlock {
     pub const LEN: usize = 152;
 
-    pub fn new(previous: BlockHash, destination: Public, balance: Raw) -> Self {
+    pub fn new(previous: BlockHash, destination: Public, balance: Rai) -> Self {
         Self {
             previous,
             destination,
@@ -58,7 +58,7 @@ impl Wire for SendBlock {
         let mut data = Bytes::new(data);
         let previous = BlockHash::try_from(data.slice(BlockHash::LEN)?)?;
         let destination = Public::try_from(data.slice(Public::LEN)?)?;
-        let balance = Raw::try_from(data.slice(Raw::LEN)?)?;
+        let balance = Rai::try_from(data.slice(Rai::LEN)?)?;
         let work = Some(Work::try_from(data.slice(Work::LEN)?)?);
         let signature = Some(Signature::try_from(data.slice(Signature::LEN)?)?);
 

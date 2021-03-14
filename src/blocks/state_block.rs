@@ -6,7 +6,7 @@ use crate::node::Wire;
 
 use crate::blocks::{BlockHash, BlockType};
 use crate::bytes::Bytes;
-use crate::{expect_len, Public, Raw, Signature, Work};
+use crate::{expect_len, Public, Rai, Signature, Work};
 
 use serde::{Deserialize, Serialize};
 use std::convert::TryFrom;
@@ -16,7 +16,7 @@ pub struct StateBlock {
     pub account: Public,
     pub previous: BlockHash,
     pub representative: Public,
-    pub balance: Raw,
+    pub balance: Rai,
     pub link: Link,
     pub work: Option<Work>,
     pub signature: Option<Signature>,
@@ -29,7 +29,7 @@ impl StateBlock {
         account: Public,
         previous: BlockHash,
         representative: Public,
-        balance: Raw,
+        balance: Rai,
         link: Link,
     ) -> Self {
         Self {
@@ -59,7 +59,7 @@ impl Wire for StateBlock {
         let account = Public::try_from(data.slice(Public::LEN)?)?;
         let previous = BlockHash::try_from(data.slice(BlockHash::LEN)?)?;
         let representative = Public::try_from(data.slice(Public::LEN)?)?;
-        let balance = Raw::try_from(data.slice(Raw::LEN)?)?;
+        let balance = Rai::try_from(data.slice(Rai::LEN)?)?;
 
         let link_data = data.slice(Public::LEN)?;
         // We are unsure because we need to work out the previous balance of this account first.
@@ -88,7 +88,7 @@ mod tests {
     use crate::blocks::state_block::Link;
     use crate::{Address, Signature, Work};
 
-    use super::Raw;
+    use super::Rai;
     use super::StateBlock;
     use crate::blocks::{Block, BlockHash};
     use std::str::FromStr;
@@ -103,7 +103,7 @@ mod tests {
             BlockHash::from_str("7837C80964CAD551DEABE162C7FC4BB58688A0C6EB6D9907C0D2A7C74A33C7EB")
                 .unwrap();
         let representative = account.clone();
-        let balance = Raw::from_raw(2711469892748129430069222848295u128);
+        let balance = Rai::new(2711469892748129430069222848295u128);
         let link = Link::Source(
             BlockHash::from_str("0399B19B022D260F3DDFBA26D0306D423F1890D3AE06136FAB16802D1F2B87A7")
                 .unwrap(),
