@@ -1,22 +1,25 @@
 use super::rai::Rai;
 use anyhow::anyhow;
 use bigdecimal::{BigDecimal, FromPrimitive, Signed};
+use once_cell::sync::Lazy;
+use std::convert::TryFrom;
+use std::str::FromStr;
+
+static TO_RAI: Lazy<BigDecimal> = Lazy::new(|| {
+    // For some reason from_u128 fails with `None`.
+    BigDecimal::from_str("1_000_000_000_000_000_000_000_000").unwrap()
+});
 
 #[derive(Debug, Clone)]
 pub struct MicroNano(BigDecimal);
 
 impl MicroNano {
-    const TO_RAI: u128 = 1_000_000_000_000_000_000_000_000;
-
     pub fn new<T: Into<BigDecimal>>(v: T) -> Self {
         Self(v.into())
     }
 
     pub fn to_rai(&self) -> anyhow::Result<Rai> {
-        // TODO: unwrap ok here?
-        // let v = check_overflow(&self.0 * BigDecimal::from_u128(Self::TO_RAI).unwrap())?;
-
-        todo!()
+        Rai::try_from(&(&self.0 * &*TO_RAI))
     }
 }
 
@@ -36,6 +39,14 @@ impl MicroNano {
 impl ToString for MicroNano {
     fn to_string(&self) -> String {
         self.0.to_string()
+    }
+}
+
+impl From<&Rai> for MicroNano {
+    fn from(rai: &Rai) -> Self {
+        // TODO: unwrap ok here?
+        // TODO: from_u128 returns None for some reason...
+        Self(BigDecimal::from_str(rai.0.to_string().as_str()).unwrap() / &*TO_RAI)
     }
 }
 

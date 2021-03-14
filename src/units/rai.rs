@@ -39,8 +39,8 @@ impl Rai {
         Nano::from(self)
     }
 
-    pub fn to_micro_nano(&self) -> Nano {
-        todo!()
+    pub fn to_micro_nano(&self) -> MicroNano {
+        MicroNano::from(self)
     }
 
     pub fn to_vec(&self) -> Vec<u8> {
@@ -140,6 +140,16 @@ impl TryFrom<&[u8]> for Rai {
     }
 }
 
+impl TryFrom<&BigDecimal> for Rai {
+    type Error = anyhow::Error;
+
+    fn try_from(value: &BigDecimal) -> Result<Self, Self::Error> {
+        // TODO: Don't use strings here.
+        // TODO: from_u128 seems broken so we're using strings.
+        Self::from_str(value.to_string().as_str())
+    }
+}
+
 impl PartialOrd for Rai {
     fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
         self.0.partial_cmp(&other.0)
@@ -209,12 +219,12 @@ mod tests {
         let one_rai = Rai::from(1u128);
         assert_eq!(one_rai.to_string(), "1");
         assert_eq!(
-            one_rai.to_micro_nano().to_string(),
-            "0.000000000000000000000001"
-        );
-        assert_eq!(
             one_rai.to_nano().to_string(),
             "0.000000000000000000000000000001"
+        );
+        assert_eq!(
+            one_rai.to_micro_nano().to_string(),
+            "0.000000000000000000000001"
         );
 
         assert_eq!(
