@@ -2,8 +2,8 @@
 
 [![Crates.io](https://img.shields.io/crates/v/feeless?style=flat-square)](https://crates.io/crates/feeless)
 [![docs.rs](https://img.shields.io/docsrs/feeless?style=flat-square)](https://docs.rs/feeless/)
-![GitHub last commit](https://img.shields.io/github/last-commit/feeless/feeless?style=flat-square)
-![MIT OR Apache-2.0 Licence](https://img.shields.io/crates/l/feeless?style=flat-square)
+[![GitHub last commit](https://img.shields.io/github/last-commit/feeless/feeless?style=flat-square)](https://github.com/feeless/feeless/graphs/commit-activity)
+[![MIT OR Apache-2.0 Licence](https://img.shields.io/crates/l/feeless?style=flat-square)](https://github.com/dtolnay/rust-faq#why-a-dual-mitasl2-license)
 
 ## What is Feeless?
 
@@ -11,7 +11,7 @@
 only an implementation written in Rust. The official Nano node
 implementation [lives here](https://github.com/nanocurrency/nano-node).
 
-⚠ This is a work in progress. ⚠
+⚠ This is a work in progress. The API will probably change without notice until `v0.2`. ⚠
 
 I decided to start this project as a personal adventure of understanding Nano. I give no promises about my future
 motivation to complete this project 🤐.

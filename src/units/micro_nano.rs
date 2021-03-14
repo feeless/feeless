@@ -23,19 +23,6 @@ impl MicroNano {
     }
 }
 
-// pub fn check_overflow(v: BigDecimal) -> anyhow::Result<BigDecimal> {
-//     if v.is_negative() {
-//         return Err(anyhow!("Value is negative"));
-//     }
-//
-//     // TODO: unwrap ok here?
-//     if v > BigDecimal::from_u128(u128::MAX).unwrap() {
-//         return Err(anyhow!("Value is higher than u128::MAX"));
-//     }
-//
-//     Ok(v)
-// }
-//
 impl ToString for MicroNano {
     fn to_string(&self) -> String {
         self.0.to_string()
@@ -59,15 +46,23 @@ mod tests {
     fn negative() {
         assert!(MicroNano::new(-1).to_rai().is_err());
     }
+
     #[test]
     fn overflow() {
         assert!(MicroNano::new(340282366920938u64).to_rai().is_ok());
         assert!(MicroNano::new(340282366920939u64).to_rai().is_err());
 
-        let d = BigDecimal::from_str("340282366920938.1").unwrap();
-        dbg!(&d);
-        MicroNano::new(d).to_rai().unwrap();
-        // assert!(MicroNano::new(d).to_rai().is_ok());
-        // assert!(MicroNano::new("340282366920938.5").to_rai().is_err());
+        MicroNano::new(BigDecimal::from_str("340282366920938.4").unwrap())
+            .to_rai()
+            .unwrap();
+        assert!(
+            MicroNano::new(BigDecimal::from_str("340282366920938.5").unwrap())
+                .to_rai()
+                .is_err()
+        );
+        // Just one rai over the max.
+        let d = BigDecimal::from_str("340282366920938.463463374607431768211456").unwrap();
+        let result = MicroNano::new(d).to_rai();
+        assert!(result.is_err());
     }
 }

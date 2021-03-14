@@ -113,7 +113,8 @@ where
     D: Deserializer<'de>,
 {
     let s: &str = Deserialize::deserialize(deserializer)?;
-    Ok(Rai::from_str(s).map_err(de::Error::custom)?)
+    dbg!(&s);
+    Ok(Rai::from_hex(s).map_err(de::Error::custom)?)
 }
 
 impl Display for Rai {
@@ -143,7 +144,17 @@ impl TryFrom<&[u8]> for Rai {
 impl TryFrom<&BigDecimal> for Rai {
     type Error = anyhow::Error;
 
+    /// Convert from BigDecimal into Rai, removing any fraction.
+    ///
+    /// It's up to the caller to round to a whole number beforehand.
+    ///
+    /// One Rai is monetarily insignificant, but if you're using division and trying to encode data
+    /// this might bite you!
     fn try_from(value: &BigDecimal) -> Result<Self, Self::Error> {
+        dbg!(&value);
+        // Remove decimals.
+        let value = value.with_scale(0);
+        dbg!(&value);
         // TODO: Don't use strings here.
         // TODO: from_u128 seems broken so we're using strings.
         dbg!(value.to_string());
