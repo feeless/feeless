@@ -146,6 +146,7 @@ impl TryFrom<&BigDecimal> for Rai {
     fn try_from(value: &BigDecimal) -> Result<Self, Self::Error> {
         // TODO: Don't use strings here.
         // TODO: from_u128 seems broken so we're using strings.
+        dbg!(value.to_string());
         Self::from_str(value.to_string().as_str())
     }
 }
@@ -290,7 +291,7 @@ mod tests {
     }
 
     #[test]
-    fn hex_json() -> anyhow::Result<()> {
+    fn hex_json() {
         #[derive(Serialize, Deserialize)]
         struct HexRaw {
             #[serde(
@@ -305,9 +306,8 @@ mod tests {
         let json = serde_json::to_string(&hex_rai).unwrap();
         assert_eq!(json, r#"{"hex_rai":"0000000C9F2C9CD04674EDEA40000000"}"#);
         assert_eq!(
-            serde_json::from_str::<HexRaw>(&json)?.hex_rai,
+            serde_json::from_str::<HexRaw>(&json).unwrap().hex_rai,
             hex_rai.hex_rai
         );
-        Ok(())
     }
 }

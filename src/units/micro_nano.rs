@@ -64,11 +64,10 @@ mod tests {
         assert!(MicroNano::new(340282366920938u64).to_rai().is_ok());
         assert!(MicroNano::new(340282366920939u64).to_rai().is_err());
 
-        assert!(
-            MicroNano::new(BigDecimal::from_str("340282366920938.4").unwrap())
-                .to_rai()
-                .is_ok()
-        );
+        let d = BigDecimal::from_str("340282366920938.1").unwrap();
+        dbg!(&d);
+        MicroNano::new(d).to_rai().unwrap();
+        // assert!(MicroNano::new(d).to_rai().is_ok());
         // assert!(MicroNano::new("340282366920938.5").to_rai().is_err());
     }
 }
