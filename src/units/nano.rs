@@ -74,35 +74,4 @@ impl std::ops::Mul for Nano {
 #[cfg(test)]
 mod tests {
     use super::*;
-
-    #[test]
-    fn is_something_wrong_with_big_decimal_u128() {
-        assert_eq!(
-            u64::MAX.to_string(),
-            BigDecimal::from_u64(u64::MAX).unwrap().to_string()
-        );
-        // TODO: This doesn't work
-        // assert_eq!(
-        //     u128::MAX.to_string(),
-        //     BigDecimal::from_u128(u128::MAX).unwrap().to_string()
-        // );
-    }
-
-    #[test]
-    fn overflow() {
-        let d = BigDecimal::from_str("340282366.920938463463374607431768211455").unwrap();
-        Nano::new(d).to_rai().unwrap();
-
-        // One over the max
-        let d = BigDecimal::from_str("340282366.920938463463374607431768211456").unwrap();
-        assert!(Nano::new(d).to_rai().is_err());
-    }
-
-    #[test]
-    fn arithmetic() {
-        assert_eq!(Nano::new(1) + Nano::new(-2), Nano::new(-1));
-        assert_eq!(Nano::new(2) - Nano::new(1), Nano::new(1));
-        assert_eq!(Nano::new(10) / Nano::new(2), Nano::new(5));
-        assert_eq!(Nano::new(10) * Nano::new(2), Nano::new(20));
-    }
 }

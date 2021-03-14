@@ -1,4 +1,5 @@
 use super::{MicroNano, Nano};
+use crate::units::Cents;
 use crate::{expect_len, to_hex};
 use anyhow::Context;
 use bigdecimal::BigDecimal;
@@ -43,6 +44,10 @@ impl Rai {
 
     pub fn to_micro_nano(&self) -> MicroNano {
         MicroNano::from(self)
+    }
+
+    pub fn to_cents(&self) -> Cents {
+        Cents::from(self)
     }
 
     pub fn to_vec(&self) -> Vec<u8> {
