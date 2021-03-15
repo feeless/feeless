@@ -2,12 +2,12 @@ use crate::cli::StringOrStdin;
 use clap::Clap;
 
 #[derive(Clap)]
-pub struct Private {
+pub struct PrivateOpts {
     #[clap(subcommand)]
     command: Command,
 }
 
-impl Private {
+impl PrivateOpts {
     pub fn handle(&self) -> anyhow::Result<()> {
         match &self.command {
             Command::New => {

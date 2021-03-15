@@ -2,15 +2,13 @@ use crate::cli::StringOrStdin;
 
 use clap::Clap;
 
-
-
 #[derive(Clap)]
-pub struct Seed {
+pub struct SeedOpts {
     #[clap(subcommand)]
     command: Command,
 }
 
-impl Seed {
+impl SeedOpts {
     pub fn handle(&self) -> anyhow::Result<()> {
         match &self.command {
             Command::New => println!("{}", crate::Seed::random()),

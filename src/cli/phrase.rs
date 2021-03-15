@@ -8,12 +8,12 @@ use std::str::FromStr;
 static LANGUAGES: &str = "en, zh-hans, zh-hant, fr, it, ja, ko, es";
 
 #[derive(Clap)]
-pub struct Phrase {
+pub struct PhraseOpts {
     #[clap(subcommand)]
     command: Command,
 }
 
-impl Phrase {
+impl PhraseOpts {
     pub fn handle(&self) -> anyhow::Result<()> {
         match &self.command {
             Command::New(x) => {

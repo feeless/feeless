@@ -2,12 +2,12 @@ use crate::cli::StringOrStdin;
 use clap::Clap;
 
 #[derive(Clap)]
-pub struct Address {
+pub struct AddressOpts {
     #[clap(subcommand)]
     command: Command,
 }
 
-impl Address {
+impl AddressOpts {
     pub fn handle(&self) -> anyhow::Result<()> {
         match &self.command {
             Command::Public(p) => {

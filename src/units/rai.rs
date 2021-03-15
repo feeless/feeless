@@ -12,7 +12,7 @@ use std::str::FromStr;
 /// Special bounded container for the smallest unit, rai.
 ///
 /// Can not contain values outside of `0` to [u128::MAX]. To get around this, use [UnboundedRai] or
-/// one of the other denominations, e.g. [Nano] or [MicroNano].
+/// one of the other denominations: [Nano], [Cents], [MicroNano].
 ///
 /// ```
 /// use feeless::Rai;
@@ -30,6 +30,8 @@ pub struct Rai(pub(crate) u128);
 impl Rai {
     pub(crate) const LEN: usize = 16;
 
+    /// Create a new [Rai] instance. The value must be [Into<u128>]. This might change to something
+    /// more flexible soon!
     pub fn new<T: Into<u128>>(v: T) -> Self {
         Self(v.into())
     }

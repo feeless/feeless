@@ -1,14 +1,14 @@
+use crate::cli::pcap::PcapDumpOpts;
+use crate::cli::unit::UnitOpts;
 use crate::debug::parse_pcap_log_file_to_csv;
 use crate::node::node_with_single_peer;
-use crate::pcap;
-use address::Address;
+use address::AddressOpts;
 use anyhow::{anyhow, Context};
 use clap::Clap;
-use convert::ConvertFrom;
-use phrase::Phrase;
-use private::Private;
-use public::Public;
-use seed::Seed;
+use phrase::PhraseOpts;
+use private::PrivateOpts;
+use public::PublicOpts;
+use seed::SeedOpts;
 use std::io;
 use std::io::Read;
 use std::net::Ipv4Addr;
@@ -16,11 +16,12 @@ use std::path::PathBuf;
 use std::str::FromStr;
 
 mod address;
-mod convert;
+mod pcap;
 mod phrase;
 mod private;
 mod public;
 mod seed;
+mod unit;
 
 #[derive(Clap)]
 #[clap(author, about, version)]
@@ -37,28 +38,29 @@ struct Opts {
 enum Command {
     Node(NodeOpts),
 
-    Convert(ConvertFrom),
+    /// Conversion between units, e.g. Rai to Nano
+    Unit(UnitOpts),
 
     /// Word mnemonic phrase generation and conversion.
-    Phrase(Phrase),
+    Phrase(PhraseOpts),
 
     /// 64 bit seed generation and conversion.
-    Seed(Seed),
+    Seed(SeedOpts),
 
     /// Private key generation and conversion.
-    Private(Private),
+    Private(PrivateOpts),
 
     /// Public key conversion.
-    Public(Public),
+    Public(PublicOpts),
 
     /// Address conversion.
-    Address(Address),
+    Address(AddressOpts),
 
     /// Tool to analyse network capture dumps for Nano packets.
-    Pcap(PcapDumpArgs),
+    Pcap(PcapDumpOpts),
 
     /// Debugging and experimental tools
-    Debug(Debug),
+    Debug(DebugOpts),
 }
 
 #[derive(Clap)]
@@ -66,31 +68,8 @@ struct NodeOpts {
     address: String,
 }
 
-/// Read a pcapng file containing Nano packets, and print some information about each payload.
 #[derive(Clap)]
-struct PcapDumpArgs {
-    path: String,
-
-    /// The IP address of the subject, to show relative information.
-    /// This is inferred automatically by the host of the first packet sent out.
-    #[clap(short, long)]
-    my_addr: Option<String>,
-
-    /// Only show packets related to this IP address.
-    #[clap(long)]
-    filter_addr: Option<String>,
-
-    /// Starting packet.
-    #[clap(long)]
-    start: Option<usize>,
-
-    /// Last packet to process.
-    #[clap(long)]
-    end: Option<usize>,
-}
-
-#[derive(Clap)]
-struct Debug {
+struct DebugOpts {
     #[clap(subcommand)]
     command: DebugCommand,
 }
@@ -122,23 +101,7 @@ pub async fn run() -> anyhow::Result<()> {
         Command::Node(_) => panic!("Compile with the `node` feature to enable this."),
 
         #[cfg(feature = "pcap")]
-        Command::Pcap(o) => {
-            let subject = match o.my_addr {
-                Some(ip_addr) => pcap::Subject::Specified(
-                    Ipv4Addr::from_str(&ip_addr).context("Invalid IP address")?,
-                ),
-                None => pcap::Subject::AutoFirstSource,
-            };
-            let mut p = pcap::PcapDump::new(subject);
-            p.start_at = o.start;
-            p.end_at = o.end;
-            p.filter_addr = o
-                .filter_addr
-                .as_ref()
-                .map(|i| Ipv4Addr::from_str(i).context("Invalid IP address"))
-                .transpose()?;
-            p.dump(&o.path).await
-        }
+        Command::Pcap(o) => o.handle().await,
         #[cfg(not(feature = "pcap"))]
         Command::Pcap(o) => panic!("Compile with the `pcap` feature to enable this."),
 
@@ -150,8 +113,8 @@ pub async fn run() -> anyhow::Result<()> {
         Command::Private(private) => private.handle(),
         Command::Public(public) => public.handle(),
         Command::Phrase(phrase) => phrase.handle(),
-        Command::Convert(from) => from.command.handle(),
         Command::Address(address) => address.handle(),
+        Command::Unit(unit) => unit.handle(),
     }
 }
 
