@@ -37,12 +37,16 @@
 //!     let big = BigDecimal::from_f64(-0.999).unwrap();
 //!     assert_eq!(cents, Cents::new(big));
 //!
+//!     // Convert to float.
+//!     assert_eq!(cents.to_f64(), -0.999);
+//!
 //!     Ok(())
 //! }
 //! ```
 pub(crate) mod rai;
 
 use bigdecimal::BigDecimal;
+use bigdecimal::ToPrimitive;
 use once_cell::sync::Lazy;
 pub use rai::Rai;
 use std::convert::TryFrom;
@@ -71,6 +75,15 @@ macro_rules! unit {
 
             pub fn to_rai(&self) -> anyhow::Result<Rai> {
                 Rai::try_from(&(&self.0 * &*Self::lazy_multiplier()))
+            }
+
+            pub fn to_f64(&self) -> f64 {
+                // TODO: unwrap ok here?
+                self.0.to_f64().unwrap()
+            }
+
+            pub fn to_big_decimal(&self) -> &BigDecimal {
+                &self.0
             }
         }
 
