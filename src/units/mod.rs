@@ -1,21 +1,20 @@
-//! Units of Nano, i.e. [Rai], [MicroNano] (10<sup>24</sup>), [Cents] (10<sup>22</sup>), [Nano] (10<sup>30</sup>).
+//! Units of Nano, i.e.
+//! [Rai],
+//! [Nano] (10<sup>30</sup>),
+//! [Cents] (10<sup>22</sup>),
+//! [MicroNano] (10<sup>24</sup>).
 //!
 //! Please note these are different from the currently used units, using the [proposed
 //! new currency units pull request](https://github.com/nanocurrency/nano-docs/pull/466).
 //!
-//! [Rai] acts differently than the other units, as its internal type is u128. This means it can
-//! not be a value outside of that, e.g. negative numbers. To get around this, use [UnboundedRai],
-//! which internally uses [BigDecimal]. [Nano], [Cents], [MicroNano] and [UnboundedRai] all use
-//! [BigDecimal].
-//!
-//!
-//! The general recommendation is to never use floats when dealing with money due to inaccuracies
-//! with floating point precision. You can however do it with [BigDecimal]--see the example below.
+//! [Rai] acts differently than the other units in this module, as its internal type is [u128].
+//! This means it can not be a value outside of that, e.g. negative numbers. To get around this,
+//! use [UnboundedRai], which internally uses [BigDecimal]. [Nano], [Cents], [MicroNano] and
+//! [UnboundedRai] all use [BigDecimal] internally.
 //!
 //! Example:
 //! ```
 //! use feeless::units::{Nano, Cents};
-//! use bigdecimal::{BigDecimal, FromPrimitive};
 //! use std::convert::TryFrom;
 //! use std::str::FromStr;
 //!
@@ -33,12 +32,33 @@
 //!     // Can parse fractional strings.
 //!     assert_eq!(cents, Cents::from_str("-0.999")?);
 //!
+//!     Ok(())
+//! }
+//! ```
+//!
+//! ## Working with floats (f32, f64)
+//! The general recommendation is to never use floats when dealing with money due to inaccuracies
+//! with floating point precision. You can however do it with [BigDecimal]--see the example below.
+//!
+//! Ideally if your API doesn't support [BigDecimal], it might be better to convert between
+//! [String] and [BigDecimal] to make sure there are no rounding or floating point inaccuracies.
+//! ```
+//! use feeless::units::Cents;
+//! use bigdecimal::{BigDecimal, FromPrimitive};
+//! use std::str::FromStr;
+//!
+//! fn main() -> anyhow::Result<()> {
 //!     // If you really need to load from a float, use BigDecimal.
-//!     let big = BigDecimal::from_f64(-0.999).unwrap();
-//!     assert_eq!(cents, Cents::new(big));
+//!     let big = BigDecimal::from_f64(1231239999999999.1).unwrap();
+//!     let cents = Cents::new(big);
 //!
 //!     // Convert to float.
-//!     assert_eq!(cents.to_f64(), -0.999);
+//!     assert_eq!(cents.to_f64(), 1231239999999999.1);
+//!
+//!     // Better
+//!     let big = BigDecimal::from_str("9999999999.1").unwrap();
+//!     let cents = Cents::new(big);
+//!     assert_eq!(cents.to_string(), "9999999999.1");
 //!
 //!     Ok(())
 //! }
