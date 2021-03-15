@@ -9,7 +9,7 @@ use std::convert::TryFrom;
 use std::fmt::Display;
 use std::str::FromStr;
 
-/// Container for the smallest unit, with conversion functionality, e.g. from rai to nano
+/// Special bounded container for the smallest unit, rai.
 ///
 /// Can not contain values outside of `0` to [u128::MAX]. To get around this, use [UnboundedRai] or
 /// one of the other denominations, e.g. [Nano] or [MicroNano].

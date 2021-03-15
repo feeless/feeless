@@ -43,6 +43,7 @@ regex = "1.4.3"
 rand = "0.8.3"
 tiny-bip39 = "0.8.0"
 chrono = "0.4.19"
+doc-comment = "0.3.3"
 
 ed25519-dalek-bip32 = "0.1.1"
 
