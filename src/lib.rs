@@ -2,11 +2,13 @@
 // #![warn(missing_docs)] LOL not yet.
 //! A set of tools to handle many aspects of the Nano cryptocurrency.
 //!
+//! See the [github repo](https://github.com/feeless/feeless/#readme) for more details about this project.
+//!
 //! # About
 //! **feeless** can be used as:
 //! * A library. (This crate!)
 //! * A command line tool with piping capability. See [examples/cli.rs](https://github.com/feeless/feeless/blob/main/examples/cli.rs) for example usage.
-//! * A node. ⚠ WIP. Not a proper node yet, but lots of groundwork so far!
+//! * A node. 🚸 WIP. Not a proper node yet, but lots of groundwork so far!
 //!
 //! ## Keys and signing example
 //! ```
@@ -18,7 +20,7 @@
 //! let words = "edge defense waste choose enrich upon flee junk siren film clown finish
 //!              luggage leader kid quick brick print evidence swap drill paddle truly occur";
 //!
-//! // Generate the private key from seed phrase.
+//! // Generate the private key from the seed phrase.
 //! let phrase = Phrase::from_words(Language::English, words)?;
 //!
 //! // First account with the password `some password`.

@@ -11,7 +11,7 @@
 only an implementation written in Rust. The official Nano node
 implementation [lives here](https://github.com/nanocurrency/nano-node).
 
-⚠ This is a work in progress. The API will probably change without notice until `v0.2`. ⚠
+🚸 This is a work in progress. The API will probably change without notice until `v0.2`. 🚸
 
 I decided to start this project as a personal adventure of understanding Nano. I give no promises about my future
 motivation to complete this project 🤐.
@@ -37,17 +37,17 @@ can see with `--help`. To do this as successfully as possible, capture with Wire
 The main features of **Nano** are:
 
 * No transaction fees.
-* Extremely fast to send money--less than 1 second for 100% confirmation.
+* Extremely fast to send money—less than 1 second for 100% confirmation.
 
   <sup>
     Bitcoin takes 10 minutes on average for ~80%<sup>1</sup> confirmation.
-    Nano is more asynchronous than Bitcoin--individual transactions are voted on separately from the rest of the network.
+    Nano is more asynchronous than Bitcoin—individual transactions are voted on separately from the rest of the network.
   </sup>
 * Highly decentralized.
 
   <sup>Using the Nakamoto coefficient measurement, it is more decentralized than Bitcoin<sup>2 3</sup>.
 * No inflation.
-* Green--Massively less energy use than Bitcoin.
+* Green—Massively less energy use than Bitcoin.
 
 For more information on what Nano is, see the Nano documentation: https://docs.nano.org/what-is-nano/overview/
 
