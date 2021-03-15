@@ -1,3 +1,45 @@
+//! Units of Nano, i.e. [Rai], [MicroNano] (10<sup>24</sup>), [Cents] (10<sup>22</sup>), [Nano] (10<sup>30</sup>).
+//!
+//! Please note these are different from the currently used units, using the [proposed
+//! new currency units pull request](https://github.com/nanocurrency/nano-docs/pull/466).
+//!
+//! [Rai] acts differently than the other units, as its internal type is u128. This means it can
+//! not be a value outside of that, e.g. negative numbers. To get around this, use [UnboundedRai],
+//! which internally uses [BigDecimal]. [Nano], [Cents], [MicroNano] and [UnboundedRai] all use
+//! [BigDecimal].
+//!
+//!
+//! The general recommendation is to never use floats when dealing with money due to inaccuracies
+//! with floating point precision. You can however do it with [BigDecimal]--see the example below.
+//!
+//! Example:
+//! ```
+//! use feeless::units::{Nano, Cents};
+//! use bigdecimal::{BigDecimal, FromPrimitive};
+//! use std::convert::TryFrom;
+//! use std::str::FromStr;
+//!
+//! fn main() -> anyhow::Result<()> {
+//!     // One Nano.
+//!     let nano = Nano::new(1);
+//!
+//!     // To convert to cents, you need to convert to rai first.
+//!     // TODO: Make it possible to convert directly, i.e. nano.to_cents();
+//!     let cents = nano.to_rai()?.to_cents();
+//!     assert_eq!(cents, Cents::new(100));
+//!
+//!     // Works with arithmetic.
+//!     let cents = (cents * Cents::new(-10) + Cents::new(1)) / Cents::new(1000);
+//!     // Can parse fractional strings.
+//!     assert_eq!(cents, Cents::from_str("-0.999")?);
+//!
+//!     // If you really need to load from a float, use BigDecimal.
+//!     let big = BigDecimal::from_f64(-0.999).unwrap();
+//!     assert_eq!(cents, Cents::new(big));
+//!
+//!     Ok(())
+//! }
+//! ```
 pub(crate) mod rai;
 
 use bigdecimal::BigDecimal;
@@ -35,6 +77,14 @@ macro_rules! unit {
         impl ToString for $struct_name {
             fn to_string(&self) -> String {
                 self.0.to_string()
+            }
+        }
+
+        impl FromStr for $struct_name {
+            type Err = anyhow::Error;
+
+            fn from_str(s: &str) -> Result<Self, Self::Err> {
+                Ok(Self::new(BigDecimal::from_str(s)?))
             }
         }
 

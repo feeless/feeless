@@ -11,9 +11,19 @@ use std::str::FromStr;
 
 /// Container for the smallest unit, with conversion functionality, e.g. from rai to nano
 ///
-/// Can not contain values outside of 0 to u128::MAX. TODO: To do this use UnboundedRai
+/// Can not contain values outside of `0` to [u128::MAX]. To get around this, use [UnboundedRai] or
+/// one of the other denominations, e.g. [Nano] or [MicroNano].
 ///
-/// It can convert from/into Mnano, nano, hex, [`String`], and [`BigDecimal`] for decimal accuracy.
+/// ```
+/// use feeless::Rai;
+///
+/// fn main() -> anyhow::Result<()> {
+/// use feeless::units::Nano;
+///     let rai = Rai::new(1000000000000000000000000000000u128);
+///     assert_eq!(rai.to_nano(), Nano::new(1));
+///     Ok(())
+/// }
+/// ```
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct Rai(pub(crate) u128);
 
@@ -158,8 +168,8 @@ impl TryFrom<&BigDecimal> for Rai {
     ///
     /// It's up to the caller to round to a whole number beforehand.
     ///
-    /// One Rai is monetarily insignificant, but if you're using division and trying to encode data
-    /// this might bite you!
+    /// One Rai is monetarily insignificant, but if you're using fractions and trying to encode
+    /// data this might bite you!
     fn try_from(value: &BigDecimal) -> Result<Self, Self::Error> {
         // Remove decimals.
         let value = value.with_scale(0);
