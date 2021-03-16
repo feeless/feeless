@@ -24,23 +24,22 @@ impl Wallet {
         }
 
         let store = Store::new();
-        let f = File::create(&self.path)?;
-        serde_json::to_writer_pretty(f, &store)?;
+        let file = File::create(&self.path)?;
+        serde_json::to_writer_pretty(file, &store)?;
 
         Ok(())
     }
 
-    pub async fn load(&self) -> anyhow::Result<Store> {
+    pub async fn load(&self) -> anyhow::Result<(File, Store)> {
         self.ensure().await?;
 
-        let f = File::open(&self.path)?;
-        let f = lock.lock()?;
-        let store: Store = serde_json::from_reader(f.deref())?;
-        Ok((f, store))
+        let file = File::open(&self.path)?;
+        let store: Store = serde_json::from_reader(&file)?;
+        Ok((file, store))
     }
 
-    pub async fn save(&self, lock: FdLock<File>, store: Store) -> anyhow::Result<()> {
-        Ok(serde_json::to_writer_pretty(lock, &store)?)
+    pub async fn save(&self, file: File, store: Store) -> anyhow::Result<()> {
+        Ok(serde_json::to_writer_pretty(file, &store)?)
     }
 }
 
@@ -48,7 +47,8 @@ impl Wallet {
 #[derive(Serialize, Deserialize)]
 pub enum SingleWallet {
     /// A wallet that derives keys from a phrase.
-    Phrase(Phrase),
+    /// TODO: Change Phrase so that it can be Serialized
+    // Phrase(Phrase),
 
     /// A wallet that derives from a seed.
     Seed(Seed),
@@ -95,9 +95,9 @@ mod tests {
     use super::*;
 
     #[tokio::test]
-    fn simple() {
+    async fn simple() {
         let wallet = Wallet::new("test.wallet");
-        let (lock, store) = wallet.lock().await.unwrap();
-        wallet.save(lock, store).await.unwrap();
+        let (file, store) = wallet.load().await.unwrap();
+        wallet.save(file, store).await.unwrap();
     }
 }

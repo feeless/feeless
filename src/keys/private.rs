@@ -3,11 +3,12 @@ use anyhow::Context;
 use ed25519_dalek::ed25519::signature::Signature as InternalSignature;
 use ed25519_dalek::ExpandedSecretKey;
 use rand::RngCore;
+use serde::{Deserialize, Serialize};
 use std::convert::TryFrom;
 use std::str::FromStr;
 
 /// 256 bit private key which can generate a public key.
-#[derive(Clone)]
+#[derive(Clone, Serialize, Deserialize)]
 pub struct Private([u8; Private::LEN]);
 
 impl Private {

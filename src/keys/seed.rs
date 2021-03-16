@@ -3,13 +3,14 @@ use crate::{expect_len, Private};
 
 use bytes::{BufMut, BytesMut};
 use rand::RngCore;
+use serde::{Deserialize, Serialize};
 use std::convert::TryFrom;
 use std::str::FromStr;
 
 /// 256 bit seed used to derive multiple addresses.
 ///
 /// See https://docs.nano.org/integration-guides/the-basics/#seed for details.
-#[derive(Clone)]
+#[derive(Clone, Serialize, Deserialize)]
 pub struct Seed(pub [u8; Seed::LEN]);
 
 impl Seed {

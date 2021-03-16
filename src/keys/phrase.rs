@@ -6,6 +6,7 @@ pub use bip39::Language;
 use bip39::Mnemonic;
 pub use bip39::MnemonicType;
 use ed25519_dalek_bip32::{DerivationPath, ExtendedSecretKey};
+use serde::{Deserialize, Serialize};
 use std::convert::TryFrom;
 use std::fmt::{Display, Formatter};
 
