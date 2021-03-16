@@ -12,15 +12,26 @@ use std::fmt::{Display, Formatter};
 
 /// BIP39 and BIP44 mnemonic seed phrase that can generate keys.
 #[derive(Debug)]
-pub struct Phrase(Mnemonic);
+pub struct Phrase {
+    language: Language,
+    entropy: Vec<u8>,
+}
 
 impl Phrase {
     pub fn random(len: MnemonicType, language: Language) -> Self {
-        Self(Mnemonic::new(len, language))
+        let m = Mnemonic::new(len, language);
+        Self {
+            entropy: m.entropy().to_vec(),
+            language,
+        }
+    }
+
+    pub fn to_mnemonic(&self) -> anyhow::Result<Mnemonic> {
+        Ok(Mnemonic::from_entropy(&self.entropy, self.language)?)
     }
 
     pub fn to_bip39_seed(&self, passphrase: &str) -> anyhow::Result<bip39::Seed> {
-        Ok(bip39::Seed::new(&self.0, passphrase))
+        Ok(bip39::Seed::new(&self.to_mnemonic()?, passphrase))
     }
 
     pub fn to_bip32_ext_key(
@@ -46,13 +57,20 @@ impl Phrase {
     }
 
     pub fn from_words(language: Language, words: &str) -> anyhow::Result<Self> {
-        Ok(Self(Mnemonic::from_phrase(words, language)?))
+        let m = Mnemonic::from_phrase(words, language)?;
+        Ok(Self {
+            language,
+            entropy: m.entropy().to_vec(),
+        })
     }
 }
 
 impl Display for Phrase {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", &self.0.phrase())
+        // TODO: remove unwrap
+        let mnemonic = self.to_mnemonic().unwrap();
+        let p = mnemonic.phrase();
+        write!(f, "{}", &p)
     }
 }
 
