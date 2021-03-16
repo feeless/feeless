@@ -411,6 +411,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "fd-lock"
+version = "2.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "0010f02effd88c702318c5dde0463206be67495d0b4d906ba7c0a8f166cc7f06"
+dependencies = [
+ "libc",
+ "winapi",
+]
+
+[[package]]
 name = "feeless"
 version = "0.1.6"
 dependencies = [
@@ -428,6 +438,7 @@ dependencies = [
  "ed25519-dalek-bip32",
  "ed25519-dalek-blake2-feeless",
  "etherparse",
+ "fd-lock",
  "funty",
  "hex",
  "num",
