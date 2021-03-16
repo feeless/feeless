@@ -8,11 +8,11 @@ use std::ops::Deref;
 use std::path::PathBuf;
 
 /// A reference to a wallet file. **Warning**: Wallet files are not locked (yet).
-pub struct Wallet {
+pub struct WalletManager {
     path: PathBuf,
 }
 
-impl Wallet {
+impl WalletManager {
     pub fn new<P: Into<PathBuf>>(path: P) -> Self {
         Self { path: path.into() }
     }
@@ -23,29 +23,29 @@ impl Wallet {
             return Ok(());
         }
 
-        let store = Store::new();
+        let store = WalletStorage::new();
         let file = File::create(&self.path)?;
         serde_json::to_writer_pretty(file, &store)?;
 
         Ok(())
     }
 
-    pub async fn load(&self) -> anyhow::Result<(File, Store)> {
+    pub async fn load(&self) -> anyhow::Result<(File, WalletStorage)> {
         self.ensure().await?;
 
         let file = File::open(&self.path)?;
-        let store: Store = serde_json::from_reader(&file)?;
+        let store: WalletStorage = serde_json::from_reader(&file)?;
         Ok((file, store))
     }
 
-    pub async fn save(&self, file: File, store: Store) -> anyhow::Result<()> {
+    pub async fn save(&self, file: File, store: WalletStorage) -> anyhow::Result<()> {
         Ok(serde_json::to_writer_pretty(file, &store)?)
     }
 }
 
 /// An individual wallet that can store a different type of seed, etc.
 #[derive(Serialize, Deserialize)]
-pub enum SingleWallet {
+pub enum Wallet {
     /// A wallet that derives keys from a phrase.
     /// TODO: Change Phrase so that it can be Serialized
     // Phrase(Phrase),
@@ -59,11 +59,11 @@ pub enum SingleWallet {
 
 /// Storage for all wallets.
 #[derive(Serialize, Deserialize)]
-pub struct Store {
-    wallets: HashMap<WalletId, SingleWallet>,
+pub struct WalletStorage {
+    wallets: HashMap<WalletId, Wallet>,
 }
 
-impl Store {
+impl WalletStorage {
     pub fn new() -> Self {
         Self {
             wallets: Default::default(),
@@ -96,8 +96,17 @@ mod tests {
 
     #[tokio::test]
     async fn simple() {
-        let wallet = Wallet::new("test.wallet");
+        let wallet = WalletManager::new("test.wallet");
         let (file, store) = wallet.load().await.unwrap();
         wallet.save(file, store).await.unwrap();
+    }
+
+    #[tokio::test]
+    async fn new_wallet_and_address() {
+        let wallet_mgr = WalletManager::new("test.wallet");
+        wallet_mgr.new_seed().await.unwrap();
+
+        // let wallet_id = wallet_file.new_seed().await.unwrap();
+        // wallet.address(wallet_id)
     }
 }
