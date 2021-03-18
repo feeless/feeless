@@ -8,7 +8,7 @@ use std::convert::TryFrom;
 use std::str::FromStr;
 
 /// 256 bit private key which can generate a public key.
-#[derive(Clone, Serialize, Deserialize)]
+#[derive(Clone, Serialize, Deserialize, Debug)]
 pub struct Private([u8; Private::LEN]);
 
 impl Private {

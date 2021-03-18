@@ -10,7 +10,7 @@ use std::str::FromStr;
 /// 256 bit seed used to derive multiple addresses.
 ///
 /// See https://docs.nano.org/integration-guides/the-basics/#seed for details.
-#[derive(Clone, Serialize, Deserialize)]
+#[derive(Clone, Serialize, Deserialize, Debug)]
 pub struct Seed(pub [u8; Seed::LEN]);
 
 impl Seed {
