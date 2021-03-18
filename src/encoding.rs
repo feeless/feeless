@@ -22,7 +22,9 @@ pub fn hex_formatter(f: &mut std::fmt::Formatter<'_>, bytes: &[u8]) -> std::fmt:
     Ok(())
 }
 
-pub fn deserialize_hex<'de, T, D>(deserializer: D) -> Result<T, <D as Deserializer<'de>>::Error>
+pub fn deserialize_from_str<'de, T, D>(
+    deserializer: D,
+) -> Result<T, <D as Deserializer<'de>>::Error>
 where
     D: Deserializer<'de>,
     T: FromStr,
@@ -30,6 +32,18 @@ where
 {
     let s: &str = Deserialize::deserialize(deserializer)?;
     Ok(T::from_str(s).map_err(D::Error::custom)?)
+}
+
+pub fn deserialize_from_string<'de, T, D>(
+    deserializer: D,
+) -> Result<T, <D as Deserializer<'de>>::Error>
+where
+    D: Deserializer<'de>,
+    T: FromStr,
+    <T as std::str::FromStr>::Err: std::fmt::Display,
+{
+    let s: String = Deserialize::deserialize(deserializer)?;
+    Ok(T::from_str(s.as_str()).map_err(D::Error::custom)?)
 }
 
 pub fn blake2b(size: usize, data: &[u8]) -> Box<[u8]> {

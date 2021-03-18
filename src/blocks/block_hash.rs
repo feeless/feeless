@@ -1,4 +1,4 @@
-use crate::encoding::{deserialize_hex, hex_formatter};
+use crate::encoding::{deserialize_from_str, hex_formatter};
 use crate::{expect_len, to_hex};
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use std::convert::TryFrom;
@@ -74,6 +74,6 @@ impl<'de> Deserialize<'de> for BlockHash {
     where
         D: Deserializer<'de>,
     {
-        deserialize_hex(deserializer)
+        deserialize_from_str(deserializer)
     }
 }

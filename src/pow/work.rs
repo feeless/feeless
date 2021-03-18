@@ -1,5 +1,5 @@
 use crate::blocks::BlockHash;
-use crate::encoding::{blake2b, deserialize_hex};
+use crate::encoding::{blake2b, deserialize_from_str};
 use crate::pow::difficulty::Difficulty;
 use crate::{expect_len, hex_formatter, to_hex, Public};
 use rand::RngCore;
@@ -130,7 +130,7 @@ impl<'de> Deserialize<'de> for Work {
     where
         D: Deserializer<'de>,
     {
-        deserialize_hex(deserializer)
+        deserialize_from_str(deserializer)
     }
 }
 

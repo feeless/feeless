@@ -4,7 +4,7 @@ use crate::node::Wire;
 #[cfg(feature = "node")]
 use crate::node::Header;
 
-use crate::encoding::deserialize_hex;
+use crate::encoding::deserialize_from_str;
 use crate::{encoding, expect_len, len_err_msg, to_hex, Address, Signature};
 use anyhow::Context;
 use bitvec::prelude::*;
@@ -133,7 +133,7 @@ impl<'de> Deserialize<'de> for Public {
     where
         D: Deserializer<'de>,
     {
-        deserialize_hex(deserializer)
+        deserialize_from_str(deserializer)
     }
 }
 

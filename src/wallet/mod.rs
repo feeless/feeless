@@ -1,13 +1,18 @@
+use crate::encoding::deserialize_from_str;
 use crate::phrase::{Language, MnemonicType};
-use crate::{Address, Private, Public, Seed};
+use crate::{to_hex, Address, Private, Public, Seed};
 use anyhow::anyhow;
 use rand::RngCore;
-use serde::{Deserialize, Serialize};
+use serde::de::{DeserializeOwned, Error};
+use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use std::collections::HashMap;
-use std::fs::File;
+use std::convert::TryFrom;
+use std::fs::read_to_string;
 use std::path::PathBuf;
+use std::str::FromStr;
+use tokio::fs::{File, OpenOptions};
 
-/// A reference to a wallet file. **Warning**: Wallet files are not locked (yet).
+/// Manages multiple [Wallet]s of different types of [Wallet]s. **Warning**: Wallet files are not locked (yet).
 pub struct WalletManager {
     path: PathBuf,
 }
@@ -24,8 +29,8 @@ impl WalletManager {
         }
 
         let store = WalletStorage::new();
-        let file = File::create(&self.path)?;
-        serde_json::to_writer_pretty(file, &store)?;
+        let file = File::create(&self.path).await?;
+        serde_json::to_writer_pretty(file.into_std().await, &store)?;
 
         Ok(())
     }
@@ -33,22 +38,27 @@ impl WalletManager {
     /// An internal method for loading the wallet storage.
     ///
     /// TODO: There should be a file lock around this.
-    async fn load_unlocked(&self) -> anyhow::Result<(File, WalletStorage)> {
-        let file = File::open(&self.path)?;
-        let store: WalletStorage = serde_json::from_reader(&file)?;
-        Ok((file, store))
+    async fn load_unlocked(&self) -> anyhow::Result<WalletStorage> {
+        dbg!(read_to_string(&self.path).unwrap());
+
+        let file = File::open(&self.path).await?;
+        let store: WalletStorage = serde_json::from_reader(&file.into_std().await)?;
+        Ok(store)
     }
 
     /// An internal method for save the wallet storage.
     ///
     /// TODO: There should be a file lock around this.
     async fn save_unlocked(&self, file: File, store: WalletStorage) -> anyhow::Result<()> {
-        Ok(serde_json::to_writer_pretty(file, &store)?)
+        dbg!(&store);
+        Ok(serde_json::to_writer_pretty(file.into_std().await, &store)?)
     }
 
-    pub async fn wallet(&self, reference: &WalletReference) -> anyhow::Result<Wallet> {
+    pub async fn wallet(&self, reference: &WalletId) -> anyhow::Result<Wallet> {
         // TODO: File lock
-        let (file, store) = self.load_unlocked().await?;
+        dbg!("load");
+        let store = self.load_unlocked().await?;
+        dbg!("get");
         Ok(store
             .wallets
             .get(&reference)
@@ -64,56 +74,60 @@ impl WalletManager {
         todo!()
     }
 
-    pub async fn add_random_seed(&self, reference: WalletReference) -> anyhow::Result<Wallet> {
-        let wallet = Wallet::new(reference, WalletSecret::Seed(Seed::random()));
-        self.add(wallet.clone()).await?;
+    pub async fn add_random_seed(&self, reference: WalletId) -> anyhow::Result<Wallet> {
+        let wallet = Wallet::Seed(Seed::random());
+        self.add(reference, wallet.clone()).await?;
         Ok(wallet)
     }
 
-    pub async fn add_random_private(&self, reference: WalletReference) -> anyhow::Result<Wallet> {
-        let wallet = Wallet::new(reference, WalletSecret::Private(Private::random()));
-        self.add(wallet.clone()).await?;
+    pub async fn add_random_private(&self, reference: WalletId) -> anyhow::Result<Wallet> {
+        let wallet = Wallet::Private(Private::random());
+        self.add(reference, wallet.clone()).await?;
         Ok(wallet)
     }
 
     /// Add a new wallet to the store.
     ///
     /// If the wallet reference already exists, there will be an error.
-    pub async fn add(&self, wallet: Wallet) -> anyhow::Result<()> {
+    pub async fn add(&self, reference: WalletId, wallet: Wallet) -> anyhow::Result<()> {
         // TODO: File lock
 
-        let (file, mut storage) = self.load_unlocked().await?;
+        dbg!(1);
+        let mut storage = self.load_unlocked().await?;
 
-        if storage.wallets.contains_key(&wallet.reference) {
-            return Err(anyhow!(
-                "Wallet reference already exists: {:?}",
-                &wallet.reference
-            ));
+        dbg!(2);
+        if storage.wallets.contains_key(&reference) {
+            return Err(anyhow!("Wallet reference already exists: {:?}", &reference));
         }
 
-        storage.wallets.insert(wallet.reference.clone(), wallet);
-        serde_json::to_writer_pretty(file, &storage)?;
+        storage.wallets.insert(reference.clone(), wallet);
+        dbg!(3);
+        let file = File::create(&self.path).await?;
+        self.save_unlocked(file, storage).await?;
         Ok(())
     }
 }
 
-/// An individual wallet that can store a different type of seed, etc.
-#[derive(Clone, Serialize, Deserialize, Debug)]
-pub struct Wallet {
-    reference: WalletReference,
-    secret: WalletSecret,
+/// The secret of an individual wallet.
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub enum Wallet {
+    /// A wallet that derives keys from a phrase.
+    /// TODO: Change `Phrase` so that it can be Serialized
+    // Phrase(Phrase),
+
+    /// A wallet that derives from a seed.
+    Seed(Seed),
+
+    /// A wallet with a single private key.
+    Private(Private),
 }
 
 impl Wallet {
-    pub fn new(reference: WalletReference, secret: WalletSecret) -> Wallet {
-        Self { reference, secret }
-    }
-
     /// Derive or return a private key for this wallet.
     pub fn private(&self, index: u32) -> anyhow::Result<Private> {
-        match &self.secret {
-            WalletSecret::Seed(seed) => Ok(seed.derive(index)),
-            WalletSecret::Private(private) => {
+        match &self {
+            Wallet::Seed(seed) => Ok(seed.derive(index)),
+            Wallet::Private(private) => {
                 if index != 0 {
                     return Err(anyhow!(
                         "There is only one private key in this wallet. Only use index 0."
@@ -135,26 +149,10 @@ impl Wallet {
     }
 }
 
-/// The secret of an individual wallet.
-#[derive(Clone, Debug, Serialize, Deserialize)]
-pub enum WalletSecret {
-    /// A wallet that derives keys from a phrase.
-    /// TODO: Change `Phrase` so that it can be Serialized
-    // Phrase(Phrase),
-
-    /// A wallet that derives from a seed.
-    Seed(Seed),
-
-    /// A wallet with a single private key.
-    Private(Private),
-}
-
-impl WalletSecret {}
-
 /// Storage for all wallets.
-#[derive(Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct WalletStorage {
-    wallets: HashMap<WalletReference, Wallet>,
+    wallets: HashMap<WalletId, Wallet>,
 }
 
 impl WalletStorage {
@@ -165,15 +163,9 @@ impl WalletStorage {
     }
 }
 
-#[derive(Clone, Serialize, Deserialize, Hash, Eq, PartialEq, Debug)]
-pub enum WalletReference {
-    Default,
-    Id(WalletId),
-}
-
 /// A unique identifier for a wallet. This can be generated randomly and given to the user for
 /// future reference, or given by the user.
-#[derive(Serialize, Deserialize, Hash, Eq, PartialEq, Debug, Clone)]
+#[derive(Hash, Eq, PartialEq, Debug, Clone)]
 pub struct WalletId([u8; WalletId::LEN]);
 
 impl WalletId {
@@ -190,35 +182,73 @@ impl WalletId {
     }
 }
 
+impl Serialize for WalletId {
+    fn serialize<S>(&self, serializer: S) -> Result<<S as Serializer>::Ok, <S as Serializer>::Error>
+    where
+        S: Serializer,
+    {
+        serializer.serialize_str(to_hex(&self.0).as_str())
+    }
+}
+
+impl<'de> Deserialize<'de> for WalletId {
+    /// Convert from a string of hex into a `WalletId` [u8; ..]
+    fn deserialize<D>(deserializer: D) -> Result<Self, <D as Deserializer<'de>>::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        let s: String = Deserialize::deserialize(deserializer)?;
+        let vec = hex::decode(s.as_bytes()).map_err(D::Error::custom)?;
+        let decoded = vec.as_slice();
+        let d = <[u8; WalletId::LEN]>::try_from(decoded).map_err(D::Error::custom)?;
+        Ok(Self(d))
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
     use crate::phrase::{Language, MnemonicType};
+    use std::fs::remove_file;
     use std::str::FromStr;
+
+    /// Remove the wallet file when dropped.
+    struct Clean(PathBuf);
+    impl Drop for Clean {
+        fn drop(&mut self) {
+            remove_file(&self.0).unwrap()
+        }
+    }
+
+    async fn prepare(p: &str) -> (Clean, WalletManager) {
+        let p = PathBuf::from_str(p).unwrap();
+        if p.exists() {
+            remove_file(p.clone()).unwrap();
+        }
+        let manager = WalletManager::new(p.clone());
+        manager.ensure().await.unwrap();
+        (Clean(p), manager)
+    }
 
     #[tokio::test]
     async fn sanity_check() {
-        let manager = WalletManager::new("test.wallet");
-        manager.ensure().await.unwrap();
-        let w1 = manager
-            .add_random_seed(WalletReference::Default)
-            .await
-            .unwrap();
+        let (clean, manager) = prepare("test.wallet").await;
+        let w1 = manager.add_random_seed(WalletId::zero()).await.unwrap();
 
-        let w2 = manager.wallet(&WalletReference::Default).await.unwrap();
+        dbg!(1);
+        let w2 = manager.wallet(&WalletId::zero()).await.unwrap();
         assert_eq!(w1.address(0).unwrap(), w2.address(0).unwrap())
     }
 
     #[tokio::test]
     async fn import_seed() {
-        let manager = WalletManager::new("import_seed.wallet");
-        manager.ensure().await.unwrap();
+        let (clean, manager) = prepare("import_seed.wallet").await;
         let seed =
             Seed::from_str("0000000000000000000000000000000000000000000000000000000000000000")
                 .unwrap();
-        let secret = WalletSecret::Seed(seed);
-        let reference = WalletReference::Id(WalletId::zero());
-        manager.add(Wallet::new(reference, secret)).await.unwrap();
+        let wallet = Wallet::Seed(seed);
+        let reference = WalletId::zero();
+        manager.add(reference, wallet).await.unwrap();
     }
 
     // Just mulling over the API and CLI interaction...

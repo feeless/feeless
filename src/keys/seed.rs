@@ -1,16 +1,16 @@
-use crate::encoding::blake2b;
-use crate::{expect_len, Private};
+use crate::encoding::{blake2b, deserialize_from_str, deserialize_from_string};
+use crate::{expect_len, to_hex, Private};
 
 use bytes::{BufMut, BytesMut};
 use rand::RngCore;
-use serde::{Deserialize, Serialize};
+use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use std::convert::TryFrom;
 use std::str::FromStr;
 
 /// 256 bit seed used to derive multiple addresses.
 ///
 /// See https://docs.nano.org/integration-guides/the-basics/#seed for details.
-#[derive(Clone, Serialize, Deserialize, Debug)]
+#[derive(Clone, Debug)]
 pub struct Seed(pub [u8; Seed::LEN]);
 
 impl Seed {
@@ -67,5 +67,23 @@ impl TryFrom<&[u8]> for Seed {
 impl std::fmt::Display for Seed {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         crate::encoding::hex_formatter(f, &self.0)
+    }
+}
+
+impl Serialize for Seed {
+    fn serialize<S>(&self, serializer: S) -> Result<<S as Serializer>::Ok, <S as Serializer>::Error>
+    where
+        S: Serializer,
+    {
+        serializer.serialize_str(to_hex(&self.0).as_str())
+    }
+}
+
+impl<'de> Deserialize<'de> for Seed {
+    fn deserialize<D>(deserializer: D) -> Result<Self, <D as Deserializer<'de>>::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        deserialize_from_string(deserializer)
     }
 }
