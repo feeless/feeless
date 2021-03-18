@@ -5,12 +5,13 @@ use bytes::{BufMut, BytesMut};
 use rand::RngCore;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use std::convert::TryFrom;
+use std::fmt::{Debug, Formatter};
 use std::str::FromStr;
 
 /// 256 bit seed used to derive multiple addresses.
 ///
 /// See https://docs.nano.org/integration-guides/the-basics/#seed for details.
-#[derive(Clone, Debug)]
+#[derive(Clone)]
 pub struct Seed(pub [u8; Seed::LEN]);
 
 impl Seed {
@@ -66,6 +67,12 @@ impl TryFrom<&[u8]> for Seed {
 
 impl std::fmt::Display for Seed {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        crate::encoding::hex_formatter(f, &self.0)
+    }
+}
+
+impl Debug for Seed {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         crate::encoding::hex_formatter(f, &self.0)
     }
 }

@@ -7,6 +7,7 @@ use serde::de::{DeserializeOwned, Error};
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use std::collections::HashMap;
 use std::convert::TryFrom;
+use std::fmt::{Debug, Formatter};
 use std::fs::read_to_string;
 use std::path::PathBuf;
 use std::str::FromStr;
@@ -39,8 +40,6 @@ impl WalletManager {
     ///
     /// TODO: There should be a file lock around this.
     async fn load_unlocked(&self) -> anyhow::Result<WalletStorage> {
-        dbg!(read_to_string(&self.path).unwrap());
-
         let file = File::open(&self.path).await?;
         let store: WalletStorage = serde_json::from_reader(&file.into_std().await)?;
         Ok(store)
@@ -50,15 +49,12 @@ impl WalletManager {
     ///
     /// TODO: There should be a file lock around this.
     async fn save_unlocked(&self, file: File, store: WalletStorage) -> anyhow::Result<()> {
-        dbg!(&store);
         Ok(serde_json::to_writer_pretty(file.into_std().await, &store)?)
     }
 
     pub async fn wallet(&self, reference: &WalletId) -> anyhow::Result<Wallet> {
         // TODO: File lock
-        dbg!("load");
         let store = self.load_unlocked().await?;
-        dbg!("get");
         Ok(store
             .wallets
             .get(&reference)
@@ -91,17 +87,12 @@ impl WalletManager {
     /// If the wallet reference already exists, there will be an error.
     pub async fn add(&self, reference: WalletId, wallet: Wallet) -> anyhow::Result<()> {
         // TODO: File lock
-
-        dbg!(1);
         let mut storage = self.load_unlocked().await?;
-
-        dbg!(2);
         if storage.wallets.contains_key(&reference) {
             return Err(anyhow!("Wallet reference already exists: {:?}", &reference));
         }
 
         storage.wallets.insert(reference.clone(), wallet);
-        dbg!(3);
         let file = File::create(&self.path).await?;
         self.save_unlocked(file, storage).await?;
         Ok(())
@@ -165,7 +156,7 @@ impl WalletStorage {
 
 /// A unique identifier for a wallet. This can be generated randomly and given to the user for
 /// future reference, or given by the user.
-#[derive(Hash, Eq, PartialEq, Debug, Clone)]
+#[derive(Hash, Eq, PartialEq, Clone)]
 pub struct WalletId([u8; WalletId::LEN]);
 
 impl WalletId {
@@ -205,6 +196,12 @@ impl<'de> Deserialize<'de> for WalletId {
     }
 }
 
+impl Debug for WalletId {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        crate::encoding::hex_formatter(f, &self.0)
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -234,8 +231,6 @@ mod tests {
     async fn sanity_check() {
         let (clean, manager) = prepare("test.wallet").await;
         let w1 = manager.add_random_seed(WalletId::zero()).await.unwrap();
-
-        dbg!(1);
         let w2 = manager.wallet(&WalletId::zero()).await.unwrap();
         assert_eq!(w1.address(0).unwrap(), w2.address(0).unwrap())
     }
