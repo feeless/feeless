@@ -64,7 +64,7 @@ mod node;
 mod pcap;
 
 #[cfg(feature = "wallet")]
-mod wallet;
+pub mod wallet;
 
 #[doc(hidden)]
 pub mod cli;

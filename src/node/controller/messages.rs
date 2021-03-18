@@ -141,7 +141,7 @@ impl Controller {
         // dbg!(publish);
 
         // self.state.lock().await.add_block(&publish.0).await?;
-        todo!();
+        // todo!();
 
         Ok(())
     }

@@ -1,3 +1,18 @@
+//! File storage for seeds and private keys.
+//!
+//! # Manager
+//! A [WalletManager] is provided to store multiple [Wallet]s of different types. The supported
+//! wallets are [Wallet::Seed], [Wallet::Private], and (TODO) [Wallet::Phrase].
+//!
+//! ## Example usage
+//! ```
+//! use feeless::wallet::WalletManager;
+//!
+//! async fn main() -> anyhow::Result<()> {
+//! let manager = WalletManager::new("my.wallet").await?;
+//! Ok(())
+//! }
+//! ```
 use crate::encoding::deserialize_from_str;
 use crate::phrase::{Language, MnemonicType};
 use crate::{to_hex, Address, Private, Public, Seed};
@@ -13,7 +28,11 @@ use std::path::PathBuf;
 use std::str::FromStr;
 use tokio::fs::{File, OpenOptions};
 
-/// Manages multiple [Wallet]s of different types of [Wallet]s. **Warning**: Wallet files are not locked (yet).
+/// Manages multiple [Wallet]s of different types of [Wallet]s. **Warning**: Wallet files are not
+/// locked (yet).
+///
+/// There is a concept of a "default" wallet which is a [WalletId] of zeros. This wallet is a
+/// wallet that just needs to be used by a user without having to track a random [WalletId].
 pub struct WalletManager {
     path: PathBuf,
 }
