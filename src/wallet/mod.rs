@@ -33,7 +33,7 @@
 //! ```
 use crate::phrase::{Language, MnemonicType};
 use crate::{to_hex, Address, Private, Public, Seed};
-use anyhow::anyhow;
+use anyhow::{anyhow, Context};
 use rand::RngCore;
 use serde::de::Error;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
@@ -75,7 +75,9 @@ impl WalletManager {
     ///
     /// TODO: There should be a file lock around this.
     async fn load_unlocked(&self) -> anyhow::Result<WalletStorage> {
-        let file = File::open(&self.path).await?;
+        let file = File::open(&self.path)
+            .await
+            .with_context(|| format!("Opening {:?}", &self.path))?;
         let store: WalletStorage = serde_json::from_reader(&file.into_std().await)?;
         Ok(store)
     }
@@ -128,7 +130,9 @@ impl WalletManager {
         }
 
         storage.wallets.insert(reference.clone(), wallet);
-        let file = File::create(&self.path).await?;
+        let file = File::create(&self.path)
+            .await
+            .with_context(|| format!("Creating file {:?}", &self.path))?;
         self.save_unlocked(file, storage).await?;
         Ok(())
     }
