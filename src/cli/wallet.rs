@@ -24,7 +24,20 @@ impl WalletOpts {
                     println!("{:?}", wallet_id);
                 }
             },
-            Command::Import(_) => {}
+            Command::Import(o) => match &o.create_type {
+                ImportType::Seed(o) => {
+                    let (manager, wallet_id) = WalletOpts::create(&o.opts).await?;
+                    let wallet = Wallet::Seed(o.seed.to_owned().resolve()?);
+                    manager.add(wallet_id.to_owned(), wallet).await?;
+                    println!("{:?}", wallet_id);
+                }
+                ImportType::Private(o) => {
+                    let (manager, wallet_id) = WalletOpts::create(&o.opts).await?;
+                    let wallet = Wallet::Private(o.private.to_owned().resolve()?);
+                    manager.add(wallet_id.to_owned(), wallet).await?;
+                    println!("{:?}", wallet_id);
+                }
+            },
             Command::Private(o) => {
                 let wallet = WalletOpts::read(&o.opts).await?;
                 println!("{}", wallet.private(o.index)?);
