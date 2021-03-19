@@ -1,5 +1,5 @@
 use crate::cli::StringOrStdin;
-use crate::wallet::{WalletId, WalletManager};
+use crate::wallet::{Wallet, WalletId, WalletManager};
 use clap::Clap;
 use std::path::PathBuf;
 
@@ -26,14 +26,25 @@ impl WalletOpts {
             },
             Command::Import(_) => {}
             Command::Private(o) => {
-                let manager = WalletManager::new(&o.opts.file);
-                let wallet = manager.wallet(&o.opts.wallet_id()?).await?;
-                println!("{:?}", wallet.private(o.index));
+                let wallet = WalletOpts::read(&o.opts).await?;
+                println!("{}", wallet.private(o.index)?);
             }
-            Command::Public(_) => {}
-            Command::Address(_) => {}
+            Command::Public(o) => {
+                let wallet = WalletOpts::read(&o.opts).await?;
+                println!("{}", wallet.public(o.index)?);
+            }
+            Command::Address(o) => {
+                let wallet = WalletOpts::read(&o.opts).await?;
+                println!("{}", wallet.address(o.index)?);
+            }
         };
         Ok(())
+    }
+
+    async fn read(o: &CommonOpts) -> anyhow::Result<Wallet> {
+        let manager = WalletManager::new(&o.file);
+        let wallet = manager.wallet(&o.wallet_id()?).await?;
+        Ok(wallet)
     }
 
     async fn create(o: &CommonOptsCreate) -> anyhow::Result<(WalletManager, WalletId)> {
@@ -174,7 +185,19 @@ struct PrivateOpts {
 }
 
 #[derive(Clap)]
-struct PublicOpts {}
+struct PublicOpts {
+    #[clap(default_value = "0")]
+    index: u32,
+
+    #[clap(flatten)]
+    opts: CommonOpts,
+}
 
 #[derive(Clap)]
-struct AddressOpts {}
+struct AddressOpts {
+    #[clap(default_value = "0")]
+    index: u32,
+
+    #[clap(flatten)]
+    opts: CommonOpts,
+}
