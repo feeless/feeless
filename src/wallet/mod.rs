@@ -31,20 +31,18 @@
 //! # Ok(())
 //! # }
 //! ```
-use crate::encoding::deserialize_from_str;
 use crate::phrase::{Language, MnemonicType};
 use crate::{to_hex, Address, Private, Public, Seed};
 use anyhow::anyhow;
 use rand::RngCore;
-use serde::de::{DeserializeOwned, Error};
+use serde::de::Error;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use std::collections::HashMap;
 use std::convert::TryFrom;
 use std::fmt::{Debug, Formatter};
-use std::fs::read_to_string;
 use std::path::PathBuf;
 use std::str::FromStr;
-use tokio::fs::{File, OpenOptions};
+use tokio::fs::File;
 
 /// Manages multiple [Wallet]s of different types of [Wallet]s. **Warning**: Wallet files are not
 /// locked (yet).
@@ -107,9 +105,9 @@ impl WalletManager {
         todo!()
     }
 
-    pub async fn add_random_seed(&self, reference: WalletId) -> anyhow::Result<Wallet> {
+    pub async fn add_random_seed(&self, id: WalletId) -> anyhow::Result<Wallet> {
         let wallet = Wallet::Seed(Seed::random());
-        self.add(reference, wallet.clone()).await?;
+        self.add(id, wallet.clone()).await?;
         Ok(wallet)
     }
 
@@ -199,7 +197,7 @@ pub struct WalletId([u8; WalletId::LEN]);
 impl WalletId {
     pub(crate) const LEN: usize = 32;
 
-    fn zero() -> Self {
+    pub(crate) fn zero() -> Self {
         Self([0u8; 32])
     }
 
@@ -207,6 +205,17 @@ impl WalletId {
         let mut id = Self::zero();
         rand::thread_rng().fill_bytes(&mut id.0);
         id
+    }
+}
+
+impl FromStr for WalletId {
+    type Err = anyhow::Error;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        let vec = hex::decode(s.as_bytes())?;
+        let decoded = vec.as_slice();
+        let d = <[u8; WalletId::LEN]>::try_from(decoded)?;
+        Ok(Self(d))
     }
 }
 
@@ -226,10 +235,7 @@ impl<'de> Deserialize<'de> for WalletId {
         D: Deserializer<'de>,
     {
         let s: String = Deserialize::deserialize(deserializer)?;
-        let vec = hex::decode(s.as_bytes()).map_err(D::Error::custom)?;
-        let decoded = vec.as_slice();
-        let d = <[u8; WalletId::LEN]>::try_from(decoded).map_err(D::Error::custom)?;
-        Ok(Self(d))
+        Self::from_str(s.as_str()).map_err(D::Error::custom)
     }
 }
 
@@ -280,7 +286,7 @@ mod tests {
                 .unwrap();
         let wallet = Wallet::Seed(seed);
         let reference = WalletId::zero();
-        manager.add(reference, wallet).await.unwrap();
+        manager.add(reference, wallet.to_owned()).await.unwrap();
 
         assert_eq!(
             wallet.address(0).unwrap(),

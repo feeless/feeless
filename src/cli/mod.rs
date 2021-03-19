@@ -1,9 +1,10 @@
 use crate::cli::pcap::PcapDumpOpts;
 use crate::cli::unit::UnitOpts;
+use crate::cli::wallet::WalletOpts;
 use crate::debug::parse_pcap_log_file_to_csv;
 use crate::node::node_with_single_peer;
 use address::AddressOpts;
-use anyhow::{anyhow, Context};
+use anyhow::anyhow;
 use clap::Clap;
 use phrase::PhraseOpts;
 use private::PrivateOpts;
@@ -11,7 +12,6 @@ use public::PublicOpts;
 use seed::SeedOpts;
 use std::io;
 use std::io::Read;
-use std::net::Ipv4Addr;
 use std::path::PathBuf;
 use std::str::FromStr;
 
@@ -22,6 +22,7 @@ mod private;
 mod public;
 mod seed;
 mod unit;
+mod wallet;
 
 #[derive(Clap)]
 #[clap(author, about, version)]
@@ -40,6 +41,9 @@ enum Command {
 
     /// Conversion between units, e.g. Rai to Nano
     Unit(UnitOpts),
+
+    /// Manage wallet files.
+    Wallet(WalletOpts),
 
     /// Word mnemonic phrase generation and conversion.
     Phrase(PhraseOpts),
@@ -109,6 +113,7 @@ pub async fn run() -> anyhow::Result<()> {
             DebugCommand::PcapLogToCSV(huh) => parse_pcap_log_file_to_csv(&huh.src, &huh.dst),
         },
 
+        Command::Wallet(wallet) => wallet.handle().await,
         Command::Seed(seed) => seed.handle(),
         Command::Private(private) => private.handle(),
         Command::Public(public) => public.handle(),
