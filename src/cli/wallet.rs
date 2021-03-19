@@ -73,7 +73,7 @@ enum Command {
     /// Create a new wallet. If the wallet file doesn't exist, it will be created.
     New(NewOpts),
 
-    /// Import an existing wallet.
+    /// Import an existing wallet. If the wallet file doesn't exist, it will be created.
     Import(ImportOpts),
 
     /// Output the private key of a wallet.
