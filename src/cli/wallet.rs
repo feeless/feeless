@@ -13,6 +13,17 @@ impl WalletOpts {
     pub async fn handle(&self) -> anyhow::Result<()> {
         match &self.command {
             Command::New(c) => match &c.create_type {
+                CreateType::Phrase(o) => {
+                    let (manager, wallet_id) = WalletOpts::create(&o.opts).await?;
+                    manager
+                        .add_random_phrase(
+                            wallet_id.to_owned(),
+                            o.phrase_opts.words.0.to_owned(),
+                            o.phrase_opts.language.language.to_owned(),
+                        )
+                        .await?;
+                    println!("{:?}", wallet_id);
+                }
                 CreateType::Seed(o) => {
                     let (manager, wallet_id) = WalletOpts::create(&o.opts).await?;
                     manager.add_random_seed(wallet_id.to_owned()).await?;
@@ -144,8 +155,18 @@ struct NewOpts {
 
 #[derive(Clap)]
 enum CreateType {
+    Phrase(CreatePhraseOpts),
     Seed(CreateSeedOpts),
     Private(CreatePrivateOpts),
+}
+
+#[derive(Clap)]
+struct CreatePhraseOpts {
+    #[clap(flatten)]
+    pub phrase_opts: super::phrase::New,
+
+    #[clap(flatten)]
+    pub opts: CommonOptsCreate,
 }
 
 #[derive(Clap)]

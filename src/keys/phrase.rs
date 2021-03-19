@@ -2,16 +2,80 @@
 
 use crate::Private;
 use anyhow::anyhow;
-pub use bip39::Language;
 use bip39::Mnemonic;
 pub use bip39::MnemonicType;
 use ed25519_dalek_bip32::{DerivationPath, ExtendedSecretKey};
 use serde::{Deserialize, Serialize};
 use std::convert::TryFrom;
 use std::fmt::{Display, Formatter};
+use std::str::FromStr;
+
+static LANGUAGES: &str = "en, zh-hans, zh-hant, fr, it, ja, ko, es";
+
+/// The language the phrase is in.
+///
+/// This is copied from [bip39::Language] because I need it to be Serialize/Deserialize. It should
+/// act like the [crate::bip39] implementation.
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub enum Language {
+    English,
+    ChineseSimplified,
+    ChineseTraditional,
+    French,
+    Italian,
+    Japanese,
+    Korean,
+    Spanish,
+}
+
+impl Language {
+    pub fn from_language_code(language_code: &str) -> Option<Self> {
+        bip39::Language::from_language_code(language_code).map(|x| x.into())
+    }
+}
+
+impl FromStr for Language {
+    type Err = anyhow::Error;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        let language = Language::from_language_code(s)
+            .ok_or(anyhow!("Possible language codes are {}", LANGUAGES))?;
+        Ok(language)
+    }
+}
+
+impl From<bip39::Language> for Language {
+    fn from(lang: bip39::Language) -> Self {
+        match lang {
+            bip39::Language::English => Language::English,
+            bip39::Language::ChineseSimplified => Language::ChineseSimplified,
+            bip39::Language::ChineseTraditional => Language::ChineseTraditional,
+            bip39::Language::French => Language::French,
+            bip39::Language::Italian => Language::Italian,
+            bip39::Language::Japanese => Language::Japanese,
+            bip39::Language::Korean => Language::Korean,
+            bip39::Language::Spanish => Language::Spanish,
+        }
+    }
+}
+
+impl Into<bip39::Language> for Language {
+    fn into(self) -> bip39::Language {
+        match self {
+            Language::English => bip39::Language::English,
+            Language::ChineseSimplified => bip39::Language::ChineseSimplified,
+            Language::ChineseTraditional => bip39::Language::ChineseTraditional,
+            Language::French => bip39::Language::French,
+            Language::Italian => bip39::Language::Italian,
+            Language::Japanese => bip39::Language::Japanese,
+            Language::Korean => bip39::Language::Korean,
+            Language::Spanish => bip39::Language::Spanish,
+        }
+    }
+}
 
 /// BIP39 and BIP44 mnemonic seed phrase that can generate keys.
-#[derive(Debug)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Phrase {
     language: Language,
     entropy: Vec<u8>,
@@ -19,15 +83,18 @@ pub struct Phrase {
 
 impl Phrase {
     pub fn random(len: MnemonicType, language: Language) -> Self {
-        let m = Mnemonic::new(len, language);
+        let m = Mnemonic::new(len, language.to_owned().into());
         Self {
             entropy: m.entropy().to_vec(),
-            language,
+            language: language.into(),
         }
     }
 
     pub fn to_mnemonic(&self) -> anyhow::Result<Mnemonic> {
-        Ok(Mnemonic::from_entropy(&self.entropy, self.language)?)
+        Ok(Mnemonic::from_entropy(
+            &self.entropy,
+            self.language.to_owned().into(),
+        )?)
     }
 
     pub fn to_bip39_seed(&self, passphrase: &str) -> anyhow::Result<bip39::Seed> {
@@ -57,7 +124,7 @@ impl Phrase {
     }
 
     pub fn from_words(language: Language, words: &str) -> anyhow::Result<Self> {
-        let m = Mnemonic::from_phrase(words, language)?;
+        let m = Mnemonic::from_phrase(words, language.to_owned().into())?;
         Ok(Self {
             language,
             entropy: m.entropy().to_vec(),

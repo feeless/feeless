@@ -1,11 +1,7 @@
 use crate::cli::StringOrStdin;
 use crate::phrase::{Language, MnemonicType};
-use anyhow::anyhow;
 use clap::Clap;
-use std::ops::Deref;
 use std::str::FromStr;
-
-static LANGUAGES: &str = "en, zh-hans, zh-hant, fr, it, ja, ko, es";
 
 #[derive(Clap)]
 pub struct PhraseOpts {
@@ -17,7 +13,7 @@ impl PhraseOpts {
     pub fn handle(&self) -> anyhow::Result<()> {
         match &self.command {
             Command::New(x) => {
-                let phrase = crate::Phrase::random(x.words.0, *x.language);
+                let phrase = crate::Phrase::random(x.words.0, x.language.language.to_owned());
                 println!("{}", phrase);
             }
             Command::ToPrivate(x) => {
@@ -37,19 +33,7 @@ impl PhraseOpts {
     }
 }
 
-pub struct WrappedLanguage(pub Language);
-
-impl FromStr for WrappedLanguage {
-    type Err = anyhow::Error;
-
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        let language = Language::from_language_code(s)
-            .ok_or(anyhow!("Possible language codes are {}", LANGUAGES))?;
-        Ok(WrappedLanguage(language))
-    }
-}
-
-pub struct WrappedMnemonicType(MnemonicType);
+pub struct WrappedMnemonicType(pub(crate) MnemonicType);
 
 impl FromStr for WrappedMnemonicType {
     type Err = anyhow::Error;
@@ -74,15 +58,7 @@ pub enum Command {
 pub struct LanguageOpt {
     /// Word list language: en, zh-hans, zh-hant, fr, it, ja, ko, es
     #[clap(short, long, default_value = "en")]
-    language: WrappedLanguage,
-}
-
-impl Deref for LanguageOpt {
-    type Target = Language;
-
-    fn deref(&self) -> &Self::Target {
-        &self.language.0
-    }
+    pub(crate) language: Language,
 }
 
 /// Generate a random phrase. By default the word list is English with 24 words.
@@ -90,10 +66,10 @@ impl Deref for LanguageOpt {
 pub struct New {
     /// Number of words. Possible values are: 12, 15, 18, 21, 24.
     #[clap(short, long, default_value = "24")]
-    words: WrappedMnemonicType,
+    pub(crate) words: WrappedMnemonicType,
 
     #[clap(flatten)]
-    language: LanguageOpt,
+    pub(crate) language: LanguageOpt,
 }
 
 #[derive(Clap)]
@@ -115,7 +91,7 @@ pub struct FromPhraseOpts {
 impl FromPhraseOpts {
     pub fn to_private(&self) -> anyhow::Result<crate::Private> {
         let words = self.words.to_owned().resolve().unwrap();
-        let phrase = crate::Phrase::from_words(*self.language, words.as_str())?;
+        let phrase = crate::Phrase::from_words(self.language.language.to_owned(), words.as_str())?;
         let private = phrase.to_private(
             self.account.to_owned(),
             self.passphrase.as_ref().unwrap_or(&"".to_string()).as_str(),

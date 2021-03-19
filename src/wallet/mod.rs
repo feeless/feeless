@@ -32,7 +32,7 @@
 //! # }
 //! ```
 use crate::phrase::{Language, MnemonicType};
-use crate::{to_hex, Address, Private, Public, Seed};
+use crate::{to_hex, Address, Phrase, Private, Public, Seed};
 use anyhow::{anyhow, Context};
 use rand::RngCore;
 use serde::de::Error;
@@ -101,10 +101,13 @@ impl WalletManager {
 
     pub async fn add_random_phrase(
         &self,
+        id: WalletId,
         mnemonic_type: MnemonicType,
         lang: Language,
     ) -> anyhow::Result<Wallet> {
-        todo!()
+        let wallet = Wallet::Phrase(Phrase::random(mnemonic_type, lang));
+        self.add(id, wallet.clone()).await?;
+        Ok(wallet)
     }
 
     pub async fn add_random_seed(&self, id: WalletId) -> anyhow::Result<Wallet> {
@@ -142,8 +145,7 @@ impl WalletManager {
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub enum Wallet {
     /// A wallet that derives keys from a phrase.
-    /// TODO: Change `Phrase` so that it can be Serialized
-    // Phrase(Phrase),
+    Phrase(Phrase),
 
     /// A wallet that derives from a seed.
     Seed(Seed),
@@ -165,6 +167,7 @@ impl Wallet {
                 }
                 Ok(private.to_owned())
             }
+            Wallet::Phrase(phrase) => Ok(phrase.to_private(index, "")?),
         }
     }
 
@@ -252,7 +255,6 @@ impl Debug for WalletId {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::phrase::{Language, MnemonicType};
     use std::fs::remove_file;
     use std::str::FromStr;
 
