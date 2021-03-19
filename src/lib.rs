@@ -1,4 +1,5 @@
 #![forbid(unsafe_code)]
+#![allow(dead_code)]
 // #![warn(missing_docs)] LOL not yet.
 //! A set of tools to handle many aspects of the Nano cryptocurrency.
 //!

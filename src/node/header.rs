@@ -319,11 +319,7 @@ mod tests {
         }
         assert!(
             false,
-            format!(
-                "Got error:\n{:?}\n\nExpecting: {}",
-                &result.err().unwrap(),
-                s
-            )
+            "Got error:\n{:?}\n\nExpecting: {}", &result.err().unwrap(), s
         );
     }
 

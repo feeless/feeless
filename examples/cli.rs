@@ -1,7 +1,8 @@
+#![allow(dead_code)]
+
 use ansi_term::Color;
 use clap::Clap;
 use cmd_lib::{run_fun};
-
 
 // These `Opts` are only for the path to feeless, not the actual feeless CLI.
 #[derive(Clap)]

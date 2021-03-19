@@ -1,4 +1,4 @@
-use crate::encoding::{blake2b, deserialize_from_str, deserialize_from_string};
+use crate::encoding::{blake2b, deserialize_from_string};
 use crate::{expect_len, to_hex, Private};
 
 use bytes::{BufMut, BytesMut};
