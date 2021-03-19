@@ -7,11 +7,29 @@
 //! ## Example usage
 //! ```
 //! use feeless::wallet::WalletManager;
+//! use feeless::wallet::WalletId;
+//! # use std::fs::remove_file;
 //!
-//! async fn main() -> anyhow::Result<()> {
-//! let manager = WalletManager::new("my.wallet").await?;
-//! Ok(())
-//! }
+//! # #[tokio::main]
+//! # async fn main() -> anyhow::Result<()> {
+//! let manager = WalletManager::new("my.wallet");
+//! // Create if the file doesn't exist.
+//! manager.ensure().await?;
+//!
+//! // Create a new wallet with a random seed.
+//! let wallet_id = WalletId::random();
+//! let wallet = manager.add_random_seed(wallet_id.to_owned()).await?;
+//!
+//! // Use the 3rd Nano address.
+//! let address = wallet.address(2)?;
+//!
+//! // Grab an existing wallet
+//! let wallet = manager.wallet(&wallet_id).await?;
+//!
+//! # remove_file("my.wallet")?;
+//!
+//! # Ok(())
+//! # }
 //! ```
 use crate::encoding::deserialize_from_str;
 use crate::phrase::{Language, MnemonicType};
@@ -263,78 +281,11 @@ mod tests {
         let wallet = Wallet::Seed(seed);
         let reference = WalletId::zero();
         manager.add(reference, wallet).await.unwrap();
+
+        assert_eq!(
+            wallet.address(0).unwrap(),
+            Address::from_str("nano_3i1aq1cchnmbn9x5rsbap8b15akfh7wj7pwskuzi7ahz8oq6cobd99d4r3b7")
+                .unwrap()
+        );
     }
-
-    // Just mulling over the API and CLI interaction...
-    // feeless wallet create --file gak.wallet
-    // FEELESS_WALLET=gak.wallet feeless wallet create
-    // Should warn user if wallet exists:
-    // * Warning: File already exists with (3) wallets.
-    // let manager = WalletManager::new("test.wallet");
-    // manager.create().await?; // Fail if already exists
-    // manager.ensure().await?; // Will create if doesn't exist
-
-    /*
-    fn ensure() {
-        let _lock = self.lock().await?;
-        if !self.exists() {
-            self.save_unlocked().await?;
-        }
-    }
-    */
-
-    // feeless wallet new phrase --file gak.wallet --language en --words 24
-    // stdout is the wallet id:
-    // A1B2C3....
-    //
-    // feeless wallet new phrase --default --file etc
-    // --default can be used as the default wallet, so that you dont need to track wallet_ids
-    // or WALLET_ID=default
-    // let wallet = manager.new_phrase(Language::English, 24).await.unwrap();
-
-    // feeless wallet import phrase "banana cat" --default
-    // feeless wallet import phrase "banana cat" --id A1B2
-    // feeless wallet import phrase "banana cat" # none specified generates a new wallet id
-    // feeless wallet import private "a1b2c3"
-    // feeless wallet import seed -
-    /*
-    fn new_phrase(&self, lang, words) {
-        let _lock = manager.lock();
-        let phrase = Phrase::new(lang, words);
-        let wallet_id = self.generate_id();
-        let store = self.load_unlocked();
-        // TODO: Make sure the wallet id doesnt exist yet
-        let s = serde_json::to_string(phrase);
-        store.insert(wallet_id, s);
-        self.save_unlocked(store);
-    }
-     */
-
-    // let wallet = manager.new_seed().await.unwrap();
-    // let wallet = manager.from_seed(Seed::from_str("A1B2C3").unwrap()).await.unwrap();
-    // let wallet = manager.new_private().await.unwrap();
-    // let wallet = manager.from_private().await.unwrap();
-
-    // feeless wallet address 42 --id A1B2C3 --path ...
-    // nano_1abc
-    // feeless wallet address 42
-    // Sorry no "default" wallet has been set up. Please use --default when creating a wallet.
-
-    // FEELESS_WALLET_PATH=gak.wallet
-    // FEELESS_WALLET_ID=a1b2c3
-    // feeless wallet address 42
-    // feeless wallet address # 0 is the default
-    // feeless wallet address 32
-
-    // Get a wallet
-    // let wallet = manager.wallet(wallet_id);
-    // wallet is read only and not locked? no need to write to it once we have the seed.
-
-    // let private = wallet.private(0).unwrap();
-    // let private = wallet.public(0).unwrap();
-    // let address = wallet.address(0).unwrap();
-    // let signature = wallet.address(0).sign("hello").unwrap();
-
-    // let wallet_id = wallet_file.new_seed().await.unwrap();
-    // wallet.address(wallet_id)
 }
