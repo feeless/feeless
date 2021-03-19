@@ -14,20 +14,33 @@ impl WalletOpts {
         match &self.command {
             Command::New(c) => match &c.create_type {
                 CreateType::Seed(o) => {
-                    let manager = WalletManager::new(&o.opts.file);
-                    manager.ensure().await?;
-                    let wallet_id = o.opts.wallet_id()?.to_owned();
+                    let (manager, wallet_id) = WalletOpts::create(&o.opts).await?;
                     manager.add_random_seed(wallet_id.to_owned()).await?;
                     println!("{:?}", wallet_id);
                 }
-                CreateType::Private(_) => {}
+                CreateType::Private(o) => {
+                    let (manager, wallet_id) = WalletOpts::create(&o.opts).await?;
+                    manager.add_random_private(wallet_id.to_owned()).await?;
+                    println!("{:?}", wallet_id);
+                }
             },
             Command::Import(_) => {}
-            Command::Private(_) => {}
+            Command::Private(o) => {
+                let manager = WalletManager::new(&o.opts.file);
+                let wallet = manager.wallet(&o.opts.wallet_id()?).await?;
+                println!("{:?}", wallet.private(o.index));
+            }
             Command::Public(_) => {}
             Command::Address(_) => {}
         };
         Ok(())
+    }
+
+    async fn create(o: &CommonOptsCreate) -> anyhow::Result<(WalletManager, WalletId)> {
+        let manager = WalletManager::new(&o.common_opts.file);
+        manager.ensure().await?;
+        let wallet_id = o.wallet_id()?.to_owned();
+        Ok((manager, wallet_id))
     }
 }
 
@@ -50,7 +63,7 @@ enum Command {
 }
 
 #[derive(Clap)]
-struct CommonOptsCreate {
+struct CommonOpts {
     /// Path to the wallet file.
     #[clap(short, long, env = "FEELESS_WALLET_FILE")]
     file: PathBuf,
@@ -58,6 +71,22 @@ struct CommonOptsCreate {
     /// Wallet ID.
     #[clap(short, long, env = "FEELESS_WALLET_ID")]
     id: Option<WalletId>,
+}
+
+impl CommonOpts {
+    fn wallet_id(&self) -> anyhow::Result<WalletId> {
+        if let Some(wallet_id) = &self.id {
+            Ok(wallet_id.to_owned())
+        } else {
+            Ok(WalletId::zero())
+        }
+    }
+}
+
+#[derive(Clap)]
+struct CommonOptsCreate {
+    #[clap(flatten)]
+    common_opts: CommonOpts,
 
     #[clap(short, long)]
     default: bool,
@@ -69,7 +98,7 @@ impl CommonOptsCreate {
             return Ok(WalletId::zero());
         }
 
-        if let Some(wallet_id) = &self.id {
+        if let Some(wallet_id) = &self.common_opts.id {
             Ok(wallet_id.to_owned())
         } else {
             Ok(WalletId::random())
@@ -136,7 +165,13 @@ struct ImportPrivateOpts {
 }
 
 #[derive(Clap)]
-struct PrivateOpts {}
+struct PrivateOpts {
+    #[clap(default_value = "0")]
+    index: u32,
+
+    #[clap(flatten)]
+    opts: CommonOpts,
+}
 
 #[derive(Clap)]
 struct PublicOpts {}
