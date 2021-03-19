@@ -3,7 +3,7 @@ use crate::cli::unit::UnitOpts;
 use crate::debug::parse_pcap_log_file_to_csv;
 use crate::node::node_with_single_peer;
 use address::AddressOpts;
-use anyhow::{anyhow, Context};
+use anyhow::{anyhow};
 use clap::Clap;
 use phrase::PhraseOpts;
 use private::PrivateOpts;
@@ -11,7 +11,7 @@ use public::PublicOpts;
 use seed::SeedOpts;
 use std::io;
 use std::io::Read;
-use std::net::Ipv4Addr;
+
 use std::path::PathBuf;
 use std::str::FromStr;
 

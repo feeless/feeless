@@ -13,20 +13,20 @@
 //! Ok(())
 //! }
 //! ```
-use crate::encoding::deserialize_from_str;
+
 use crate::phrase::{Language, MnemonicType};
 use crate::{to_hex, Address, Private, Public, Seed};
 use anyhow::anyhow;
 use rand::RngCore;
-use serde::de::{DeserializeOwned, Error};
+use serde::de::{Error};
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use std::collections::HashMap;
 use std::convert::TryFrom;
 use std::fmt::{Debug, Formatter};
-use std::fs::read_to_string;
+
 use std::path::PathBuf;
-use std::str::FromStr;
-use tokio::fs::{File, OpenOptions};
+
+use tokio::fs::{File};
 
 /// Manages multiple [Wallet]s of different types of [Wallet]s. **Warning**: Wallet files are not
 /// locked (yet).
@@ -83,8 +83,8 @@ impl WalletManager {
 
     pub async fn add_random_phrase(
         &self,
-        mnemonic_type: MnemonicType,
-        lang: Language,
+        _mnemonic_type: MnemonicType,
+        _lang: Language,
     ) -> anyhow::Result<Wallet> {
         todo!()
     }
@@ -224,7 +224,7 @@ impl Debug for WalletId {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::phrase::{Language, MnemonicType};
+    
     use std::fs::remove_file;
     use std::str::FromStr;
 
@@ -248,7 +248,7 @@ mod tests {
 
     #[tokio::test]
     async fn sanity_check() {
-        let (clean, manager) = prepare("test.wallet").await;
+        let (_clean, manager) = prepare("test.wallet").await;
         let w1 = manager.add_random_seed(WalletId::zero()).await.unwrap();
         let w2 = manager.wallet(&WalletId::zero()).await.unwrap();
         assert_eq!(w1.address(0).unwrap(), w2.address(0).unwrap())
@@ -256,7 +256,7 @@ mod tests {
 
     #[tokio::test]
     async fn import_seed() {
-        let (clean, manager) = prepare("import_seed.wallet").await;
+        let (_clean, manager) = prepare("import_seed.wallet").await;
         let seed =
             Seed::from_str("0000000000000000000000000000000000000000000000000000000000000000")
                 .unwrap();
