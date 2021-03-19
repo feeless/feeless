@@ -3,5 +3,4 @@
 /*.db
 node/*.db
 *.pcapng
-Makefile
 *.log
