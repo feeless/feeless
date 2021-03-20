@@ -7,26 +7,42 @@
 //! ## Example usage
 //! ```
 //! use feeless::wallet::WalletManager;
+//! use feeless::wallet::WalletId;
+//! # use std::fs::remove_file;
 //!
-//! async fn main() -> anyhow::Result<()> {
-//! let manager = WalletManager::new("my.wallet").await?;
-//! Ok(())
-//! }
+//! # #[tokio::main]
+//! # async fn main() -> anyhow::Result<()> {
+//! let manager = WalletManager::new("my.wallet");
+//! // Create if the file doesn't exist.
+//! manager.ensure().await?;
+//!
+//! // Create a new wallet with a random seed.
+//! let wallet_id = WalletId::random();
+//! let wallet = manager.add_random_seed(wallet_id.to_owned()).await?;
+//!
+//! // Use the 3rd Nano address.
+//! let address = wallet.address(2)?;
+//!
+//! // Grab an existing wallet
+//! let wallet = manager.wallet(&wallet_id).await?;
+//!
+//! # remove_file("my.wallet")?;
+//!
+//! # Ok(())
+//! # }
 //! ```
-
 use crate::phrase::{Language, MnemonicType};
-use crate::{to_hex, Address, Private, Public, Seed};
-use anyhow::anyhow;
+use crate::{to_hex, Address, Phrase, Private, Public, Seed};
+use anyhow::{anyhow, Context};
 use rand::RngCore;
-use serde::de::{Error};
+use serde::de::Error;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use std::collections::HashMap;
 use std::convert::TryFrom;
 use std::fmt::{Debug, Formatter};
-
 use std::path::PathBuf;
-
-use tokio::fs::{File};
+use std::str::FromStr;
+use tokio::fs::File;
 
 /// Manages multiple [Wallet]s of different types of [Wallet]s. **Warning**: Wallet files are not
 /// locked (yet).
@@ -59,7 +75,9 @@ impl WalletManager {
     ///
     /// TODO: There should be a file lock around this.
     async fn load_unlocked(&self) -> anyhow::Result<WalletStorage> {
-        let file = File::open(&self.path).await?;
+        let file = File::open(&self.path)
+            .await
+            .with_context(|| format!("Opening {:?}", &self.path))?;
         let store: WalletStorage = serde_json::from_reader(&file.into_std().await)?;
         Ok(store)
     }
@@ -83,15 +101,18 @@ impl WalletManager {
 
     pub async fn add_random_phrase(
         &self,
-        _mnemonic_type: MnemonicType,
-        _lang: Language,
+        id: WalletId,
+        mnemonic_type: MnemonicType,
+        lang: Language,
     ) -> anyhow::Result<Wallet> {
-        todo!()
+        let wallet = Wallet::Phrase(Phrase::random(mnemonic_type, lang));
+        self.add(id, wallet.clone()).await?;
+        Ok(wallet)
     }
 
-    pub async fn add_random_seed(&self, reference: WalletId) -> anyhow::Result<Wallet> {
+    pub async fn add_random_seed(&self, id: WalletId) -> anyhow::Result<Wallet> {
         let wallet = Wallet::Seed(Seed::random());
-        self.add(reference, wallet.clone()).await?;
+        self.add(id, wallet.clone()).await?;
         Ok(wallet)
     }
 
@@ -112,7 +133,9 @@ impl WalletManager {
         }
 
         storage.wallets.insert(reference.clone(), wallet);
-        let file = File::create(&self.path).await?;
+        let file = File::create(&self.path)
+            .await
+            .with_context(|| format!("Creating file {:?}", &self.path))?;
         self.save_unlocked(file, storage).await?;
         Ok(())
     }
@@ -122,8 +145,7 @@ impl WalletManager {
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub enum Wallet {
     /// A wallet that derives keys from a phrase.
-    /// TODO: Change `Phrase` so that it can be Serialized
-    // Phrase(Phrase),
+    Phrase(Phrase),
 
     /// A wallet that derives from a seed.
     Seed(Seed),
@@ -145,6 +167,7 @@ impl Wallet {
                 }
                 Ok(private.to_owned())
             }
+            Wallet::Phrase(phrase) => Ok(phrase.to_private(index, "")?),
         }
     }
 
@@ -181,7 +204,7 @@ pub struct WalletId([u8; WalletId::LEN]);
 impl WalletId {
     pub(crate) const LEN: usize = 32;
 
-    fn zero() -> Self {
+    pub(crate) fn zero() -> Self {
         Self([0u8; 32])
     }
 
@@ -189,6 +212,17 @@ impl WalletId {
         let mut id = Self::zero();
         rand::thread_rng().fill_bytes(&mut id.0);
         id
+    }
+}
+
+impl FromStr for WalletId {
+    type Err = anyhow::Error;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        let vec = hex::decode(s.as_bytes())?;
+        let decoded = vec.as_slice();
+        let d = <[u8; WalletId::LEN]>::try_from(decoded)?;
+        Ok(Self(d))
     }
 }
 
@@ -208,10 +242,7 @@ impl<'de> Deserialize<'de> for WalletId {
         D: Deserializer<'de>,
     {
         let s: String = Deserialize::deserialize(deserializer)?;
-        let vec = hex::decode(s.as_bytes()).map_err(D::Error::custom)?;
-        let decoded = vec.as_slice();
-        let d = <[u8; WalletId::LEN]>::try_from(decoded).map_err(D::Error::custom)?;
-        Ok(Self(d))
+        Self::from_str(s.as_str()).map_err(D::Error::custom)
     }
 }
 
@@ -224,7 +255,6 @@ impl Debug for WalletId {
 #[cfg(test)]
 mod tests {
     use super::*;
-    
     use std::fs::remove_file;
     use std::str::FromStr;
 
@@ -262,79 +292,12 @@ mod tests {
                 .unwrap();
         let wallet = Wallet::Seed(seed);
         let reference = WalletId::zero();
-        manager.add(reference, wallet).await.unwrap();
+        manager.add(reference, wallet.to_owned()).await.unwrap();
+
+        assert_eq!(
+            wallet.address(0).unwrap(),
+            Address::from_str("nano_3i1aq1cchnmbn9x5rsbap8b15akfh7wj7pwskuzi7ahz8oq6cobd99d4r3b7")
+                .unwrap()
+        );
     }
-
-    // Just mulling over the API and CLI interaction...
-    // feeless wallet create --file gak.wallet
-    // FEELESS_WALLET=gak.wallet feeless wallet create
-    // Should warn user if wallet exists:
-    // * Warning: File already exists with (3) wallets.
-    // let manager = WalletManager::new("test.wallet");
-    // manager.create().await?; // Fail if already exists
-    // manager.ensure().await?; // Will create if doesn't exist
-
-    /*
-    fn ensure() {
-        let _lock = self.lock().await?;
-        if !self.exists() {
-            self.save_unlocked().await?;
-        }
-    }
-    */
-
-    // feeless wallet new phrase --file gak.wallet --language en --words 24
-    // stdout is the wallet id:
-    // A1B2C3....
-    //
-    // feeless wallet new phrase --default --file etc
-    // --default can be used as the default wallet, so that you dont need to track wallet_ids
-    // or WALLET_ID=default
-    // let wallet = manager.new_phrase(Language::English, 24).await.unwrap();
-
-    // feeless wallet import phrase "banana cat" --default
-    // feeless wallet import phrase "banana cat" --id A1B2
-    // feeless wallet import phrase "banana cat" # none specified generates a new wallet id
-    // feeless wallet import private "a1b2c3"
-    // feeless wallet import seed -
-    /*
-    fn new_phrase(&self, lang, words) {
-        let _lock = manager.lock();
-        let phrase = Phrase::new(lang, words);
-        let wallet_id = self.generate_id();
-        let store = self.load_unlocked();
-        // TODO: Make sure the wallet id doesnt exist yet
-        let s = serde_json::to_string(phrase);
-        store.insert(wallet_id, s);
-        self.save_unlocked(store);
-    }
-     */
-
-    // let wallet = manager.new_seed().await.unwrap();
-    // let wallet = manager.from_seed(Seed::from_str("A1B2C3").unwrap()).await.unwrap();
-    // let wallet = manager.new_private().await.unwrap();
-    // let wallet = manager.from_private().await.unwrap();
-
-    // feeless wallet address 42 --id A1B2C3 --path ...
-    // nano_1abc
-    // feeless wallet address 42
-    // Sorry no "default" wallet has been set up. Please use --default when creating a wallet.
-
-    // FEELESS_WALLET_PATH=gak.wallet
-    // FEELESS_WALLET_ID=a1b2c3
-    // feeless wallet address 42
-    // feeless wallet address # 0 is the default
-    // feeless wallet address 32
-
-    // Get a wallet
-    // let wallet = manager.wallet(wallet_id);
-    // wallet is read only and not locked? no need to write to it once we have the seed.
-
-    // let private = wallet.private(0).unwrap();
-    // let private = wallet.public(0).unwrap();
-    // let address = wallet.address(0).unwrap();
-    // let signature = wallet.address(0).sign("hello").unwrap();
-
-    // let wallet_id = wallet_file.new_seed().await.unwrap();
-    // wallet.address(wallet_id)
 }

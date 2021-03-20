@@ -1,6 +1,5 @@
 use crate::cli::StringOrStdin;
 use crate::units::{Cents, MicroNano, Nano, UnboundedRai};
-
 use clap::Clap;
 use std::str::FromStr;
 
