@@ -275,7 +275,7 @@ mod tests {
 
     #[tokio::test]
     async fn sanity_check() {
-        let (clean, manager) = prepare("test.wallet").await;
+        let (_clean, manager) = prepare("test.wallet").await;
         let w1 = manager.add_random_seed(WalletId::zero()).await.unwrap();
         let w2 = manager.wallet(&WalletId::zero()).await.unwrap();
         assert_eq!(w1.address(0).unwrap(), w2.address(0).unwrap())
@@ -283,7 +283,7 @@ mod tests {
 
     #[tokio::test]
     async fn import_seed() {
-        let (clean, manager) = prepare("import_seed.wallet").await;
+        let (_clean, manager) = prepare("import_seed.wallet").await;
         let seed =
             Seed::from_str("0000000000000000000000000000000000000000000000000000000000000000")
                 .unwrap();
