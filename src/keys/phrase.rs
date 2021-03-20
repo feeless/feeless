@@ -1,5 +1,4 @@
 //! BIP39 and BIP44 mnemonic seed phrase.
-use crate::encoding::deserialize_from_str;
 use crate::{to_hex, Private};
 use anyhow::anyhow;
 use bip39::Mnemonic;
@@ -75,6 +74,8 @@ impl Into<bip39::Language> for Language {
     }
 }
 
+/// A wrapper for Entropy so it can be serialized as hex, and have its own type instead of Vec<u8>.
+// TODO: This should probably "act" more like the other [u8] structs.
 #[derive(Debug, Clone)]
 struct Entropy(Vec<u8>);
 
