@@ -1,10 +1,12 @@
 //! BIP39 and BIP44 mnemonic seed phrase.
-use crate::Private;
+use crate::encoding::deserialize_from_str;
+use crate::{to_hex, Private};
 use anyhow::anyhow;
 use bip39::Mnemonic;
 pub use bip39::MnemonicType;
 use ed25519_dalek_bip32::{DerivationPath, ExtendedSecretKey};
-use serde::{Deserialize, Serialize};
+use serde::de::Error;
+use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use std::convert::TryFrom;
 use std::fmt::{Display, Formatter};
 use std::str::FromStr;
@@ -73,25 +75,47 @@ impl Into<bip39::Language> for Language {
     }
 }
 
+#[derive(Debug, Clone)]
+struct Entropy(Vec<u8>);
+
+impl Serialize for Entropy {
+    fn serialize<S>(&self, serializer: S) -> Result<<S as Serializer>::Ok, <S as Serializer>::Error>
+    where
+        S: Serializer,
+    {
+        serializer.serialize_str(to_hex(&self.0).as_str())
+    }
+}
+
+impl<'de> Deserialize<'de> for Entropy {
+    fn deserialize<D>(deserializer: D) -> Result<Self, <D as Deserializer<'de>>::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        let s: String = Deserialize::deserialize(deserializer)?;
+        Ok(Self(hex::decode(s.as_bytes()).map_err(D::Error::custom)?))
+    }
+}
+
 /// BIP39 and BIP44 mnemonic seed phrase that can generate keys.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Phrase {
     language: Language,
-    entropy: Vec<u8>,
+    entropy: Entropy,
 }
 
 impl Phrase {
     pub fn random(len: MnemonicType, language: Language) -> Self {
         let m = Mnemonic::new(len, language.to_owned().into());
         Self {
-            entropy: m.entropy().to_vec(),
+            entropy: Entropy(m.entropy().to_vec()),
             language: language.into(),
         }
     }
 
     pub fn to_mnemonic(&self) -> anyhow::Result<Mnemonic> {
         Ok(Mnemonic::from_entropy(
-            &self.entropy,
+            &self.entropy.0,
             self.language.to_owned().into(),
         )?)
     }
@@ -126,7 +150,7 @@ impl Phrase {
         let m = Mnemonic::from_phrase(words, language.to_owned().into())?;
         Ok(Self {
             language,
-            entropy: m.entropy().to_vec(),
+            entropy: Entropy(m.entropy().to_vec()),
         })
     }
 }
