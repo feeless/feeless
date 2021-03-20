@@ -1,8 +1,10 @@
-#![allow(dead_code)]
+mod keys;
+mod wallet;
 
 use ansi_term::Color;
+use anyhow::anyhow;
 use clap::Clap;
-use cmd_lib::{run_fun};
+use cmd_lib::run_fun;
 
 // These `Opts` are only for the path to feeless, not the actual feeless CLI.
 #[derive(Clap)]
@@ -15,124 +17,107 @@ struct Opts {
 fn main() -> anyhow::Result<()> {
     let opts = Opts::parse();
     let feeless = &opts.feeless_path;
-
     let mut test = Test::new();
 
-    test.assert("Display the help screen.", || {
+    test.run("Display the help screen.", || {
         Ok(run_fun!(
             $feeless --help
-        )?
-        .contains("cryptocurrency"))
-    });
+        )?)
+    })
+    .contains("cryptocurrency");
 
-    test.assert(
-        "A new phrase piped through several stages into an address.",
-        || {
-            Ok(run_fun!(
-                $feeless phrase new |
-                $feeless phrase to-private - |
-                $feeless private to-public - |
-                $feeless public to-address -
-            )?
-            .contains("nano_"))
-        },
-    );
+    keys::keys(&mut test, &feeless)?;
+    wallet::wallet(&mut test, &feeless)?;
 
-    // Example from https://docs.nano.org/integration-guides/key-management/#test-vectors
-    test.assert("A phrase with a passphrase converted to an address.", || {
-        Ok(run_fun!(
-            $feeless phrase to-address -p "some password"
-            "edge defense waste choose enrich upon flee junk siren film clown finish luggage leader kid quick brick print evidence swap drill paddle truly occur"
-        )?
-        .contains("nano_1pu7p5n3ghq1i1p4rhmek41f5add1uh34xpb94nkbxe8g4a6x1p69emk8y1d"))
-    });
-
-    // A zh-hant phrase
-    let phrase = "讓 步 械 遞 窮 針 柳 擾 逃 湯 附 剛";
-
-    // This is address 5 from the phrase.
-    let addr = "nano_3tr7wk6ebc6ujptdnf471d8knnfaz1r469u83biws5s5jntb3hpe8oh65ogi";
-
-    test.assert("A phrase converted directly to an address.", || {
-        Ok(run_fun!(
-            $feeless phrase to-address -l zh-hant -a 5 "$phrase"
-        )?
-        .contains(addr))
-    });
-
-    test.assert(
-        "A phrase piped through several stages into an address.",
-        || {
-            Ok(run_fun!(
-                $feeless phrase to-private -l zh-hant -a 5 "$phrase" |
-                $feeless private to-public - |
-                $feeless public to-address -
-            )?
-            .contains(addr))
-        },
-    );
-
-    test.assert("A seed directly converted to a public key.", || {
-        let zeros = "0000000000000000000000000000000000000000000000000000000000000000";
-        Ok(run_fun!(
-            $feeless seed to-public $zeros -i 0
-        )?
-        .contains("C008B814A7D269A1FA3C6528B19201A24D797912DB9996FF02A1FF356E45552B"))
-    });
-
-    test.assert("A seed directly converted to an address.", || {
-        let zeros = "0000000000000000000000000000000000000000000000000000000000000000";
-        Ok(run_fun!(
-            $feeless seed to-address $zeros -i 0
-        )?
-        .contains("nano_3i1aq1cchnmbn9x5rsbap8b15akfh7wj7pwskuzi7ahz8oq6cobd99d4r3b7"))
-    });
-
-    test.assert("A seed piped through to convert it to an address.", || {
-        let zeros = "0000000000000000000000000000000000000000000000000000000000000000";
-        Ok(run_fun!(
-            $feeless seed to-private $zeros -i 0 | $feeless private to-address -
-        )?
-        .contains("nano_3i1aq1cchnmbn9x5rsbap8b15akfh7wj7pwskuzi7ahz8oq6cobd99d4r3b7"))
-    });
-
-    test.assert("A random private key into an address.", || {
-        Ok(run_fun!(
-            $feeless private new | $feeless private to-address -
-        )?
-        .contains("nano_"))
-    });
+    test.end()?;
 
     Ok(())
 }
 
 /// A basic testing suite, allowing to continue after a failure.
-struct Test {
-    has_failed: bool,
+pub struct Test {
+    outcomes: Vec<Outcome>,
 }
 
 impl Test {
     fn new() -> Self {
-        Self { has_failed: false }
+        Self { outcomes: vec![] }
     }
 
-    fn assert<F>(&mut self, desc: &str, result: F)
+    fn run<F>(&mut self, desc: &str, result: F) -> Outcome
     where
-        F: Fn() -> anyhow::Result<bool>,
+        F: Fn() -> anyhow::Result<String>,
     {
-        let (ok, msg, maybe_err) = match result() {
-            Ok(r) => match r {
-                true => (true, Color::Green.bold().paint("PASS"), None),
-                false => (false, Color::Red.bold().paint("FAIL"), None),
-            },
-            Err(err) => (false, Color::Red.bold().paint("ERRO"), Some(err)),
+        let outcome = match result() {
+            Ok(s) => Outcome::new(desc, &s, State::Pass),
+            Err(err) => Outcome::new(desc, "", State::Error(err.to_string())),
         };
-        println!("{} {}", msg, desc);
-        if let Some(err) = maybe_err {
-            println!("{:?}", err);
+        self.outcomes.push(outcome.to_owned());
+        outcome
+    }
+
+    fn end(&self) -> anyhow::Result<()> {
+        for o in &self.outcomes {
+            if o.state != State::Pass {
+                return Err(anyhow!("Failed tests."));
+            }
         }
-        if !ok {
-            self.has_failed = true;
+        Ok(())
+    }
+}
+
+#[derive(Clone, Eq, PartialEq)]
+enum State {
+    Pass,
+    Error(String),
+    Fail(String),
+}
+
+#[derive(Clone)]
+struct Outcome {
+    desc: String,
+    output: String,
+    state: State,
+}
+
+impl Outcome {
+    pub fn new(desc: &str, output: &str, state: State) -> Self {
+        Self {
+            desc: desc.to_owned(),
+            output: output.to_owned(),
+            state,
+        }
+    }
+
+    pub fn contains(&mut self, s: &str) -> &mut Self {
+        if let State::Error(_) = &self.state {
+            self.print();
+            return self;
+        }
+
+        if !self.output.contains(s) {
+            self.state = State::Fail(format!(
+                "Output does not contain '{}'.\nOutput: {}",
+                s, &self.output
+            ));
+            self.print();
+            return self;
+        }
+
+        self.print();
+        self
+    }
+
+    pub fn print(&self) {
+        let (prefix, message) = match &self.state {
+            State::Error(err) => (Color::Red.bold().paint("ERRO"), Some(err.to_owned())),
+            State::Fail(msg) => (Color::Red.bold().paint("FAIL"), Some(msg.to_owned())),
+            State::Pass => (Color::Green.bold().paint("PASS"), None),
+        };
+
+        println!("{} {}", prefix, self.desc);
+        if let Some(err) = message {
+            println!("{}", Color::Purple.paint(err));
         }
     }
 }

@@ -1,5 +1,6 @@
 use crate::cli::StringOrStdin;
 use crate::wallet::{Wallet, WalletId, WalletManager};
+use crate::Phrase;
 use clap::Clap;
 use std::path::PathBuf;
 
@@ -36,6 +37,16 @@ impl WalletOpts {
                 }
             },
             Command::Import(o) => match &o.create_type {
+                ImportType::Phrase(o) => {
+                    let (manager, wallet_id) = WalletOpts::create(&o.opts).await?;
+                    let phrase = Phrase::from_words(
+                        o.language.language.to_owned(),
+                        o.words.to_owned().resolve()?.as_str(),
+                    )?;
+                    let wallet = Wallet::Phrase(phrase);
+                    manager.add(wallet_id.to_owned(), wallet).await?;
+                    println!("{:?}", wallet_id);
+                }
                 ImportType::Seed(o) => {
                     let (manager, wallet_id) = WalletOpts::create(&o.opts).await?;
                     let wallet = Wallet::Seed(o.seed.to_owned().resolve()?);
@@ -189,8 +200,20 @@ struct ImportOpts {
 
 #[derive(Clap)]
 enum ImportType {
+    Phrase(ImportPhraseOpts),
     Seed(ImportSeedOpts),
     Private(ImportPrivateOpts),
+}
+
+#[derive(Clap)]
+struct ImportPhraseOpts {
+    words: StringOrStdin<String>,
+
+    #[clap(flatten)]
+    pub(crate) language: crate::cli::phrase::LanguageOpt,
+
+    #[clap(flatten)]
+    opts: CommonOptsCreate,
 }
 
 #[derive(Clap)]
