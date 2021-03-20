@@ -6,6 +6,7 @@ use crate::Public;
 use async_trait::async_trait;
 use std::convert::TryFrom;
 use std::net::SocketAddr;
+use std::collections::HashSet;
 
 /// Sled is an on disk key value pair.
 #[derive(Clone, Debug)]
@@ -75,5 +76,13 @@ impl State for SledDiskState {
             None => None,
             Some(c) => Some(Cookie::try_from(c.as_ref())?),
         })
+    }
+
+    async fn add_peer(&mut self, _socket_addr: SocketAddr) -> Result<(), anyhow::Error> {
+        unimplemented!()
+    }
+
+    async fn peers(&self) -> Result<HashSet<SocketAddr>, anyhow::Error> {
+        unimplemented!()
     }
 }

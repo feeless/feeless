@@ -19,6 +19,9 @@ use tokio::net::TcpStream;
 use tokio::sync::Mutex;
 use tracing::info;
 pub use wire::Wire;
+use crate::node::state::State;
+use std::net::SocketAddr;
+use std::str::FromStr;
 
 pub async fn node_with_single_peer(address: &str) -> anyhow::Result<()> {
     let network = Network::Live;
@@ -26,22 +29,34 @@ pub async fn node_with_single_peer(address: &str) -> anyhow::Result<()> {
     let state = MemoryState::new(network);
 
     let state = Arc::new(Mutex::new(state));
-    let address = address.to_owned();
+    let addr = SocketAddr::from_str(address).unwrap();
+    state
+        .lock()
+        .await
+        .add_peer(addr)
+        .await?;
 
-    // TODO: peering.nano.org
+    let preconfigured_peers = tokio::net::lookup_host("peering.nano.org:7075").await.unwrap();
+    for socket_addr in preconfigured_peers {
+        let mut state = state.lock().await;
+        state.add_peer(socket_addr).await?;
+    }
 
-    let _state_clone = Arc::clone(&state);
-    info!("Spawning a channel to {}", &address);
-    let handle = tokio::spawn(async move {
-        let stream = TcpStream::connect(&address).await.unwrap();
-        // let mut channel = Channel::new(network, state_clone, stream).await;
-        // channel.run().await.unwrap();
-        network_channel(network, state, stream)
-            .await
-            .expect("Error in network_channel");
-    });
+    let mut handles = vec![];
+    let initial_peers = state.lock().await.peers().await?;
+    for socket_addr in initial_peers {
+        info!("Spawning a channel to {}", socket_addr);
+        let state = state.clone();
+        let handle = tokio:: spawn(async move {
+            let stream = TcpStream::connect(socket_addr).await.unwrap();
+            network_channel(network, state, stream).await.expect("Error in network_channel")
+        });
+        handles.push(handle)
+    }
 
-    handle.await.unwrap();
+    for handle in handles {
+        handle.await?
+    }
     info!("Quitting...");
     Ok(())
 }

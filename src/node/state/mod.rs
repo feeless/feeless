@@ -9,13 +9,16 @@ use std::fmt::Debug;
 use std::net::SocketAddr;
 use std::sync::Arc;
 use tokio::sync::Mutex;
+use std::collections::HashSet;
+
 mod memory;
 mod sled_disk;
 
 pub type DynState = dyn State + Send + Sync;
 pub type ArcState = Arc<Mutex<DynState>>;
 
-/// State contains a state of the Nano block lattice 🥬.
+/// State contains a state of the Nano block lattice 🥬,
+/// it also contains ephemeral information like peers.
 #[async_trait]
 pub trait State: Debug + Sync + Send + 'static {
     async fn add_block(&mut self, block: &Block) -> anyhow::Result<()>;
@@ -40,4 +43,8 @@ pub trait State: Debug + Sync + Send + 'static {
         &self,
         socket_addr: &SocketAddr,
     ) -> anyhow::Result<Option<Cookie>>;
+
+    async fn add_peer(&mut self, socket_addr: SocketAddr) -> anyhow::Result<()>;
+
+    async fn peers(&self) -> anyhow::Result<HashSet<SocketAddr>>;
 }
