@@ -23,22 +23,21 @@ use tokio::sync::Mutex;
 use tracing::info;
 pub use wire::Wire;
 
-pub async fn node_with_single_peer(address: &str) -> anyhow::Result<()> {
+pub async fn node_with_autodiscovery(addresses_override: Option<String>) -> anyhow::Result<()> {
     let network = Network::Live;
     // let state = SledDiskState::new(Network::Live);
     let state = MemoryState::new(network);
 
     let state = Arc::new(Mutex::new(state));
-    let address = SocketAddr::from_str(address).unwrap();
-    state.lock().await.add_peer(address).await?;
-
-    let preconfigured_peers = tokio::net::lookup_host("peering.nano.org:7075")
-        .await
-        .unwrap();
-    for socket_addr in preconfigured_peers {
-        let mut state = state.lock().await;
-        state.add_peer(socket_addr).await?;
-    }
+    let configured_peers = if addresses_override.is_some() {
+        parse_socket_list(addresses_override.unwrap())
+    } else {
+        tokio::net::lookup_host("peering.nano.org:7075")
+            .await
+            .unwrap()
+            .collect::<Vec<SocketAddr>>()
+    };
+    state.lock().await.add_peers(configured_peers).await?;
 
     let mut handles = vec![];
     let initial_peers = state.lock().await.peers().await?;
@@ -59,4 +58,11 @@ pub async fn node_with_single_peer(address: &str) -> anyhow::Result<()> {
     }
     info!("Quitting...");
     Ok(())
+}
+
+fn parse_socket_list(socket_list: String) -> Vec<SocketAddr> {
+    socket_list
+        .split(',')
+        .map(|s| SocketAddr::from_str(s).unwrap())
+        .collect::<Vec<SocketAddr>>()
 }

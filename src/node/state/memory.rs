@@ -104,8 +104,10 @@ impl State for MemoryState {
         Ok(self.cookies.get(&socket_addr).map(|c| c.to_owned()))
     }
 
-    async fn add_peer(&mut self, socket_addr: SocketAddr) -> Result<(), anyhow::Error> {
-        self.peers.insert(socket_addr);
+    async fn add_peers(&mut self, addresses: Vec<SocketAddr>) -> Result<(), anyhow::Error> {
+        for address in addresses {
+            self.peers.insert(address);
+        }
         Ok(())
     }
 

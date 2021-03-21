@@ -82,7 +82,7 @@ impl State for SledDiskState {
         })
     }
 
-    async fn add_peer(&mut self, _socket_addr: SocketAddr) -> Result<(), anyhow::Error> {
+    async fn add_peers(&mut self, _addresses: Vec<SocketAddr>) -> Result<(), anyhow::Error> {
         unimplemented!()
     }
 
