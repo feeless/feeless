@@ -33,7 +33,7 @@ pub async fn node_with_autodiscovery(
     let state = MemoryState::new(network);
 
     let state = Arc::new(Mutex::new(state));
-    let configured_peers = if addresses_override.is_some() {
+    let configured_peers = if Option::is_some(&addresses_override) {
         parse_socket_list(addresses_override.unwrap())?
     } else {
         tokio::net::lookup_host("peering.nano.org:7075")
