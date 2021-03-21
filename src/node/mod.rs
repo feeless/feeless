@@ -14,6 +14,7 @@ pub use controller::{Controller, Packet};
 pub use header::Header;
 
 use crate::node::state::State;
+use anyhow::Context;
 pub use state::{MemoryState, SledDiskState};
 use std::net::SocketAddr;
 use std::str::FromStr;
@@ -34,7 +35,7 @@ pub async fn node_with_autodiscovery(addresses_override: Option<String>) -> anyh
     } else {
         tokio::net::lookup_host("peering.nano.org:7075")
             .await
-            .unwrap()
+            .context("Error while trying to lookup default peers")?
             .collect::<Vec<SocketAddr>>()
     };
     state.lock().await.add_peers(configured_peers).await?;
