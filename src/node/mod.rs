@@ -14,6 +14,7 @@ pub use controller::{Controller, Packet};
 pub use header::Header;
 
 use crate::node::state::State;
+use anyhow::anyhow;
 use anyhow::Context;
 pub use state::{MemoryState, SledDiskState};
 use std::net::SocketAddr;
@@ -24,14 +25,16 @@ use tokio::sync::Mutex;
 use tracing::info;
 pub use wire::Wire;
 
-pub async fn node_with_autodiscovery(addresses_override: Option<String>) -> anyhow::Result<()> {
+pub async fn node_with_autodiscovery(
+    addresses_override: Option<Vec<String>>,
+) -> anyhow::Result<()> {
     let network = Network::Live;
     // let state = SledDiskState::new(Network::Live);
     let state = MemoryState::new(network);
 
     let state = Arc::new(Mutex::new(state));
     let configured_peers = if addresses_override.is_some() {
-        parse_socket_list(addresses_override.unwrap())
+        parse_socket_list(addresses_override.unwrap())?
     } else {
         tokio::net::lookup_host("peering.nano.org:7075")
             .await
@@ -61,11 +64,20 @@ pub async fn node_with_autodiscovery(addresses_override: Option<String>) -> anyh
     Ok(())
 }
 
-fn parse_socket_list(socket_list: String) -> Vec<SocketAddr> {
-    socket_list
-        .split(',')
-        .map(|s| SocketAddr::from_str(s).unwrap())
-        .collect::<Vec<SocketAddr>>()
+fn parse_socket_list(socket_list: Vec<String>) -> Result<Vec<SocketAddr>, anyhow::Error> {
+    let (sockets, errors): (Vec<Result<_, _>>, Vec<Result<_, _>>) = socket_list
+        .iter()
+        .map(|s| SocketAddr::from_str(s))
+        .partition(Result::is_ok);
+    if errors.is_empty() {
+        let addresses = sockets
+            .iter()
+            .map(|x| *x.as_ref().unwrap())
+            .collect::<Vec<SocketAddr>>();
+        Ok(addresses)
+    } else {
+        Err(anyhow!("Could not parse correctly all addresses"))
+    }
 }
 
 #[cfg(test)]
@@ -73,10 +85,20 @@ mod tests {
     use super::*;
 
     #[test]
-    fn parse_socket_list_test() {
-        let list = "1.2.3.4:4321,5.4.3.2:9876";
-        let sockets = parse_socket_list(list.to_string());
+    fn parse_socket_list_test() -> Result<(), anyhow::Error> {
+        let list = vec!["1.2.3.4:4321".to_string(), "5.4.3.2:9876".to_string()];
+        let sockets = parse_socket_list(list)?;
         let socket_under_test = sockets[1];
-        assert!(socket_under_test.is_ipv4() && socket_under_test.port() == 9876)
+        assert!(socket_under_test.is_ipv4() && socket_under_test.port() == 9876);
+        Ok(())
+    }
+
+    #[test]
+    fn parse_socket_list_should_fail_when_one_address_is_malformed() {
+        let list = vec!["1.2.3.4:7676".to_string(), "5.4.3.2".to_string()];
+        match parse_socket_list(list) {
+            Ok(_) => assert!(false, "should fail because of missing port"),
+            Err(_) => assert!(true),
+        }
     }
 }

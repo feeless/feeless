@@ -71,7 +71,8 @@ enum Command {
 #[derive(Clap)]
 struct NodeOpts {
     /// Comma separated list of IP:PORT pairs. Overrides default initial nodes.
-    addresses: Option<String>,
+    #[clap(short, long)]
+    override_peers: Option<Vec<String>>,
 }
 
 #[derive(Clap)]
@@ -102,7 +103,7 @@ pub async fn run() -> anyhow::Result<()> {
 
     match opts.command {
         #[cfg(feature = "node")]
-        Command::Node(o) => node_with_autodiscovery(o.addresses).await,
+        Command::Node(o) => node_with_autodiscovery(o.override_peers).await,
         #[cfg(not(feature = "node"))]
         Command::Node(_) => panic!("Compile with the `node` feature to enable this."),
 
