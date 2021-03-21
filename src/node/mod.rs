@@ -89,9 +89,9 @@ mod tests {
     #[test]
     fn parse_socket_list_should_fail_when_one_address_is_malformed() {
         let list = vec!["1.2.3.4:7676".to_string(), "5.4.3.2".to_string()];
-        match parse_socket_list(list) {
-            Ok(_) => assert!(false, "should fail because of missing port"),
-            Err(_) => assert!(true),
-        }
+        assert!(
+            parse_socket_list(list).is_err(),
+            "should fail because of missing port"
+        )
     }
 }
