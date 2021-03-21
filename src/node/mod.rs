@@ -14,7 +14,6 @@ pub use controller::{Controller, Packet};
 pub use header::Header;
 
 use crate::node::state::State;
-use anyhow::anyhow;
 use anyhow::Context;
 pub use state::{MemoryState, SledDiskState};
 use std::net::SocketAddr;
@@ -65,19 +64,13 @@ pub async fn node_with_autodiscovery(
 }
 
 fn parse_socket_list(socket_list: Vec<String>) -> Result<Vec<SocketAddr>, anyhow::Error> {
-    let (sockets, errors): (Vec<Result<_, _>>, Vec<Result<_, _>>) = socket_list
-        .iter()
-        .map(|s| SocketAddr::from_str(s))
-        .partition(Result::is_ok);
-    if errors.is_empty() {
-        let addresses = sockets
-            .iter()
-            .map(|x| *x.as_ref().unwrap())
-            .collect::<Vec<SocketAddr>>();
-        Ok(addresses)
-    } else {
-        Err(anyhow!("Could not parse correctly all addresses"))
+    let mut retval: Vec<SocketAddr> = Vec::new();
+    for socket in socket_list {
+        let socket = SocketAddr::from_str(socket.as_str())
+            .with_context(|| format!("Could not parse correctly {} as SocketAddr", socket))?;
+        retval.push(socket)
     }
+    Ok(retval)
 }
 
 #[cfg(test)]
