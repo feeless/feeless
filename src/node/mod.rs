@@ -66,3 +66,16 @@ fn parse_socket_list(socket_list: String) -> Vec<SocketAddr> {
         .map(|s| SocketAddr::from_str(s).unwrap())
         .collect::<Vec<SocketAddr>>()
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn parse_socket_list_test() {
+        let list = "1.2.3.4:4321,5.4.3.2:9876";
+        let sockets = parse_socket_list(list.to_string());
+        let socket_under_test = sockets[1];
+        assert!(socket_under_test.is_ipv4() && socket_under_test.port() == 9876)
+    }
+}
