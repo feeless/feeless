@@ -16,19 +16,11 @@ implementation [lives here](https://github.com/nanocurrency/nano-node).
 I decided to start this project as a personal adventure of understanding Nano. I give no promises about my future
 motivation to complete this project 🤐.
 
-## Working Features
+## Documentation
 
-| Feature | Progress | Notes |
-| --- | --- | --- |
-| [Rust crate](https://crates.io/crates/feeless) | 80% | See the [documentation](https://docs.rs/feeless/) for usage and examples. Please [suggest](https://github.com/feeless/feeless/discussions/new) if a feature is missing. |
-| [CLI tool](https://github.com/feeless/feeless/blob/main/examples/cli.rs) | 80% | Seeds, phrases, public, private, addresses, parse a wireshark network capture<sup>1</sup>. |
-| Wallet | 100% | Can be used via the CLI or crate. |
-| Node | 20% | Can connect and communicate. No voting, storage, chain validation, etc. |
+Please visit the documentation website for general information, features, installation, CLI usage and more.
 
-<sup>1. `feeless pcap [file.pcapng]` can dump a capture file and dissect the packets. There are additional arguments you
-can see with `--help`. To do this as successfully as possible, capture with Wireshark, set the filter to `nano`
-, `File -> Export Specified Packets`, make sure `Displayed` is selected.
-</sup>
+https://feeless.dev/
 
 ## What is Nano?
 
@@ -60,40 +52,6 @@ Nano is also known as: Nano cryptocurrency, Nano coin, RaiBlocks.
 
 </sup>
 
-## Installation
-
-Currently the only way to do this is to [install Rust](https://rustup.rs/), then run `cargo install feeless`. This will
-create a file in your rust's bin directory, or to specify a location run `cargo install feeless --root [install-dir]`.
-
-## Goals
-
-### General
-
-* Correctness before performance.
-
-### Rust crate
-
-* A complete library that a Rust developer can use to handle wallets, keys, blocks, signing, proof of work, etc.
-
-### Tools
-
-* A command line tool for particular actions, e.g. generating seeds, conversions between keys, addresses, etc.
-* A command line client for the official Nano RPC server.
-
-### Nano node
-
-* A functional Nano node with business logic from the official C++ implementation.
-* Correct rebroadcasting rules
-* Representative voting
-* Bootstrapping
-* It has to perform well enough to help the network. I don't want Nano to slow down if people start using this! 🤦‍♀️
-
-## Non-goals
-
-* Only support protocol v18+ (Maybe only v19+ depending on timing)
-* No UDP support
-* No user interface
-
 ## Task list
 
 A medium term task list:
@@ -121,7 +79,7 @@ A medium term task list:
     - [x] Hashing
     - [x] Work
     - [x] State blocks
-    - [x] <v18 blocks?
+    - [x] <v18 blocks
 - [ ] Packet dissector
     - [x] Parse pcap file
     - [x] Dump some message types to console
