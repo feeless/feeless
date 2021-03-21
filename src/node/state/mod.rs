@@ -5,11 +5,11 @@ use crate::Public;
 use async_trait::async_trait;
 pub use memory::MemoryState;
 pub use sled_disk::SledDiskState;
+use std::collections::HashSet;
 use std::fmt::Debug;
 use std::net::SocketAddr;
 use std::sync::Arc;
 use tokio::sync::Mutex;
-use std::collections::HashSet;
 
 mod memory;
 mod sled_disk;

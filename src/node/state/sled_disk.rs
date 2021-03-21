@@ -4,9 +4,9 @@ use crate::node::cookie::Cookie;
 use crate::node::state::State;
 use crate::Public;
 use async_trait::async_trait;
+use std::collections::HashSet;
 use std::convert::TryFrom;
 use std::net::SocketAddr;
-use std::collections::HashSet;
 
 /// Sled is an on disk key value pair.
 #[derive(Clone, Debug)]
@@ -57,7 +57,11 @@ impl State for SledDiskState {
         unimplemented!()
     }
 
-    async fn add_vote(&mut self, _hash: &BlockHash, _representative: &Public) -> anyhow::Result<()> {
+    async fn add_vote(
+        &mut self,
+        _hash: &BlockHash,
+        _representative: &Public,
+    ) -> anyhow::Result<()> {
         unimplemented!()
     }
 
