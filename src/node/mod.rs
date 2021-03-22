@@ -35,6 +35,7 @@ pub async fn node_with_autodiscovery(
     let configured_peers = if addresses_override.is_some() {
         parse_socket_list(addresses_override.unwrap())?
     } else {
+        // TODO: Make this different depending on network, e.g. `network.peering_host()`
         tokio::net::lookup_host("peering.nano.org:7075")
             .await
             .context("Error while trying to lookup default peers")?
