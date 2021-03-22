@@ -2,7 +2,7 @@ use crate::cli::pcap::PcapDumpOpts;
 use crate::cli::unit::UnitOpts;
 use crate::cli::wallet::WalletOpts;
 use crate::debug::parse_pcap_log_file_to_csv;
-use crate::node::node_with_single_peer;
+use crate::node::node_with_autodiscovery;
 use address::AddressOpts;
 use anyhow::anyhow;
 use clap::Clap;
@@ -37,6 +37,7 @@ struct Opts {
 
 #[derive(Clap)]
 enum Command {
+    /// Launches a node
     Node(NodeOpts),
 
     /// Conversion between units, e.g. Rai to Nano
@@ -69,7 +70,9 @@ enum Command {
 
 #[derive(Clap)]
 struct NodeOpts {
-    address: String,
+    /// Comma separated list of IP:PORT pairs. Overrides default initial nodes.
+    #[clap(short, long)]
+    override_peers: Option<Vec<String>>,
 }
 
 #[derive(Clap)]
@@ -100,7 +103,7 @@ pub async fn run() -> anyhow::Result<()> {
 
     match opts.command {
         #[cfg(feature = "node")]
-        Command::Node(o) => node_with_single_peer(&o.address).await,
+        Command::Node(o) => node_with_autodiscovery(o.override_peers).await,
         #[cfg(not(feature = "node"))]
         Command::Node(_) => panic!("Compile with the `node` feature to enable this."),
 

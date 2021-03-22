@@ -4,6 +4,7 @@ use crate::node::cookie::Cookie;
 use crate::node::state::State;
 use crate::Public;
 use async_trait::async_trait;
+use std::collections::HashSet;
 use std::convert::TryFrom;
 use std::net::SocketAddr;
 
@@ -56,7 +57,11 @@ impl State for SledDiskState {
         unimplemented!()
     }
 
-    async fn add_vote(&mut self, _hash: &BlockHash, _representative: &Public) -> anyhow::Result<()> {
+    async fn add_vote(
+        &mut self,
+        _hash: &BlockHash,
+        _representative: &Public,
+    ) -> anyhow::Result<()> {
         unimplemented!()
     }
 
@@ -75,5 +80,13 @@ impl State for SledDiskState {
             None => None,
             Some(c) => Some(Cookie::try_from(c.as_ref())?),
         })
+    }
+
+    async fn add_peers(&mut self, _addresses: Vec<SocketAddr>) -> Result<(), anyhow::Error> {
+        unimplemented!()
+    }
+
+    async fn peers(&self) -> Result<HashSet<SocketAddr>, anyhow::Error> {
+        unimplemented!()
     }
 }

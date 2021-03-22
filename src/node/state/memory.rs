@@ -16,6 +16,7 @@ pub struct MemoryState {
     block_hash_to_account: HashMap<BlockHash, Public>,
     latest_block_hash: HashMap<Public, BlockHash>,
     votes: HashMap<BlockHash, HashSet<Public>>,
+    peers: HashSet<SocketAddr>,
 }
 
 impl MemoryState {
@@ -27,6 +28,7 @@ impl MemoryState {
             block_hash_to_account: HashMap::new(),
             latest_block_hash: HashMap::new(),
             votes: HashMap::new(),
+            peers: HashSet::new(),
         }
     }
 }
@@ -100,5 +102,16 @@ impl State for MemoryState {
         socket_addr: &SocketAddr,
     ) -> Result<Option<Cookie>, anyhow::Error> {
         Ok(self.cookies.get(&socket_addr).map(|c| c.to_owned()))
+    }
+
+    async fn add_peers(&mut self, addresses: Vec<SocketAddr>) -> Result<(), anyhow::Error> {
+        for address in addresses {
+            self.peers.insert(address);
+        }
+        Ok(())
+    }
+
+    async fn peers(&self) -> Result<HashSet<SocketAddr>, anyhow::Error> {
+        Ok(self.peers.clone())
     }
 }
