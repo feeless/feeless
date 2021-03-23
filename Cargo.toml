@@ -1,6 +1,6 @@
 [package]
 name = "feeless"
-version = "0.1.7"
+version = "0.1.8"
 authors = ["gak <gak@gak0.com>"]
 edition = "2018"
 license = "MIT OR Apache-2.0"
@@ -9,6 +9,7 @@ repository = "https://github.com/feeless/feeless"
 documentation = "https://docs.rs/feeless/"
 keywords = ["nano", "cryptocurrency", "decentralized"]
 categories = ["cryptography::cryptocurrencies", "command-line-utilities"]
+homepage = "https://feeless.dev/"
 
 [[example]]
 name = "cli"
