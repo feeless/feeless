@@ -10,7 +10,7 @@ pub struct AddressOpts {
 impl AddressOpts {
     pub fn handle(&self) -> anyhow::Result<()> {
         match &self.command {
-            Command::Public(p) => {
+            Command::ToPublic(p) => {
                 println!("{}", p.address.to_owned().resolve()?.to_public());
             }
         }
@@ -20,7 +20,7 @@ impl AddressOpts {
 
 #[derive(Clap)]
 pub enum Command {
-    Public(Public),
+    ToPublic(Public),
 }
 
 #[derive(Clap)]
