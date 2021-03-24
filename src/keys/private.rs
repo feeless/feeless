@@ -1,4 +1,4 @@
-use crate::{expect_len, Public, Signature};
+use crate::{expect_len, Address, Public, Signature};
 use anyhow::Context;
 use ed25519_dalek::ed25519::signature::Signature as InternalSignature;
 use ed25519_dalek::ExpandedSecretKey;
@@ -41,6 +41,10 @@ impl Private {
     pub(crate) fn internal_public(&self) -> anyhow::Result<ed25519_dalek::PublicKey> {
         let dalek = self.to_ed25519_dalek()?;
         Ok(ed25519_dalek::PublicKey::from(&dalek))
+    }
+
+    pub fn to_address(&self) -> anyhow::Result<Address> {
+        Ok(self.to_public()?.to_address())
     }
 
     pub fn sign(&self, message: &[u8]) -> anyhow::Result<Signature> {

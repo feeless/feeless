@@ -22,6 +22,7 @@ mod private;
 mod public;
 mod seed;
 mod unit;
+mod vanity;
 mod wallet;
 
 #[derive(Clap)]
@@ -60,6 +61,9 @@ enum Command {
 
     /// Address conversion.
     Address(AddressOpts),
+
+    /// Find a secret that can generate a custom vanity address.
+    // Vanity(VanityOpts),
 
     /// Tool to analyse network capture dumps for Nano packets.
     Pcap(PcapDumpOpts),
