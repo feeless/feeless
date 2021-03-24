@@ -1,11 +1,11 @@
 use crate::{expect_len, Public, Signature};
-use anyhow::Context;
 use ed25519_dalek::ed25519::signature::Signature as InternalSignature;
 use ed25519_dalek::ExpandedSecretKey;
 use rand::RngCore;
 use serde::{Deserialize, Serialize};
 use std::convert::TryFrom;
 use std::str::FromStr;
+use crate::errors::FeelessError;
 
 /// 256 bit private key which can generate a public key.
 #[derive(Clone, Serialize, Deserialize, Debug)]
@@ -34,16 +34,16 @@ impl Private {
     /// # Ok(())
     /// # }
     /// ```
-    pub fn to_public(&self) -> anyhow::Result<Public> {
+    pub fn to_public(&self) -> Result<Public, FeelessError> {
         Ok(Public::from(self.internal_public()?))
     }
 
-    pub(crate) fn internal_public(&self) -> anyhow::Result<ed25519_dalek::PublicKey> {
+    pub(crate) fn internal_public(&self) -> Result<ed25519_dalek::PublicKey, FeelessError> {
         let dalek = self.to_ed25519_dalek()?;
         Ok(ed25519_dalek::PublicKey::from(&dalek))
     }
 
-    pub fn sign(&self, message: &[u8]) -> anyhow::Result<Signature> {
+    pub fn sign(&self, message: &[u8]) -> Result<Signature, FeelessError> {
         let dalek = self.to_ed25519_dalek()?;
         let expanded_secret = ExpandedSecretKey::from(&dalek);
         let internal_signed = expanded_secret.sign(message, &self.internal_public()?);
@@ -55,13 +55,13 @@ impl Private {
         Self([0u8; 32])
     }
 
-    fn to_ed25519_dalek(&self) -> anyhow::Result<ed25519_dalek::SecretKey> {
+    fn to_ed25519_dalek(&self) -> Result<ed25519_dalek::SecretKey, FeelessError> {
         Ok(ed25519_dalek::SecretKey::from_bytes(&self.0)?)
     }
 }
 
 impl TryFrom<&[u8]> for Private {
-    type Error = anyhow::Error;
+    type Error = FeelessError;
 
     fn try_from(bytes: &[u8]) -> Result<Self, Self::Error> {
         expect_len(bytes.len(), Private::LEN, "Private key")?;
@@ -83,11 +83,11 @@ impl std::fmt::Display for Private {
 }
 
 impl FromStr for Private {
-    type Err = anyhow::Error;
+    type Err = FeelessError;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         expect_len(s.len(), Self::LEN * 2, "hex private key")?;
-        let vec = hex::decode(s.as_bytes()).context("Decoding hex public key")?;
+        let vec = hex::decode(s.as_bytes())?;
         let bytes = vec.as_slice();
         Self::try_from(bytes)
     }
