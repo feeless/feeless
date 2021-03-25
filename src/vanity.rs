@@ -110,6 +110,7 @@ impl Vanity {
             for _ in 0..self.check_count {
                 if let Some(result) = self.single_attempt() {
                     if let Err(_) = tx.send(result).await {
+                        trace!("Exiting vanity task due to closed channel while sending.");
                         return;
                     }
                 }
