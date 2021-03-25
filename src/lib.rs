@@ -45,8 +45,6 @@
 //! # }
 //! ```
 
-//use anyhow::anyhow;
-
 pub(crate) use encoding::{hex_formatter, to_hex};
 pub use keys::address::Address;
 pub use keys::phrase;

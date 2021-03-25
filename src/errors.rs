@@ -2,35 +2,41 @@ use thiserror::Error;
 
 #[derive(Debug, Error)]
 pub enum FeelessError {
-    #[error("from hex error")]
-    FromHexError(#[from] hex::FromHexError), 
-    #[error("signature error")]
-    SignatureError(#[from] ed25519_dalek::SignatureError), 
-    #[error("try from slice error")]
+    #[error("From hex error")]
+    FromHexError {
+        msg: String,
+        source: hex::FromHexError,
+    },  
+    #[error("Signature error")]
+    SignatureError {
+        msg: String,
+        source: ed25519_dalek::SignatureError,
+    },
+    #[error("Try from slice error")]
     TryFromSliceError(#[from] std::array::TryFromSliceError),
-    #[error("there is only one private key in this wallet. Only use index 0.")]
+    #[error("There is only one private key in this wallet. Only use index 0.")]
     WalletError,
-    #[error("invalid nano address")]
+    #[error("Invalid Nano address")]
     InvalidAddress,
-    #[error("unknown character found while decoding: {0}")]
+    #[error("Unknown character found while decoding: {0}")]
     DecodingError(char),
-    #[error("invalid checksum")]
+    #[error("Invalid checksum")]
     InvalidChecksum,
-    #[error("bad public key, can not verify")]
+    #[error("Bad public key, can not verify")]
     BadPublicKey,
-    #[error("extended secret key error")]
+    #[error("Extended secret key error")]
     ExtendedSecretKeyError(#[from] ed25519_dalek_bip32::Error),
-    #[error("mnemonic error")]
+    #[error("Mnemonic error")]
     MnemonicError(#[from] bip39::ErrorKind),
-    #[error("wrong length (expected {expected:?}, found {found:?})")]
+    #[error("Wrong length (expected {expected:?}, found {found:?})")]
     WrongLength {
         expected: usize,
         found: usize,
     }, 
-    #[error("parse int error")]
+    #[error("Parse int error")]
     ParseIntError(#[from] std::num::ParseIntError),
-    #[error("parse big decimal error")]
+    #[error("Parse big decimal error")]
     ParseBigDecimalError(#[from] bigdecimal::ParseBigDecimalError), 
-    #[error("possible language codes are {0}")]
-    LanguageError(String,)
-} 
+    #[error("Possible language codes are {0}")]
+    LanguageError(String),
+}

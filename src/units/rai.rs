@@ -38,7 +38,10 @@ impl Rai {
 
     pub fn from_hex(s: &str) -> Result<Self, FeelessError> {
         expect_len(s.len(), Rai::LEN * 2, "Hex rai")?;
-        let vec = hex::decode(s.as_bytes())?;
+        let vec = hex::decode(s.as_bytes()).map_err(|e| FeelessError::FromHexError {
+            msg: String::from("Decoding hex rai"),
+            source: e,
+        })?;
         Ok(Rai::try_from(vec.as_slice())?)
     }
 
