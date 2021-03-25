@@ -1,4 +1,5 @@
 use crate::vanity;
+use crate::vanity::Secret;
 use clap::Clap;
 use std::sync::Arc;
 use tokio::sync::RwLock;
@@ -51,7 +52,12 @@ impl VanityOpts {
         loop {
             match timeout(Duration::from_secs(1), rx.recv()).await {
                 Ok(Some(result)) => {
-                    println!("{},{:?}", result.address.to_string(), result.secret);
+                    let s = match result.secret {
+                        Secret::Phrase(p) => p.to_string(),
+                        Secret::Seed(s) => s.to_string(),
+                        Secret::Private(p) => p.to_string(),
+                    };
+                    println!("{},{}", result.address.to_string(), s);
                     last_log = log(started, last_log, attempts.clone()).await;
                     found += 1;
                     if let Some(limit) = opts.limit {
@@ -147,8 +153,4 @@ struct CommonOpts {
     /// Stop after finding this many matches.
     #[clap(short, long)]
     limit: Option<usize>,
-
-    /// Quit after this many attempts
-    #[clap(short, long)]
-    quit: Option<usize>,
 }
