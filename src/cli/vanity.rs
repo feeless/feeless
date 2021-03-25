@@ -142,7 +142,7 @@ struct CommonOpts {
     #[clap(short, long, group = "match")]
     regex: bool,
 
-    /// When matching, also match against the first digit (1 or 3) after `nano_`.
+    /// Also match against the first digit (1 or 3) after `nano_`.
     #[clap(short, long)]
     include_digit: bool,
 
