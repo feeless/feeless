@@ -24,7 +24,12 @@ impl Public {
     const ADDRESS_CHECKSUM_LEN: usize = 5;
 
     fn dalek_key(&self) -> Result<ed25519_dalek::PublicKey, FeelessError> {
-        Ok(ed25519_dalek::PublicKey::from_bytes(&self.0)?)
+        Ok(ed25519_dalek::PublicKey::from_bytes(&self.0)
+            .map_err(|e| FeelessError::SignatureError {
+                msg: String::from("Converting to PublicKey"),
+                source: e,
+            })?
+        )
     }
 
     pub fn as_bytes(&self) -> &[u8] {
@@ -50,8 +55,15 @@ impl Public {
         let result = self.dalek_key();
 
         match result {
-            Ok(key) => Ok(key.verify(message, &signature.internal())?),
-            
+            //Ok(key) => key.verify(message, &signature.internal()).map_err(FeelessError::SignatureError),
+            //Ok(key) => Ok(key.verify(message, &signature.internal())?),
+            Ok(key) => key.verify(message, &signature.internal()).map_err(|e| FeelessError::SignatureError {
+                msg: format!(
+                    "Public verification failed: sig: {:?} message: {:?} key: {:?}",
+                    signature, message, key
+                ).to_string(),
+                source: e,
+            }),
             // We're returning false here because someone we can be given a bad public key,
             // but since we're not checking the key for how valid it is, only the signature,
             // we just say that it does not pass validation.
@@ -65,7 +77,11 @@ impl FromStr for Public {
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         expect_len(s.len(), Self::LEN * 2, "hex public key")?;
-        let vec = hex::decode(s.as_bytes())?;
+        let vec = hex::decode(s.as_bytes())
+            .map_err(|e| FeelessError::FromHexError {
+                msg: String::from("Decoding hex public key"),
+                source: e,
+            })?;
         let bytes = vec.as_slice();
 
         let x = <[u8; Self::LEN]>::try_from(bytes)?;
@@ -174,6 +190,8 @@ mod tests {
     use crate::Private;
     use std::convert::TryFrom;
     use std::str::FromStr;
+    use crate::Signature;
+    use crate::Seed;
 
     /// Example private -> public conversion:
     /// https://docs.nano.org/protocol-design/signing-hashing-and-key-derivation/#signing-algorithm-ed25519

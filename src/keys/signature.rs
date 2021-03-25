@@ -31,7 +31,12 @@ impl FromStr for Signature {
     type Err = FeelessError;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        Signature::try_from(hex::decode(s.as_bytes())?.as_slice())
+        Signature::try_from(hex::decode(s.as_bytes())
+            .map_err(|e| FeelessError::FromHexError {
+                msg: String::from("Decoding signature"),
+                source: e,
+            })?
+            .as_slice())
     }
 }
 

@@ -56,7 +56,12 @@ impl Private {
     }
 
     fn to_ed25519_dalek(&self) -> Result<ed25519_dalek::SecretKey, FeelessError> {
-        Ok(ed25519_dalek::SecretKey::from_bytes(&self.0)?)
+        Ok(ed25519_dalek::SecretKey::from_bytes(&self.0)
+            .map_err(|e| FeelessError::SignatureError {
+                msg: String::from("Converting to SecretKey"),
+                source: e,
+            })?
+        )
     }
 }
 
@@ -87,7 +92,11 @@ impl FromStr for Private {
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         expect_len(s.len(), Self::LEN * 2, "hex private key")?;
-        let vec = hex::decode(s.as_bytes())?;
+        let vec = hex::decode(s.as_bytes())
+            .map_err(|e| FeelessError::FromHexError {
+                msg: String::from("Decoding hex public key"),
+                source: e,
+            })?;
         let bytes = vec.as_slice();
         Self::try_from(bytes)
     }
