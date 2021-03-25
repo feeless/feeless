@@ -43,7 +43,7 @@ use std::fmt::{Debug, Formatter};
 use std::path::PathBuf;
 use std::str::FromStr;
 use tokio::fs::File;
-use crate::errors::FeelessError;
+use crate::FeelessError;
 
 /// Manages multiple [Wallet]s of different types of [Wallet]s. **Warning**: Wallet files are not
 /// locked (yet).
