@@ -63,7 +63,8 @@ impl Vanity {
     }
 
     pub async fn start(self) -> anyhow::Result<Receiver<SecretResult>> {
-        let tasks = self.tasks.unwrap_or(num_cpus::get());
+        let cpus = (num_cpus::get() - 1).max(1);
+        let tasks = self.tasks.unwrap_or(cpus);
         let (tx, rx) = tokio::sync::mpsc::channel::<SecretResult>(10);
         for _ in 0..tasks {
             let v = self.clone();

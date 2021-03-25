@@ -1,5 +1,6 @@
 use crate::cli::pcap::PcapDumpOpts;
 use crate::cli::unit::UnitOpts;
+use crate::cli::vanity::VanityOpts;
 use crate::cli::wallet::WalletOpts;
 use crate::debug::parse_pcap_log_file_to_csv;
 use crate::node::node_with_autodiscovery;
@@ -34,6 +35,8 @@ struct Opts {
     /// Don't use ANSI colour codes when logging.
     #[clap(long)]
     no_color: bool,
+    // #[clap(short, long)]
+    // log_level:
 }
 
 #[derive(Clap)]
@@ -63,7 +66,7 @@ enum Command {
     Address(AddressOpts),
 
     /// Find a secret that can generate a custom vanity address.
-    // Vanity(VanityOpts),
+    Vanity(VanityOpts),
 
     /// Tool to analyse network capture dumps for Nano packets.
     Pcap(PcapDumpOpts),
@@ -127,6 +130,7 @@ pub async fn run() -> anyhow::Result<()> {
         Command::Phrase(phrase) => phrase.handle(),
         Command::Address(address) => address.handle(),
         Command::Unit(unit) => unit.handle(),
+        Command::Vanity(vanity) => vanity.handle().await,
     }
 }
 
