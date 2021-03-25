@@ -40,7 +40,6 @@
 //! ```
 
 use anyhow::anyhow;
-
 pub(crate) use encoding::{hex_formatter, to_hex};
 pub use keys::address::Address;
 pub use keys::phrase;
@@ -72,6 +71,7 @@ mod keys;
 mod network;
 mod pow;
 pub mod units;
+pub mod vanity;
 
 /// The default TCP port that Nano nodes use.
 pub const DEFAULT_PORT: u16 = 7075;
