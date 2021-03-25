@@ -162,6 +162,7 @@ impl Vanity {
         }
     }
 
+    /// Block until all results are collected up to a size of `limit`.
     pub async fn collect(self, mut limit: usize) -> anyhow::Result<Vec<SecretResult>> {
         let (mut rx, _) = self.start().await.unwrap();
         let mut collected = vec![];
