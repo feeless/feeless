@@ -44,15 +44,15 @@ impl VanityOpts {
             vanity.include_first_digit(true);
         }
 
-        let (mut rx, counter) = vanity.start().await?;
+        let (mut rx, attempts) = vanity.start().await?;
         let started = Instant::now();
         let mut last_log = Instant::now();
         let mut found = 0;
         loop {
-            match timeout(Duration::from_millis(100), rx.recv()).await {
+            match timeout(Duration::from_secs(1), rx.recv()).await {
                 Ok(Some(result)) => {
                     println!("{},{:?}", result.address.to_string(), result.secret);
-                    last_log = log(started, last_log, counter.clone()).await;
+                    last_log = log(started, last_log, attempts.clone()).await;
                     found += 1;
                     if let Some(limit) = opts.limit {
                         if limit == found {
@@ -60,13 +60,13 @@ impl VanityOpts {
                         }
                     }
                 }
-                // Channel closed
+                // Channel closed.
                 Ok(None) => {
                     break;
                 }
                 // Timeout
                 Err(_) => {
-                    last_log = log(started, last_log, counter.clone()).await;
+                    last_log = log(started, last_log, attempts.clone()).await;
                 }
             }
         }
@@ -74,18 +74,16 @@ impl VanityOpts {
     }
 }
 
-async fn log(started: Instant, last_log: Instant, counter: Arc<RwLock<usize>>) -> Instant {
-    let lock = counter.read().await;
-    let c = *lock;
-    drop(lock);
+async fn log(started: Instant, last_log: Instant, attempts: Arc<RwLock<usize>>) -> Instant {
     let now = Instant::now();
     let since_last_log = now.duration_since(last_log);
     if since_last_log < Duration::from_secs(1) {
         last_log
     } else {
         let total_taken = Instant::now().duration_since(started);
-        let rate = (c as f64) / total_taken.as_secs_f64();
-        eprintln!("Attempted: {}, Rate: {:?} attempts/s", c, rate);
+        let attempts = *attempts.read().await;
+        let rate = (attempts as f64) / total_taken.as_secs_f64();
+        eprintln!("Attempted: {}, Rate: {:?} attempts/s", attempts, rate);
         now
     }
 }

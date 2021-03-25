@@ -85,19 +85,19 @@ impl Vanity {
 
     pub async fn start(self) -> anyhow::Result<(Receiver<SecretResult>, Arc<RwLock<usize>>)> {
         let cpus = num_cpus::get();
-        let counter = Arc::new(RwLock::new(0usize));
+        let attempts = Arc::new(RwLock::new(0usize));
         let tasks = self.tasks.unwrap_or(cpus);
         let (tx, rx) = tokio::sync::mpsc::channel::<SecretResult>(100);
         info!("Starting {} vanity tasks", tasks);
         for _ in 0..tasks {
             let v = self.clone();
             let tx_ = tx.clone();
-            let counter_ = counter.clone();
+            let counter_ = attempts.clone();
             tokio::spawn(async move {
                 v.single_threaded_worker(tx_, counter_).await;
             });
         }
-        Ok((rx, counter))
+        Ok((rx, attempts))
     }
 
     async fn single_threaded_worker(&self, tx: Sender<SecretResult>, counter: Arc<RwLock<usize>>) {

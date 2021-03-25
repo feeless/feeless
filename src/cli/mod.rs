@@ -35,8 +35,6 @@ struct Opts {
     /// Don't use ANSI colour codes when logging.
     #[clap(long)]
     no_color: bool,
-    // #[clap(short, long)]
-    // log_level:
 }
 
 #[derive(Clap)]
