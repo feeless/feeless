@@ -90,8 +90,11 @@ async fn log(started: Instant, last_log: Instant, attempts: Arc<RwLock<usize>>) 
 
 #[derive(Clap)]
 enum VanitySecretType {
+    /// Generate phrases to find addresses. WARNING: This method is slow currently.
     Phrase(PhraseOpts),
+    /// Generate seeds to find addresses.
     Seed(SeedOpts),
+    /// Generate private keys to find addresses.
     Private(PrivateOpts),
 }
 
@@ -137,7 +140,6 @@ struct CommonOpts {
     #[clap(short, long)]
     include_digit: bool,
 
-    // TODO
     /// Number of parallel tasks to use. Default: Your logical processors minus one, or at least 1.
     #[clap(short, long)]
     tasks: Option<usize>,

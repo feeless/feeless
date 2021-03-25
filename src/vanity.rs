@@ -68,6 +68,7 @@ impl Vanity {
         }
     }
 
+    /// Number of tasks to spawn.
     pub fn tasks(&mut self, v: usize) -> &mut Vanity {
         self.tasks = Some(v);
         self
@@ -83,6 +84,10 @@ impl Vanity {
         self
     }
 
+    /// Spawn some tasks to try to find a vanity address.
+    ///
+    /// This returns a [Receiver] containing [SecretResult]s for each found address, and a
+    /// [Arc] [RwLock] counter of attempts.
     pub async fn start(self) -> anyhow::Result<(Receiver<SecretResult>, Arc<RwLock<usize>>)> {
         let cpus = num_cpus::get();
         let attempts = Arc::new(RwLock::new(0usize));
