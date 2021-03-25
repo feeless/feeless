@@ -207,19 +207,21 @@ dependencies = [
 
 [[package]]
 name = "cmd_lib"
-version = "0.12.0"
+version = "0.14.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "92677f503dad1d8401f7af6323ae23c455cc749e93c8bb6a1fbdd04977338c26"
+checksum = "f44f2fe193f036fe9f92d101c836079b1f6df0359d842f5728a4ea94544d950a"
 dependencies = [
  "cmd_lib_macros",
+ "lazy_static",
 ]
 
 [[package]]
 name = "cmd_lib_macros"
-version = "0.12.0"
+version = "0.14.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0dbc6fd724b5e8d2a3c9360eb8cdfc02a32870136ac8ae18bdfacffb6f03b2bb"
+checksum = "3535bfe8b32bb2e0fd345fbfc44e2cf5067ca02f0f62e9a595020e4f0dd336f3"
 dependencies = [
+ "proc-macro-error",
  "proc-macro2",
  "quote",
  "syn",
