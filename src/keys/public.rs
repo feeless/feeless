@@ -55,8 +55,6 @@ impl Public {
         let result = self.dalek_key();
 
         match result {
-            //Ok(key) => key.verify(message, &signature.internal()).map_err(FeelessError::SignatureError),
-            //Ok(key) => Ok(key.verify(message, &signature.internal())?),
             Ok(key) => key.verify(message, &signature.internal()).map_err(|e| FeelessError::SignatureError {
                 msg: format!(
                     "Public verification failed: sig: {:?} message: {:?} key: {:?}",

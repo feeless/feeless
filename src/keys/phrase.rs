@@ -168,17 +168,6 @@ mod tests {
     use super::*;
 
     #[test]
-    fn seed() {
-        let phrase = Phrase::from_words(
-            Language::English,
-            "edge defense waste choose enrich upon flee junk siren film clown finish \
-            luggage leader kid quick brick print evidence swap drill paddle truly occur",
-        )
-        .unwrap();
-        phrase.to_bip39_seed("ola").unwrap();
-    }
-
-    #[test]
     fn conversions() {
         // Example taken from:
         // https://docs.nano.org/integration-guides/key-management/#mnemonic-seed
