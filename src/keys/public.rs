@@ -190,8 +190,6 @@ mod tests {
     use crate::Private;
     use std::convert::TryFrom;
     use std::str::FromStr;
-    use crate::Signature;
-    use crate::Seed;
 
     /// Example private -> public conversion:
     /// https://docs.nano.org/protocol-design/signing-hashing-and-key-derivation/#signing-algorithm-ed25519
