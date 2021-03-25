@@ -1,7 +1,10 @@
-use crate::cli::Command::Vanity;
 use crate::{vanity, Phrase};
 use clap::Clap;
-use std::str::FromStr;
+use std::sync::Arc;
+use tokio::sync::mpsc::Receiver;
+use tokio::sync::RwLock;
+use tokio::time::error::Elapsed;
+use tokio::time::{timeout, Duration, Instant};
 
 #[derive(Clap)]
 pub struct VanityOpts {
@@ -36,11 +39,40 @@ impl VanityOpts {
         };
 
         let vanity = vanity::Vanity::new(secret_type, matches);
-        let mut rx = vanity.start().await?;
-        while let Some(result) = rx.recv().await {
-            dbg!(result);
+        let (mut rx, counter) = vanity.start().await?;
+        let started = Instant::now();
+        let mut last_log = Instant::now();
+        loop {
+            match timeout(Duration::from_millis(100), rx.recv()).await {
+                Ok(Some(result)) => {
+                    println!("{},{:?}", result.address.to_string(), result.secret);
+                    last_log = log(started, last_log, counter.clone()).await;
+                }
+                // Channel closed
+                Ok(None) => {
+                    break;
+                }
+                // Timeout
+                Err(_) => {
+                    last_log = log(started, last_log, counter.clone()).await;
+                }
+            }
         }
         Ok(())
+    }
+}
+
+async fn log(started: Instant, last_log: Instant, counter: Arc<RwLock<usize>>) -> Instant {
+    let c = *counter.read().await;
+    let now = Instant::now();
+    let since_last_log = now.duration_since(last_log);
+    if since_last_log < Duration::from_secs(1) {
+        last_log
+    } else {
+        let total_taken = Instant::now().duration_since(started);
+        let rate = (c as f64) / total_taken.as_secs_f64();
+        eprintln!("Attempted: {}, Rate: {:?} attempts/s", c, rate);
+        now
     }
 }
 
@@ -89,12 +121,7 @@ struct CommonOpts {
     #[clap(short, long, group = "match")]
     regex: bool,
 
-    #[clap(short, long, group = "output")]
-    json: bool,
-
-    #[clap(short, long, group = "output")]
-    csv: bool,
-
+    // TODO
     /// Number of parallel tasks to use. Default: Your logical processors minus one, or at least 1.
     #[clap(short, long)]
     tasks: Option<usize>,
@@ -107,33 +134,3 @@ struct CommonOpts {
     #[clap(short, long)]
     quit: Option<usize>,
 }
-
-// fn parse_output_flag(s: &str) -> {
-// }
-
-// #[derive(Clap, Debug)]
-// struct OutputFlag {
-//     a: String,
-// }
-//
-// impl FromStr for OutputFlag {
-//     type Err = ();
-//
-//     fn from_str(s: &str) -> Result<Self, Self::Err> {
-//         unimplemented!()
-//     }
-// }
-
-// #[derive(Clap, Debug)]
-// enum OutputOpts {
-//     How,
-//     Work(String),
-// }
-//
-// impl FromStr for OutputOpts {
-//     type Err = anyhow::Error;
-//
-//     fn from_str(s: &str) -> Result<Self, Self::Err> {
-//         unimplemented!()
-//     }
-// }

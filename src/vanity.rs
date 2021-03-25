@@ -1,7 +1,10 @@
 use crate::phrase::{Language, MnemonicType};
 use crate::{Address, Phrase, Private, Seed};
 use regex::Regex;
+use std::sync::Arc;
+use std::thread::yield_now;
 use tokio::sync::mpsc::{Receiver, Sender};
+use tokio::sync::RwLock;
 use tracing::debug;
 
 #[derive(Clone)]
@@ -53,7 +56,7 @@ impl Vanity {
             matches,
             index: 0, // TODO: Make this a user option, maybe allow to scan up to N too.
             tasks: None,
-            check_count: 10000,
+            check_count: 1000,
         }
     }
 
@@ -62,29 +65,34 @@ impl Vanity {
         self
     }
 
-    pub async fn start(self) -> anyhow::Result<Receiver<SecretResult>> {
-        let cpus = (num_cpus::get() - 1).max(1);
+    pub async fn start(self) -> anyhow::Result<(Receiver<SecretResult>, Arc<RwLock<usize>>)> {
+        let cpus = num_cpus::get();
+        let counter = Arc::new(RwLock::new(0usize));
         let tasks = self.tasks.unwrap_or(cpus);
         let (tx, rx) = tokio::sync::mpsc::channel::<SecretResult>(10);
         for _ in 0..tasks {
             let v = self.clone();
             let tx_ = tx.clone();
+            let counter_ = counter.clone();
             tokio::spawn(async move {
-                v.single_threaded_worker(tx_).await;
+                v.single_threaded_worker(tx_, counter_).await;
             });
         }
-        Ok(rx)
+        Ok((rx, counter))
     }
 
-    async fn single_threaded_worker(&self, tx: Sender<SecretResult>) {
+    async fn single_threaded_worker(&self, tx: Sender<SecretResult>, counter: Arc<RwLock<usize>>) {
         while !tx.is_closed() {
             for _ in 0..self.check_count {
                 if let Some(result) = self.single_attempt() {
                     if let Err(_) = tx.send(result).await {
-                        break;
+                        return;
                     }
                 }
             }
+            let mut c = counter.write().await;
+            *c += self.check_count;
+            yield_now();
         }
         debug!("Exiting vanity task due to closed channel.");
     }
@@ -130,7 +138,7 @@ impl Vanity {
     }
 
     pub async fn collect(self, mut limit: usize) -> anyhow::Result<Vec<SecretResult>> {
-        let mut rx = self.start().await.unwrap();
+        let (mut rx, _) = self.start().await.unwrap();
         let mut collected = vec![];
         while let Some(result) = rx.recv().await {
             collected.push(result);
