@@ -43,6 +43,7 @@ use std::fmt::{Debug, Formatter};
 use std::path::PathBuf;
 use std::str::FromStr;
 use tokio::fs::File;
+use crate::FeelessError;
 
 /// Manages multiple [Wallet]s of different types of [Wallet]s. **Warning**: Wallet files are not
 /// locked (yet).
@@ -139,6 +140,20 @@ impl WalletManager {
         self.save_unlocked(file, storage).await?;
         Ok(())
     }
+
+    /// If the wallet reference doesn't exist, there will be an error.
+    pub async fn delete(&self, reference: &WalletId) -> anyhow::Result<()> {
+        let mut storage = self.load_unlocked().await?;
+        if !storage.wallets.contains_key(reference) {
+            return Err(anyhow!("Wallet reference doesn't exist: {:?}", &reference));
+        }
+        storage.wallets.remove(reference);
+        let file = File::create(&self.path)
+            .await
+            .with_context(|| format!("Creating file {:?}", &self.path))?;
+        self.save_unlocked(file, storage).await?;
+        Ok(())
+    }
 }
 
 /// The secret of an individual wallet.
@@ -156,14 +171,12 @@ pub enum Wallet {
 
 impl Wallet {
     /// Derive or return a private key for this wallet.
-    pub fn private(&self, index: u32) -> anyhow::Result<Private> {
+    pub fn private(&self, index: u32) -> Result<Private, FeelessError> {
         match &self {
             Wallet::Seed(seed) => Ok(seed.derive(index)),
             Wallet::Private(private) => {
                 if index != 0 {
-                    return Err(anyhow!(
-                        "There is only one private key in this wallet. Only use index 0."
-                    ));
+                   return Err(FeelessError::WalletError);
                 }
                 Ok(private.to_owned())
             }
@@ -172,7 +185,7 @@ impl Wallet {
     }
 
     /// Derive a public key for this wallet.
-    pub fn public(&self, index: u32) -> anyhow::Result<Public> {
+    pub fn public(&self, index: u32) -> Result<Public, FeelessError> {
         self.private(index)?.to_public()
     }
 
