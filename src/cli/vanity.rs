@@ -1,9 +1,7 @@
-use crate::{vanity, Phrase};
+use crate::vanity;
 use clap::Clap;
 use std::sync::Arc;
-use tokio::sync::mpsc::Receiver;
 use tokio::sync::RwLock;
-use tokio::time::error::Elapsed;
 use tokio::time::{timeout, Duration, Instant};
 
 #[derive(Clap)]
@@ -38,15 +36,29 @@ impl VanityOpts {
             vanity::Match::start_or_end(&opts.matching)
         };
 
-        let vanity = vanity::Vanity::new(secret_type, matches);
+        let mut vanity = vanity::Vanity::new(secret_type, matches);
+        if let Some(tasks) = opts.tasks {
+            vanity.tasks(tasks);
+        }
+        if opts.include_digit {
+            vanity.include_first_digit(true);
+        }
+
         let (mut rx, counter) = vanity.start().await?;
         let started = Instant::now();
         let mut last_log = Instant::now();
+        let mut found = 0;
         loop {
             match timeout(Duration::from_millis(100), rx.recv()).await {
                 Ok(Some(result)) => {
                     println!("{},{:?}", result.address.to_string(), result.secret);
                     last_log = log(started, last_log, counter.clone()).await;
+                    found += 1;
+                    if let Some(limit) = opts.limit {
+                        if limit == found {
+                            break;
+                        }
+                    }
                 }
                 // Channel closed
                 Ok(None) => {
@@ -63,7 +75,9 @@ impl VanityOpts {
 }
 
 async fn log(started: Instant, last_log: Instant, counter: Arc<RwLock<usize>>) -> Instant {
-    let c = *counter.read().await;
+    let lock = counter.read().await;
+    let c = *lock;
+    drop(lock);
     let now = Instant::now();
     let since_last_log = now.duration_since(last_log);
     if since_last_log < Duration::from_secs(1) {
@@ -121,14 +135,18 @@ struct CommonOpts {
     #[clap(short, long, group = "match")]
     regex: bool,
 
+    /// When matching, also match against the first digit (1 or 3) after `nano_`.
+    #[clap(short, long)]
+    include_digit: bool,
+
     // TODO
     /// Number of parallel tasks to use. Default: Your logical processors minus one, or at least 1.
     #[clap(short, long)]
     tasks: Option<usize>,
 
     /// Stop after finding this many matches.
-    #[clap(short, long, default_value = "1")]
-    limit: usize,
+    #[clap(short, long)]
+    limit: Option<usize>,
 
     /// Quit after this many attempts
     #[clap(short, long)]

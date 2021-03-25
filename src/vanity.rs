@@ -5,7 +5,7 @@ use std::sync::Arc;
 use std::thread::yield_now;
 use tokio::sync::mpsc::{Receiver, Sender};
 use tokio::sync::RwLock;
-use tracing::debug;
+use tracing::{info, trace};
 
 #[derive(Clone)]
 pub enum SecretType {
@@ -36,12 +36,19 @@ impl SecretResult {
     }
 }
 
+#[derive(Clone, Copy)]
+enum SearchOffset {
+    FirstDigit = 5,
+    SkipFirstDigit = 6,
+}
+
 #[derive(Clone)]
 pub struct Vanity {
     secret_type: SecretType,
     matches: Match,
     index: u32,
     tasks: Option<usize>,
+    search_offset: SearchOffset,
 
     /// How many attempts to loop through before checking if the channel is closed.
     ///
@@ -56,12 +63,23 @@ impl Vanity {
             matches,
             index: 0, // TODO: Make this a user option, maybe allow to scan up to N too.
             tasks: None,
-            check_count: 1000,
+            check_count: 10000,
+            search_offset: SearchOffset::SkipFirstDigit,
         }
     }
 
-    pub fn tasks(mut self, v: usize) -> Self {
+    pub fn tasks(&mut self, v: usize) -> &mut Vanity {
         self.tasks = Some(v);
+        self
+    }
+
+    /// Should the search include the first number after `nano_` (1 or 3)?
+    pub fn include_first_digit(&mut self, v: bool) -> &mut Vanity {
+        self.search_offset = if v {
+            SearchOffset::FirstDigit
+        } else {
+            SearchOffset::SkipFirstDigit
+        };
         self
     }
 
@@ -69,7 +87,8 @@ impl Vanity {
         let cpus = num_cpus::get();
         let counter = Arc::new(RwLock::new(0usize));
         let tasks = self.tasks.unwrap_or(cpus);
-        let (tx, rx) = tokio::sync::mpsc::channel::<SecretResult>(10);
+        let (tx, rx) = tokio::sync::mpsc::channel::<SecretResult>(100);
+        info!("Starting {} vanity tasks", tasks);
         for _ in 0..tasks {
             let v = self.clone();
             let tx_ = tx.clone();
@@ -92,9 +111,10 @@ impl Vanity {
             }
             let mut c = counter.write().await;
             *c += self.check_count;
+            drop(c);
             yield_now();
         }
-        debug!("Exiting vanity task due to closed channel.");
+        trace!("Exiting vanity task due to closed channel.");
     }
 
     fn single_attempt(&self) -> Option<SecretResult> {
@@ -120,14 +140,14 @@ impl Vanity {
         };
 
         let addr = &result.address.to_string();
-        // [6..] skips the first number after nano_ (1 or 3)
-        let start = &addr[6..];
+        let offset = self.search_offset as usize;
+        let searchable = &addr[offset..];
 
         let good = match &self.matches {
-            Match::StartOrEnd(s) => start.starts_with(s) || addr.ends_with(s),
-            Match::Start(s) => start.starts_with(s),
-            Match::End(s) => addr.ends_with(s),
-            Match::Regex(re) => re.is_match(addr),
+            Match::StartOrEnd(s) => searchable.starts_with(s) || searchable.ends_with(s),
+            Match::Start(s) => searchable.starts_with(s),
+            Match::End(s) => searchable.ends_with(s),
+            Match::Regex(re) => re.is_match(searchable),
         };
 
         if good {
@@ -251,34 +271,47 @@ mod tests {
     }
 
     #[tokio::test(flavor = "multi_thread")]
-    async fn vanitize_phrase() {
-        let results = Vanity::new(
-            SecretType::Phrase {
-                language: Language::Japanese,
-                words: MnemonicType::Words24,
-            },
-            Match::end("z"),
-        )
-        .collect(1)
-        .await
-        .unwrap();
+    async fn vanitize_first_digit() {
+        let mut vanity = Vanity::new(SecretType::Private, Match::start("1z"));
+        vanity.include_first_digit(true);
+        let results = vanity.collect(1).await.unwrap();
         let result = &results[0];
 
         let addr = &result.address.to_string();
         dbg!(&addr);
-        assert!(addr.ends_with("z"));
-        if let Secret::Phrase(phrase) = &result.secret {
-            assert_eq!(
-                addr,
-                &phrase
-                    .to_private(0, "")
-                    .unwrap()
-                    .to_address()
-                    .unwrap()
-                    .to_string()
-            );
-        } else {
-            assert!(false, "Did not get a phrase");
-        }
+        assert_eq!(&addr[5..7], "1z");
     }
+
+    // Phrase is waaaay to slow to test.
+    // #[tokio::test(flavor = "multi_thread")]
+    // async fn vanitize_phrase() {
+    //     let results = Vanity::new(
+    //         SecretType::Phrase {
+    //             language: Language::Japanese,
+    //             words: MnemonicType::Words24,
+    //         },
+    //         Match::end("z"),
+    //     )
+    //     .collect(1)
+    //     .await
+    //     .unwrap();
+    //     let result = &results[0];
+    //
+    //     let addr = &result.address.to_string();
+    //     dbg!(&addr);
+    //     assert!(addr.ends_with("z"));
+    //     if let Secret::Phrase(phrase) = &result.secret {
+    //         assert_eq!(
+    //             addr,
+    //             &phrase
+    //                 .to_private(0, "")
+    //                 .unwrap()
+    //                 .to_address()
+    //                 .unwrap()
+    //                 .to_string()
+    //         );
+    //     } else {
+    //         assert!(false, "Did not get a phrase");
+    //     }
+    // }
 }
