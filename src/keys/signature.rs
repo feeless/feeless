@@ -4,6 +4,7 @@ use crate::{expect_len, to_hex};
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use std::convert::TryFrom;
 use std::str::FromStr;
+use crate::errors::FeelessError;
 
 /// A ed25519+blake2 signature that can be generated with [Private](crate::Private) and
 /// checked with [Public](crate::Public).
@@ -27,10 +28,15 @@ impl Signature {
 }
 
 impl FromStr for Signature {
-    type Err = anyhow::Error;
+    type Err = FeelessError;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        Signature::try_from(hex::decode(s.as_bytes())?.as_slice())
+        Signature::try_from(hex::decode(s.as_bytes())
+            .map_err(|e| FeelessError::FromHexError {
+                msg: String::from("Decoding signature"),
+                source: e,
+            })?
+            .as_slice())
     }
 }
 
@@ -59,7 +65,7 @@ impl std::fmt::Debug for Signature {
 }
 
 impl TryFrom<&[u8]> for Signature {
-    type Error = anyhow::Error;
+    type Error = FeelessError;
 
     fn try_from(value: &[u8]) -> Result<Self, Self::Error> {
         expect_len(value.len(), Self::LEN, "Signature")?;

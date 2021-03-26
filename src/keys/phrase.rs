@@ -1,6 +1,5 @@
 //! BIP39 and BIP44 mnemonic seed phrase.
 use crate::{to_hex, Private};
-use anyhow::anyhow;
 use bip39::Mnemonic;
 pub use bip39::MnemonicType;
 use ed25519_dalek_bip32::{DerivationPath, ExtendedSecretKey};
@@ -9,6 +8,7 @@ use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use std::convert::TryFrom;
 use std::fmt::{Display, Formatter};
 use std::str::FromStr;
+use crate::errors::FeelessError;
 
 static LANGUAGES: &str = "en, zh-hans, zh-hant, fr, it, ja, ko, es";
 
@@ -35,11 +35,11 @@ impl Language {
 }
 
 impl FromStr for Language {
-    type Err = anyhow::Error;
+    type Err = FeelessError;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         let language = Language::from_language_code(s)
-            .ok_or(anyhow!("Possible language codes are {}", LANGUAGES))?;
+            .ok_or(FeelessError::LanguageError(LANGUAGES.to_string()))?;
         Ok(language)
     }
 }
@@ -114,14 +114,14 @@ impl Phrase {
         }
     }
 
-    pub fn to_mnemonic(&self) -> anyhow::Result<Mnemonic> {
+    pub fn to_mnemonic(&self) -> Result<Mnemonic, FeelessError> {
         Ok(Mnemonic::from_entropy(
             &self.entropy.0,
             self.language.to_owned().into(),
         )?)
     }
 
-    pub fn to_bip39_seed(&self, passphrase: &str) -> anyhow::Result<bip39::Seed> {
+    pub fn to_bip39_seed(&self, passphrase: &str) -> Result<bip39::Seed, FeelessError> {
         Ok(bip39::Seed::new(&self.to_mnemonic()?, passphrase))
     }
 
@@ -129,25 +129,23 @@ impl Phrase {
         &self,
         account: u32,
         passphrase: &str,
-    ) -> anyhow::Result<ExtendedSecretKey> {
+    ) -> Result<ExtendedSecretKey, FeelessError> {
         let bip39_seed = self.to_bip39_seed(passphrase)?;
-        let key = ExtendedSecretKey::from_seed(bip39_seed.as_bytes())
-            .map_err(|e| anyhow!("Extended secret key from BIP39 seed: {:?}", e))?;
+        let key = ExtendedSecretKey::from_seed(bip39_seed.as_bytes())?;
         let path = format!("m/44'/165'/{}'", account);
         let path: DerivationPath = path.parse().unwrap();
-        let derived = key
-            .derive(&path)
-            .map_err(|e| anyhow!("Deriving from bip39 seed to private key: {:?}", e))?;
+        let derived = key.derive(&path)?;
+
         Ok(derived)
     }
 
-    pub fn to_private(&self, account: u32, passphrase: &str) -> anyhow::Result<Private> {
+    pub fn to_private(&self, account: u32, passphrase: &str) -> Result<Private, FeelessError> {
         let ext_key = self.to_bip32_ext_key(account, passphrase)?;
         let bip39_seed = ext_key.secret_key.as_ref();
         Ok(Private::try_from(bip39_seed)?)
     }
 
-    pub fn from_words(language: Language, words: &str) -> anyhow::Result<Self> {
+    pub fn from_words(language: Language, words: &str) -> Result<Self, FeelessError> {
         let m = Mnemonic::from_phrase(words, language.to_owned().into())?;
         Ok(Self {
             language,
