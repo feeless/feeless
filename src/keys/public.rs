@@ -59,7 +59,7 @@ impl Public {
                 msg: format!(
                     "Public verification failed: sig: {:?} message: {:?} key: {:?}",
                     signature, message, key
-                ).to_string(),
+                ),
                 source: e,
             }),
             // We're returning false here because someone we can be given a bad public key,
