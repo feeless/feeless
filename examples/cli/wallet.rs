@@ -24,6 +24,12 @@ pub(crate) fn wallet(test: &mut Test, feeless: &str) -> anyhow::Result<()> {
     })
     .contains("nano_");
 
+    test.run("Delete wallet.", || {
+        Ok(run_fun!(
+            $feeless wallet delete --file $wallet_path --id $wallet_id
+        )?)
+    });
+
     test.run(
         "Import into a the default wallet with a known phrase.",
         || {

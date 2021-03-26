@@ -62,7 +62,7 @@ impl WalletOpts {
             },
             Command::Delete(o) => {
                 let (manager, wallet_id) = WalletOpts::delete(&o.opts).await?;
-                manager.delete(&wallet_id);
+                manager.delete(&wallet_id).await?;
                 println!("Wallet {:?} was deleted", wallet_id);
             }
             Command::Private(o) => {

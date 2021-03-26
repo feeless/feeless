@@ -30,6 +30,7 @@ pub enum FeelessError {
     MnemonicError(#[from] bip39::ErrorKind),
     #[error("Wrong length (expected {expected:?}, found {found:?})")]
     WrongLength {
+        msg: String,
         expected: usize,
         found: usize,
     }, 
