@@ -5,7 +5,7 @@ use rand::RngCore;
 use serde::{Deserialize, Serialize};
 use std::convert::TryFrom;
 use std::str::FromStr;
-use crate::errors::FeelessError;
+use crate::FeelessError;
 
 /// 256 bit private key which can generate a public key.
 #[derive(Clone, Serialize, Deserialize, Debug)]

@@ -8,7 +8,7 @@ use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use std::convert::TryFrom;
 use std::fmt::{Display, Formatter};
 use std::str::FromStr;
-use crate::errors::FeelessError;
+use crate::FeelessError;
 
 static LANGUAGES: &str = "en, zh-hans, zh-hant, fr, it, ja, ko, es";
 

@@ -4,7 +4,7 @@ use crate::{expect_len, to_hex};
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use std::convert::TryFrom;
 use std::str::FromStr;
-use crate::errors::FeelessError;
+use crate::FeelessError;
 
 /// A ed25519+blake2 signature that can be generated with [Private](crate::Private) and
 /// checked with [Public](crate::Public).
