@@ -46,7 +46,9 @@ tiny-bip39 = "0.8.0"
 chrono = "0.4.19"
 doc-comment = "0.3.3"
 fd-lock = "2.0.0"
-
+ctr = "0.6.0"
+aes = "0.6.0"
+dialoguer = "0.8.0"
 ed25519-dalek-bip32 = "0.1.1"
 
 ed25519-dalek = { version = "1.0.1", package = "ed25519-dalek-blake2-feeless" }

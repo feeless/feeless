@@ -43,6 +43,13 @@ use std::fmt::{Debug, Formatter};
 use std::path::PathBuf;
 use std::str::FromStr;
 use tokio::fs::File;
+use ctr::cipher::stream::{NewStreamCipher, SyncStreamCipher};
+use aes;
+use dialoguer::{theme::ColorfulTheme, Password};
+use tokio::fs::{read, write};
+
+// `aes` crate provides AES block cipher implementation
+type Aes128Ctr = ctr::Ctr128<aes::Aes128>;
 
 /// Manages multiple [Wallet]s of different types of [Wallet]s. **Warning**: Wallet files are not
 /// locked (yet).
@@ -55,7 +62,9 @@ pub struct WalletManager {
 
 impl WalletManager {
     pub fn new<P: Into<PathBuf>>(path: P) -> Self {
-        Self { path: path.into() }
+        Self { 
+            path: path.into(),
+        }
     }
 
     /// This should be called to create the file if it doesn't exists.
@@ -137,6 +146,21 @@ impl WalletManager {
             .await
             .with_context(|| format!("Creating file {:?}", &self.path))?;
         self.save_unlocked(file, storage).await?;
+        Ok(())
+    }
+
+    /// Encrypt the wallet file with a password.
+    pub async fn encrypt(&self) -> anyhow::Result<()> {
+        let password = Password::with_theme(&ColorfulTheme::default())
+            .with_prompt("Enter a new password")
+            .with_confirmation("Confirm password:", "Error: the passwords don't match.")
+            .interact()
+            .unwrap();
+        let mut data = read(&self.path).await?;
+        let nonce = b"and secret nonce";
+        let mut cipher = Aes128Ctr::new(password.as_bytes().into(), nonce.into());
+        cipher.apply_keystream(&mut data);
+        write(&self.path, data).await?;
         Ok(())
     }
 }

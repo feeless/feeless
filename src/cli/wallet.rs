@@ -72,6 +72,10 @@ impl WalletOpts {
                 let wallet = WalletOpts::read(&o.opts).await?;
                 println!("{}", wallet.address(o.index)?);
             }
+            Command::Password(o) => {
+                let manager = WalletOpts::encrypt(&o.opts).await?;
+                manager.encrypt().await?;
+            }
         };
         Ok(())
     }
@@ -88,6 +92,12 @@ impl WalletOpts {
         let wallet_id = o.wallet_id()?.to_owned();
         Ok((manager, wallet_id))
     }
+
+    async fn encrypt(o: &CommonOpts) -> anyhow::Result<WalletManager> {
+        let manager = WalletManager::new(&o.file);
+        Ok(manager)
+    }
+
 }
 
 #[derive(Clap)]
@@ -106,6 +116,9 @@ enum Command {
 
     /// Output the address of a wallet.
     Address(AddressOpts),
+
+    /// Encrypts the wallet file with a password.
+    Password(PasswordOpts),
 }
 
 #[derive(Clap)]
@@ -255,6 +268,12 @@ struct AddressOpts {
     #[clap(default_value = "0")]
     index: u32,
 
+    #[clap(flatten)]
+    opts: CommonOpts,
+}
+
+#[derive(Clap)]
+struct PasswordOpts {
     #[clap(flatten)]
     opts: CommonOpts,
 }
