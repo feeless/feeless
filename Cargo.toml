@@ -25,7 +25,7 @@ pcap = ["node", "pcarp", "etherparse"]
 
 [dependencies]
 num_cpus = "1.0"
-once_cell = "1.7.0"
+once_cell = "1.7.2"
 ansi_term = "0.12"
 async-trait = "0.1.42"
 hex = "0.4.2"
