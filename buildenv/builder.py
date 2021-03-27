@@ -4,11 +4,11 @@ from logging import getLogger, StreamHandler, INFO
 from platform import system as os_type
 from sys import stdout
 
-APP_NAME = "builder"
+NAME = "builder"
 TAG = "feeless/buildenv:0.1"
 DOCKER_FILE = "buildenv/"
 
-logger = getLogger(APP_NAME)
+logger = getLogger(NAME)
 logger.setLevel(INFO)
 console_handler = StreamHandler(stream=stdout)
 console_handler.setLevel(INFO)
@@ -16,7 +16,7 @@ logger.addHandler(console_handler)
 
 
 def build_with_logs(client, dockerfile, buildargs, tag):
-    builder_logger = getLogger(APP_NAME)
+    builder_logger = getLogger(NAME)
 
     try:
         img, logs = client.build(
@@ -37,7 +37,7 @@ def build_with_logs(client, dockerfile, buildargs, tag):
 
 
 def build():
-    builder_logger = getLogger(APP_NAME)
+    builder_logger = getLogger(NAME)
 
     os = os_type()
     builder_logger.info("=============================================")

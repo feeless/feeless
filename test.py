@@ -5,13 +5,14 @@ from os import getcwd
 
 NAME = "feeless"
 
-def main():
-    logger = getLogger(NAME)
-    logger.setLevel(INFO)
-    console_handler = StreamHandler()
-    console_handler.setLevel(INFO)
-    logger.addHandler(console_handler)
+logger = getLogger(NAME)
+logger.setLevel(INFO)
+console_handler = StreamHandler()
+console_handler.setLevel(INFO)
+logger.addHandler(console_handler)
 
+
+def main():
     builder.build()
     cmd = " && ".join([
         "cargo test",
