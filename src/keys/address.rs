@@ -84,7 +84,7 @@ impl FromStr for Address {
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         // TODO: Lazy
         let re = Regex::new("^nano_[13][13456789abcdefghijkmnopqrstuwxyz]{59}$")
-            .expect("could not build regexp for nano address");
+            .expect("Could not build regexp for nano address.");
         if !re.is_match(s) {
             return Err(FeelessError::InvalidAddress);
         }

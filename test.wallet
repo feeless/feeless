@@ -1,16 +1,3 @@
 {
-  "wallets": {
-    "E34E52F05F09723B946FC3AF917E0624E99BFDC9103C061AA5EC74849321CD41": {
-      "Phrase": {
-        "language": "English",
-        "entropy": "45EC6845BC0316EB2C8C5DE51D17EEF77843B7DABC6BAA751DF401A28A9091EB"
-      }
-    },
-    "0000000000000000000000000000000000000000000000000000000000000000": {
-      "Phrase": {
-        "language": "ChineseTraditional",
-        "entropy": "54C5AD9A601ABCC6B145FEA0D48591B3"
-      }
-    }
-  }
+  "wallets": {}
 }

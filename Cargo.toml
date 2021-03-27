@@ -51,11 +51,6 @@ thiserror = "1.0.24"
 ed25519-dalek-bip32 = { git = "https://github.com/Fiono11/ed25519-dalek-bip32" }
 ed25519-dalek = { version = "1.0.1", package = "ed25519-dalek-blake2-feeless" }
 
-# This is a fix for "multiple `BITS` found" while building.
-# It can be removed once the following is fixed:
-# https://github.com/bitvecto-rs/bitvec/issues/105
-#funty = "=1.1.0"
-
 # node only
 sled = { version = "0.34.6", optional = true }
 
