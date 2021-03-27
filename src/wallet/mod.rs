@@ -47,6 +47,12 @@ use ctr::cipher::stream::{NewStreamCipher, SyncStreamCipher};
 use aes;
 use dialoguer::{theme::ColorfulTheme, Password};
 use tokio::fs::{read, write};
+use pbkdf2::{
+    password_hash::{PasswordHasher, SaltString, Salt}, 
+    Pbkdf2,
+    Params,
+};
+use rand_core::OsRng;
 
 // `aes` crate provides AES block cipher implementation
 type Aes128Ctr = ctr::Ctr128<aes::Aes128>;
@@ -158,7 +164,19 @@ impl WalletManager {
             .unwrap();
         let mut data = read(&self.path).await?;
         let nonce = b"and secret nonce";
-        let mut cipher = Aes128Ctr::new(password.as_bytes().into(), nonce.into());
+        let salt_string = SaltString::generate(&mut OsRng);
+        let salt = Salt::new(&salt_string.as_str()).unwrap();
+        let params = Params {
+            rounds: 4096,
+            output_length: 16,
+        };
+        let password_hash = Pbkdf2
+            .hash_password(password.as_bytes(), None, None, params.into(), salt)
+            .unwrap()
+            .hash
+            .unwrap();
+        let pass = password_hash.as_ref();
+        let mut cipher = Aes128Ctr::new(pass.into(), nonce.into());
         cipher.apply_keystream(&mut data);
         write(&self.path, data).await?;
         Ok(())

@@ -50,6 +50,8 @@ ctr = "0.6.0"
 aes = "0.6.0"
 dialoguer = "0.8.0"
 ed25519-dalek-bip32 = "0.1.1"
+pbkdf2 = "0.7"
+rand_core = { version = "0.6", features = ["std"] }
 
 ed25519-dalek = { version = "1.0.1", package = "ed25519-dalek-blake2-feeless" }
 #ed25519-dalek = { path = "../../ed25519-dalek" }

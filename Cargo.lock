@@ -115,6 +115,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "base64ct"
+version = "1.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d0d27fb6b6f1e43147af148af49d49329413ba781aa0d5e10979831c210173b5"
+
+[[package]]
 name = "bigdecimal"
 version = "0.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -349,6 +355,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "crypto-mac"
+version = "0.10.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "4857fd85a0c34b3c3297875b747c1e02e06b6a0ea32dd892d8192b9ce0813ea6"
+dependencies = [
+ "generic-array",
+ "subtle",
+]
+
+[[package]]
 name = "ctr"
 version = "0.6.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -530,8 +546,10 @@ dependencies = [
  "hex",
  "num",
  "once_cell",
+ "pbkdf2 0.7.4",
  "pcarp",
  "rand 0.8.3",
+ "rand_core 0.6.1",
  "regex",
  "serde",
  "serde_json",
@@ -652,6 +670,16 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "deae6d9dbb35ec2c502d62b8f7b1c000a0822c3b0794ba36b3149c0a1c840dff"
 dependencies = [
  "crypto-mac 0.9.1",
+ "digest",
+]
+
+[[package]]
+name = "hmac"
+version = "0.10.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "c1441c6b1e930e2817404b5046f1f989899143a12bf92de603b69f4e0aee1e15"
+dependencies = [
+ "crypto-mac 0.10.0",
  "digest",
 ]
 
@@ -924,12 +952,35 @@ dependencies = [
 ]
 
 [[package]]
+name = "password-hash"
+version = "0.1.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "85d8faea6c018131952a192ee55bd9394c51fc6f63294b668d97636e6f842d40"
+dependencies = [
+ "base64ct",
+ "rand_core 0.6.1",
+]
+
+[[package]]
 name = "pbkdf2"
 version = "0.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "216eaa586a190f0a738f2f918511eecfa90f13295abec0e457cdebcceda80cbd"
 dependencies = [
  "crypto-mac 0.8.0",
+]
+
+[[package]]
+name = "pbkdf2"
+version = "0.7.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "297e1dad0e9de7af53235b833761351bf6bda57d6acb4f263b61a2ddf674f1dc"
+dependencies = [
+ "base64ct",
+ "crypto-mac 0.10.0",
+ "hmac 0.10.1",
+ "password-hash",
+ "sha2",
 ]
 
 [[package]]
@@ -1409,7 +1460,7 @@ dependencies = [
  "anyhow",
  "hmac 0.8.1",
  "once_cell",
- "pbkdf2",
+ "pbkdf2 0.4.0",
  "rand 0.7.3",
  "rustc-hash",
  "sha2",
