@@ -32,10 +32,10 @@
 //! # }
 //! ```
 use crate::phrase::{Language, MnemonicType};
+use crate::Error;
 use crate::{to_hex, Address, Phrase, Private, Public, Seed};
 use anyhow::{anyhow, Context};
 use rand::RngCore;
-use serde::de::Error;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use std::collections::HashMap;
 use std::convert::TryFrom;
@@ -139,6 +139,20 @@ impl WalletManager {
         self.save_unlocked(file, storage).await?;
         Ok(())
     }
+
+    /// If the wallet reference doesn't exist, there will be an error.
+    pub async fn delete(&self, reference: &WalletId) -> anyhow::Result<()> {
+        let mut storage = self.load_unlocked().await?;
+        if !storage.wallets.contains_key(reference) {
+            return Err(anyhow!("Wallet reference doesn't exist: {:?}", &reference));
+        }
+        storage.wallets.remove(reference);
+        let file = File::create(&self.path)
+            .await
+            .with_context(|| format!("Creating file {:?}", &self.path))?;
+        self.save_unlocked(file, storage).await?;
+        Ok(())
+    }
 }
 
 /// The secret of an individual wallet.
@@ -156,14 +170,12 @@ pub enum Wallet {
 
 impl Wallet {
     /// Derive or return a private key for this wallet.
-    pub fn private(&self, index: u32) -> anyhow::Result<Private> {
+    pub fn private(&self, index: u32) -> Result<Private, Error> {
         match &self {
             Wallet::Seed(seed) => Ok(seed.derive(index)),
             Wallet::Private(private) => {
                 if index != 0 {
-                    return Err(anyhow!(
-                        "There is only one private key in this wallet. Only use index 0."
-                    ));
+                    return Err(Error::WalletError);
                 }
                 Ok(private.to_owned())
             }
@@ -172,7 +184,7 @@ impl Wallet {
     }
 
     /// Derive a public key for this wallet.
-    pub fn public(&self, index: u32) -> anyhow::Result<Public> {
+    pub fn public(&self, index: u32) -> Result<Public, Error> {
         self.private(index)?.to_public()
     }
 
@@ -242,7 +254,7 @@ impl<'de> Deserialize<'de> for WalletId {
         D: Deserializer<'de>,
     {
         let s: String = Deserialize::deserialize(deserializer)?;
-        Self::from_str(s.as_str()).map_err(D::Error::custom)
+        Self::from_str(s.as_str()).map_err(serde::de::Error::custom)
     }
 }
 

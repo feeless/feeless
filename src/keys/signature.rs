@@ -1,13 +1,16 @@
-use crate::encoding::{deserialize_from_str, hex_formatter};
-use crate::{expect_len, to_hex};
+use std::convert::TryFrom;
+use std::fmt::{Debug, Display};
+use std::str::FromStr;
 
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
-use std::convert::TryFrom;
-use std::str::FromStr;
+
+use crate::encoding::{deserialize_from_str, hex_formatter};
+use crate::Error;
+use crate::{expect_len, to_hex};
 
 /// A ed25519+blake2 signature that can be generated with [Private](crate::Private) and
 /// checked with [Public](crate::Public).
-#[derive(Clone, PartialEq, Eq)]
+#[derive(Clone, PartialEq, Eq, Debug)]
 pub struct Signature([u8; Signature::LEN]);
 
 impl Signature {
@@ -27,10 +30,17 @@ impl Signature {
 }
 
 impl FromStr for Signature {
-    type Err = anyhow::Error;
+    type Err = Error;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        Signature::try_from(hex::decode(s.as_bytes())?.as_slice())
+        Signature::try_from(
+            hex::decode(s.as_bytes())
+                .map_err(|e| Error::FromHexError {
+                    msg: String::from("Decoding signature"),
+                    source: e,
+                })?
+                .as_slice(),
+        )
     }
 }
 
@@ -52,14 +62,14 @@ impl<'de> Deserialize<'de> for Signature {
     }
 }
 
-impl std::fmt::Debug for Signature {
+impl Display for Signature {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         hex_formatter(f, self.0.as_ref())
     }
 }
 
 impl TryFrom<&[u8]> for Signature {
-    type Error = anyhow::Error;
+    type Error = Error;
 
     fn try_from(value: &[u8]) -> Result<Self, Self::Error> {
         expect_len(value.len(), Self::LEN, "Signature")?;
@@ -67,5 +77,11 @@ impl TryFrom<&[u8]> for Signature {
         let mut s = Signature::zero();
         s.0.copy_from_slice(value);
         Ok(s)
+    }
+}
+
+impl std::fmt::UpperHex for Signature {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        crate::encoding::hex_formatter(f, &self.0)
     }
 }

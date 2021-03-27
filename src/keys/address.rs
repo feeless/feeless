@@ -1,6 +1,6 @@
 use crate::encoding;
 use crate::keys::public::Public;
-use anyhow::anyhow;
+use crate::Error;
 use bitvec::prelude::*;
 use regex::Regex;
 use std::convert::TryFrom;
@@ -49,7 +49,7 @@ impl Address {
         self.extract_public_key().unwrap()
     }
 
-    fn extract_public_key(&self) -> anyhow::Result<Public> {
+    fn extract_public_key(&self) -> Result<Public, Error> {
         let public_key_part =
             &self.0[Self::PREFIX_LEN..(Self::PREFIX_LEN + Self::ENCODED_PUBLIC_KEY_LEN)];
         debug_assert_eq!(public_key_part.len(), Self::ENCODED_PUBLIC_KEY_LEN);
@@ -68,25 +68,25 @@ impl Address {
         Public::try_from(public_key_bytes.as_slice())
     }
 
-    fn validate_checksum(&self, public: &Public) -> anyhow::Result<()> {
+    fn validate_checksum(&self, public: &Public) -> Result<(), Error> {
         let idx = Self::PREFIX_LEN + Self::ENCODED_PUBLIC_KEY_LEN;
         let checksum = &self.0[idx..];
         if public.checksum() != checksum {
-            return Err(anyhow!("Invalid checksum"));
+            return Err(Error::InvalidChecksum);
         }
         Ok(())
     }
 }
 
 impl FromStr for Address {
-    type Err = anyhow::Error;
+    type Err = Error;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         // TODO: Lazy
         let re = Regex::new("^nano_[13][13456789abcdefghijkmnopqrstuwxyz]{59}$")
-            .expect("could not build regexp for nano address");
+            .expect("Could not build regexp for nano address.");
         if !re.is_match(s) {
-            return Err(anyhow!("Not a valid nano address: {}", s));
+            return Err(Error::InvalidAddress);
         }
 
         let address = Address(s.into());

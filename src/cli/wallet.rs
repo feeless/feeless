@@ -1,4 +1,5 @@
 use crate::cli::StringOrStdin;
+use crate::keys::armor::Armor;
 use crate::wallet::{Wallet, WalletId, WalletManager};
 use crate::Phrase;
 use clap::Clap;
@@ -60,17 +61,33 @@ impl WalletOpts {
                     println!("{:?}", wallet_id);
                 }
             },
+            Command::Delete(o) => {
+                let (manager, wallet_id) = WalletOpts::delete(&o.opts).await?;
+                manager.delete(&wallet_id).await?;
+                println!("Wallet {:?} was deleted", wallet_id);
+            }
             Command::Private(o) => {
                 let wallet = WalletOpts::read(&o.opts).await?;
-                println!("{}", wallet.private(o.index)?);
+                println!("{}", wallet.private(o.address)?);
             }
             Command::Public(o) => {
                 let wallet = WalletOpts::read(&o.opts).await?;
-                println!("{}", wallet.public(o.index)?);
+                println!("{}", wallet.public(o.address)?);
             }
             Command::Address(o) => {
                 let wallet = WalletOpts::read(&o.opts).await?;
-                println!("{}", wallet.address(o.index)?);
+                println!("{}", wallet.address(o.address)?);
+            }
+            Command::Sign(o) => {
+                let wallet = WalletOpts::read(&o.opts).await?;
+                let string = o.message.to_owned().resolve()?;
+                let message = string.as_bytes();
+                let signed = wallet.private(o.address)?.sign(message)?;
+                if o.armor {
+                    println!("{}", Armor::new(string, wallet.address(o.address)?, signed));
+                } else {
+                    println!("{:X}", signed);
+                }
             }
         };
         Ok(())
@@ -86,6 +103,13 @@ impl WalletOpts {
         let manager = WalletManager::new(&o.common_opts.file);
         manager.ensure().await?;
         let wallet_id = o.wallet_id()?.to_owned();
+        Ok((manager, wallet_id))
+    }
+
+    async fn delete(o: &CommonOpts) -> anyhow::Result<(WalletManager, WalletId)> {
+        let manager = WalletManager::new(&o.file);
+        manager.ensure().await?;
+        let wallet_id = o.wallet_id()?;
         Ok((manager, wallet_id))
     }
 }
@@ -106,6 +130,12 @@ enum Command {
 
     /// Output the address of a wallet.
     Address(AddressOpts),
+
+    /// Sign a message using a key in this wallet.
+    Sign(SignOpts),
+
+    /// Delete an existing wallet.
+    Delete(DeleteOpts),
 }
 
 #[derive(Clap)]
@@ -235,7 +265,7 @@ struct ImportPrivateOpts {
 #[derive(Clap)]
 struct PrivateOpts {
     #[clap(default_value = "0")]
-    index: u32,
+    address: u32,
 
     #[clap(flatten)]
     opts: CommonOpts,
@@ -244,7 +274,7 @@ struct PrivateOpts {
 #[derive(Clap)]
 struct PublicOpts {
     #[clap(default_value = "0")]
-    index: u32,
+    address: u32,
 
     #[clap(flatten)]
     opts: CommonOpts,
@@ -253,7 +283,28 @@ struct PublicOpts {
 #[derive(Clap)]
 struct AddressOpts {
     #[clap(default_value = "0")]
-    index: u32,
+    address: u32,
+
+    #[clap(flatten)]
+    opts: CommonOpts,
+}
+
+#[derive(Clap)]
+struct DeleteOpts {
+    #[clap(flatten)]
+    opts: CommonOpts,
+}
+
+#[derive(Clap)]
+struct SignOpts {
+    message: StringOrStdin<String>,
+
+    /// Use the feeless armor format which includes the address, message and signature.
+    #[clap(long)]
+    armor: bool,
+
+    #[clap(short, long, default_value = "0")]
+    address: u32,
 
     #[clap(flatten)]
     opts: CommonOpts,

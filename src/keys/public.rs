@@ -5,11 +5,10 @@ use crate::node::Wire;
 use crate::node::Header;
 
 use crate::encoding::deserialize_from_str;
-use crate::{encoding, expect_len, len_err_msg, to_hex, Address, Signature};
-use anyhow::Context;
+use crate::Error;
+use crate::{encoding, expect_len, to_hex, Address, Signature};
 use bitvec::prelude::*;
 use ed25519_dalek::Verifier;
-use serde::de::Error;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use std::convert::TryFrom;
 use std::iter::FromIterator;
@@ -23,8 +22,13 @@ impl Public {
     pub const LEN: usize = 32;
     const ADDRESS_CHECKSUM_LEN: usize = 5;
 
-    fn dalek_key(&self) -> anyhow::Result<ed25519_dalek::PublicKey> {
-        ed25519_dalek::PublicKey::from_bytes(&self.0).context("Loading dalek key")
+    fn dalek_key(&self) -> Result<ed25519_dalek::PublicKey, Error> {
+        Ok(
+            ed25519_dalek::PublicKey::from_bytes(&self.0).map_err(|e| Error::SignatureError {
+                msg: String::from("Converting to PublicKey"),
+                source: e,
+            })?,
+        )
     }
 
     pub fn as_bytes(&self) -> &[u8] {
@@ -46,36 +50,41 @@ impl Public {
         encoding::encode_nano_base_32(&bits)
     }
 
-    pub fn verify(&self, message: &[u8], signature: &Signature) -> anyhow::Result<()> {
-        let result = self
-            .dalek_key()
-            .with_context(|| format!("Verify {:?} with {:?}", message, signature));
+    pub fn verify(&self, message: &[u8], signature: &Signature) -> Result<(), Error> {
+        let result = self.dalek_key();
 
         match result {
-            Ok(key) => key.verify(message, &signature.internal()).with_context(|| {
-                format!(
-                    "Public verification failed: sig: {:?} message: {:?} key: {:?}",
-                    signature, message, self
-                )
-            }),
+            Ok(key) => {
+                key.verify(message, &signature.internal())
+                    .map_err(|e| Error::SignatureError {
+                        msg: format!(
+                            "Public verification failed: sig: {:?} message: {:?} key: {:?}",
+                            signature, message, key
+                        ),
+                        source: e,
+                    })
+            }
             // We're returning false here because someone we can be given a bad public key,
             // but since we're not checking the key for how valid it is, only the signature,
             // we just say that it does not pass validation.
-            Err(e) => Err(e.context("Bad public key, can not verify")),
+            _ => Err(Error::BadPublicKey),
         }
     }
 }
 
 impl FromStr for Public {
-    type Err = anyhow::Error;
+    type Err = Error;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         expect_len(s.len(), Self::LEN * 2, "hex public key")?;
-        let vec = hex::decode(s.as_bytes()).context("Decoding hex public key")?;
+        let vec = hex::decode(s.as_bytes()).map_err(|e| Error::FromHexError {
+            msg: String::from("Decoding hex public key"),
+            source: e,
+        })?;
         let bytes = vec.as_slice();
 
-        let x = <[u8; Self::LEN]>::try_from(bytes)
-            .with_context(|| format!("Could not convert bytes into slice {:?}", bytes))?;
+        let x = <[u8; Self::LEN]>::try_from(bytes)?;
+
         Ok(Self(x))
     }
 }
@@ -92,12 +101,10 @@ impl std::fmt::Debug for Public {
 }
 
 impl TryFrom<&[u8]> for Public {
-    type Error = anyhow::Error;
+    type Error = Error;
 
     fn try_from(value: &[u8]) -> Result<Self, Self::Error> {
-        Ok(Self(<[u8; Self::LEN]>::try_from(value).with_context(
-            || len_err_msg(value.len(), Self::LEN, "Public key"),
-        )?))
+        Ok(Self(<[u8; Self::LEN]>::try_from(value)?))
     }
 }
 
@@ -173,7 +180,9 @@ where
     D: Deserializer<'de>,
 {
     let s: &str = Deserialize::deserialize(deserializer)?;
-    Ok(Address::from_str(s).map_err(D::Error::custom)?.to_public())
+    Ok(Address::from_str(s)
+        .map_err(serde::de::Error::custom)?
+        .to_public())
 }
 
 #[cfg(test)]

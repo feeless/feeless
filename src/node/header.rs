@@ -290,10 +290,7 @@ impl TryFrom<&[u8]> for Extensions {
 #[cfg(test)]
 mod tests {
     use std::fmt::Debug;
-
     use crate::node::state::MemoryState;
-    
-
     use super::*;
 
     #[test]
@@ -325,11 +322,10 @@ mod tests {
 
     #[test]
     fn bad_length() {
-        let err = "Header is the wrong length";
         let s = vec![];
-        assert_contains_err(Header::deserialize(None, &s), err);
+        assert!(Header::deserialize(None, &s).is_err());
         let s = vec![0xFF, 0x43, 18, 18, 18, 2, 3, 0, 0xFF];
-        assert_contains_err(Header::deserialize(None, &s), err);
+        assert!(Header::deserialize(None, &s).is_err());
     }
 
     #[test]

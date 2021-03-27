@@ -1,6 +1,7 @@
 use crate::encoding::{blake2b, deserialize_from_string};
 use crate::{expect_len, to_hex, Private};
 
+use crate::Error;
 use bytes::{BufMut, BytesMut};
 use rand::RngCore;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
@@ -11,7 +12,7 @@ use std::str::FromStr;
 /// 256 bit seed used to derive multiple addresses.
 ///
 /// See https://docs.nano.org/integration-guides/the-basics/#seed for details.
-#[derive(Clone)]
+#[derive(Clone, PartialEq)]
 pub struct Seed(pub [u8; Seed::LEN]);
 
 impl Seed {
@@ -44,18 +45,21 @@ impl Seed {
 }
 
 impl FromStr for Seed {
-    type Err = anyhow::Error;
+    type Err = Error;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         expect_len(s.len(), Seed::LEN * 2, "Seed")?;
         let mut seed = Seed::zero();
-        hex::decode_to_slice(s, &mut seed.0)?;
+        hex::decode_to_slice(s, &mut seed.0).map_err(|e| Error::FromHexError {
+            msg: String::from("Decoding seed"),
+            source: e,
+        })?;
         Ok(seed)
     }
 }
 
 impl TryFrom<&[u8]> for Seed {
-    type Error = anyhow::Error;
+    type Error = Error;
 
     fn try_from(value: &[u8]) -> Result<Self, Self::Error> {
         expect_len(value.len(), Seed::LEN, "Seed")?;
