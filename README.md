@@ -22,6 +22,18 @@ Please visit the documentation website for general information, features, instal
 
 https://feeless.dev/
 
+## Running Tests
+
+Requirements
+  - [Docker](https://www.docker.com/)
+  - [Docker Python SDK](https://docker-py.readthedocs.io/en/stable/)
+
+For portability between environments, it is recommended to run tests in containerized environment via [the test script](test.py)
+
+```sh
+$ python3 test.py
+```
+
 ## What is Nano?
 
 **Nano** is digital money that significantly improves on **Bitcoin** and other cryptocurrencies.
