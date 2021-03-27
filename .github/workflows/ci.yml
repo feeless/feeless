@@ -6,4 +6,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Install Dependencies
-        run: apt update && apt install -y python3 pip3 && pip3 install docker
+        run: | 
+          sudo apt update
+          sudo apt install -y python3 pip3
+          sudo pip3 install docker
