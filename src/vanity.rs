@@ -1,5 +1,7 @@
+use crate::encoding::ALPHABET;
 use crate::phrase::{Language, MnemonicType};
 use crate::{Address, Phrase, Private, Seed};
+use anyhow::anyhow;
 use regex::Regex;
 use std::sync::{Arc, RwLock};
 use std::thread;
@@ -88,6 +90,7 @@ impl Vanity {
     /// This returns a [Receiver] containing [SecretResult]s for each found address, and a
     /// [Arc] [RwLock] counter of attempts.
     pub async fn start(self) -> anyhow::Result<(Receiver<SecretResult>, Arc<RwLock<usize>>)> {
+        self.validate()?;
         let cpus = num_cpus::get();
         let attempts = Arc::new(RwLock::new(0usize));
         let tasks = self.tasks.unwrap_or(cpus);
@@ -102,6 +105,22 @@ impl Vanity {
             });
         }
         Ok((rx, attempts))
+    }
+
+    pub fn validate(&self) -> anyhow::Result<()> {
+        let s = match &self.matches {
+            Match::StartOrEnd(s) => s,
+            Match::Start(s) => s,
+            Match::End(s) => s,
+            // TODO: Extract literals from regexp, or just ignore regexp characters (.$^{}[] etc)
+            Match::Regex(_) => return Ok(()),
+        };
+        let re = regex::Regex::new(&format!("^[{}]*$", ALPHABET)).unwrap();
+        if re.is_match(s) {
+            Ok(())
+        } else {
+            Err(anyhow!("Your search won't ever match because it has characters that aren't valid. Valid characters: {}", ALPHABET))
+        }
     }
 
     fn single_threaded_worker(&self, tx: Sender<SecretResult>, counter: Arc<RwLock<usize>>) {
@@ -163,7 +182,7 @@ impl Vanity {
 
     /// Block until all results are collected up to a size of `limit`.
     pub async fn collect(self, mut limit: usize) -> anyhow::Result<Vec<SecretResult>> {
-        let (mut rx, _) = self.start().await.unwrap();
+        let (mut rx, _) = self.start().await?;
         let mut collected = vec![];
         while let Some(result) = rx.recv().await {
             collected.push(result);
@@ -319,4 +338,10 @@ mod tests {
     //         assert!(false, "Did not get a phrase");
     //     }
     // }
+
+    #[test]
+    fn validate() {
+        let v = Vanity::new(SecretType::Private, Match::start("l"));
+        assert!(v.validate().is_err());
+    }
 }

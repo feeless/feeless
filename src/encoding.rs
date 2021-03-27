@@ -52,7 +52,7 @@ pub fn blake2b(size: usize, data: &[u8]) -> Box<[u8]> {
     blake.finalize_boxed()
 }
 
-const ALPHABET: &str = "13456789abcdefghijkmnopqrstuwxyz";
+pub(crate) const ALPHABET: &str = "13456789abcdefghijkmnopqrstuwxyz";
 const ENCODING_BITS: usize = 5;
 
 pub fn encode_nano_base_32(bits: &BitSlice<Msb0, u8>) -> String {
