@@ -3,7 +3,7 @@ from docker import from_env
 from logging import getLogger, StreamHandler, INFO
 from os import getcwd
 
-NAME = "feeless"
+NAME = "test"
 
 logger = getLogger(NAME)
 logger.setLevel(INFO)
