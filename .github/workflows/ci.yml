@@ -6,6 +6,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Install Dependencies
-        run: | 
-          sudo pip3 install docker
-          docker ps
+        run: sudo pip3 install docker
+
+      - name: Checkout Code
+        uses: actions/checkout@v2
+
+      - name: Checkout Code
+        run: python3 test.py
