@@ -70,12 +70,12 @@ jobs:
           command: build
           args: --release --target x86_64-apple-darwin
       - run: find .
-      - run: cp ./target/x86_64-apple-darwin/release/feeless feeless-x86_64-apple-darwin
-      - run: file ./feeless-x86_64-apple-darwin
+      - run: cp ./target/x86_64-apple-darwin/release/feeless .
+      - run: zip feeless-macos-64.tar.gz feeless
       - uses: actions/upload-artifact@master
         with:
-          name: feeless-x86_64-apple-darwin
-          path: feeless-x86_64-apple-darwin
+          name: feeless-macos-64.tar.gz
+          path: feeless-macos-64.tar.gz
 
   x86_64-pc-windows-msvc:
     name: 64-bit MSVC (Windows 7+)
@@ -93,11 +93,11 @@ jobs:
           command: build
           args: --release --target x86_64-pc-windows-msvc
       - run: cp ./target/x86_64-pc-windows-msvc/release/feeless.exe .
-      - run: 7z a feeless-win64.zip feeless.exe
+      - run: 7z a feeless-win-64.zip feeless.exe
       - uses: actions/upload-artifact@master
         with:
-          name: feeless-win64.zip
-          path: feeless-win64.zip
+          name: feeless-win-64.zip
+          path: feeless-win-64.zip
 
   release:
     name: Release
@@ -117,9 +117,9 @@ jobs:
         with:
           tag_name: 0.1.10  # TODO Just a test
           files: |
-            feeless-x86_64-unknown-linux-gnu.gz
-            feeless-armv7-unknown-linux-gnueabihf.gz
-            feeless-x86_64-apple-darwin
-            feeless-x86_64-pc-windows-msvc.zip
+            feeless-win-64.zip/feeless-win-64.zip
+            feeless-macos-64.tar.gz/feeless-macos-64.tar.gz
+            feeless-linux-64.tar.gz/feeless-linux-64.tar.gz
+            feeless-linux-armv7.tar.gz/feeless-linux-armv7.tar.gz
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
