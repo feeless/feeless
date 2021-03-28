@@ -110,7 +110,7 @@ jobs:
     steps:
       - uses: actions/download-artifact@master
         with:
-          working-directory: .
+          path: .
       - run: pwd
       - run: find .
       - uses: softprops/action-gh-release@v1
