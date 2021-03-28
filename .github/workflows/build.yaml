@@ -94,14 +94,18 @@ jobs:
     steps:
       - uses: actions/download-artifact@master
         with:
-          name: feeless-x86_64-unknown-linux-gnu.gz
+#          name: |
+#            feeless-x86_64-unknown-linux-gnu.gz |
+#            feeless-x86_64-apple-darwin
           working-directory: .
-          fail_on_unmatched_files: true
+#          fail_on_unmatched_files: true
       - run: pwd
       - run: find .
       - uses: softprops/action-gh-release@v1
         with:
           tag_name: 0.1.10  # TODO Just a test
-          files: feeless-x86_64-unknown-linux-gnu.gz
+          files: |
+            feeless-x86_64-unknown-linux-gnu.gz
+            feeless-x86_64-apple-darwin
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
