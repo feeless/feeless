@@ -20,15 +20,16 @@ jobs:
           toolchain: stable
           target: x86_64-unknown-linux-gnu
           override: true
-      - run: pwd
-      - run: find .
       - uses: actions-rs/cargo@v1
         with:
           use-cross: true
           command: build
           args: --release --target x86_64-unknown-linux-gnu
+      - run: pwd
+      - run: find .
       - uses: softprops/action-gh-release@v1
         with:
+          tag_name: 0.1.10  # TODO Just a test
           files: build/release/feeless
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
