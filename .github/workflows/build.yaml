@@ -20,11 +20,18 @@ jobs:
           toolchain: stable
           target: x86_64-unknown-linux-gnu
           override: true
+      - run: pwd
+      - run: find .
       - uses: actions-rs/cargo@v1
         with:
           use-cross: true
           command: build
           args: --release --target x86_64-unknown-linux-gnu
+      - uses: softprops/action-gh-release@v1
+        with:
+          files: build/release/feeless
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
 
   x86_64-apple-darwin:
