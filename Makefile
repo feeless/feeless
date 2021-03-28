@@ -6,4 +6,4 @@ test:
 	docker build . --progress=plain -t feeless
 
 release:
-	cargo release
+	cargo release patch
