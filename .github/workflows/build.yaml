@@ -31,7 +31,7 @@ jobs:
       - run: gzip feeless-x86_64-unknown-linux-gnu
       - uses: actions/upload-artifact@master
         with:
-          name: x86_64-unknown-linux-gnu.gz
+          name: feeless-x86_64-unknown-linux-gnu.gz
           path: feeless-x86_64-unknown-linux-gnu.gz
 
 #  x86_64-apple-darwin:
@@ -90,15 +90,14 @@ jobs:
     steps:
       - uses: actions/download-artifact@master
         with:
-          name: x86_64-unknown-linux-gnu.gz
-          path: feeless-x86_64-unknown-linux-gnu.gz
+          name: feeless-x86_64-unknown-linux-gnu.gz
           working-directory: .
+          fail_on_unmatched_files: true
       - run: pwd
       - run: find .
       - uses: softprops/action-gh-release@v1
         with:
           tag_name: 0.1.10  # TODO Just a test
           files: feeless-x86_64-unknown-linux-gnu.gz
-          fail_on_unmatched_files: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
