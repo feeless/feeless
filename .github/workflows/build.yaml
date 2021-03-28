@@ -2,12 +2,8 @@ name: Build
 
 on:
   push:
-    branches: [ main, ci ]
-  pull_request:
-    branches: [ main, ci ]
-
-env:
-  CARGO_TERM_COLOR: always
+    tags:
+      - '*.*.*'
 
 jobs:
   x86_64-unknown-linux-gnu:
@@ -115,11 +111,11 @@ jobs:
       - run: find .
       - uses: softprops/action-gh-release@v1
         with:
-          tag_name: 0.1.10  # TODO Just a test
+          fail_on_unmatched_files: true
           files: |
-            feeless-win-64.zip/feeless-win-64.zip
-            feeless-macos-64.tar.gz/feeless-macos-64.tar.gz
             feeless-linux-64.tar.gz/feeless-linux-64.tar.gz
             feeless-linux-armv7.tar.gz/feeless-linux-armv7.tar.gz
+            feeless-macos-64.tar.gz/feeless-macos-64.tar.gz
+            feeless-win-64.zip/feeless-win-64.zip
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
