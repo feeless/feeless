@@ -28,13 +28,12 @@ jobs:
 
   x86_64-apple-darwin:
     name: 64-bit macOS (10.7+, Lion+)
-    runs-on: ubuntu-latest
+    runs-on: macos-latest
     steps:
       - uses: actions/checkout@v2
       - uses: actions-rs/toolchain@v1
         with:
-#          toolchain: stable
-          toolchain: beta
+          toolchain: stable
           target: x86_64-apple-darwin
           override: true
       - uses: actions-rs/cargo@v1
@@ -43,9 +42,41 @@ jobs:
           command: build
           args: --release --target x86_64-apple-darwin
 
+#  x86_64-apple-darwin:
+#    name: 64-bit macOS (10.7+, Lion+)
+#    runs-on: ubuntu-latest
+#    steps:
+#      - uses: actions/checkout@v2
+#      - uses: actions-rs/toolchain@v1
+#        with:
+##          toolchain: stable
+#          toolchain: beta
+#          target: x86_64-apple-darwin
+#          override: true
+#      - uses: actions-rs/cargo@v1
+#        with:
+#          use-cross: true
+#          command: build
+#          args: --release --target x86_64-apple-darwin
+#
+#  i686-pc-windows-gnu:
+#    name: 64-bit MinGW (Windows 7+)
+#    runs-on: ubuntu-latest
+#    steps:
+#      - uses: actions/checkout@v2
+#      - uses: actions-rs/toolchain@v1
+#        with:
+#          toolchain: stable
+#          target: i686-pc-windows-gnu
+#          override: true
+#      - uses: actions-rs/cargo@v1
+#        with:
+#          use-cross: true
+#          command: build
+#          args: --release --target i686-pc-windows-gnu
   i686-pc-windows-gnu:
     name: 64-bit MinGW (Windows 7+)
-    runs-on: ubuntu-latest
+    runs-on: windows-latest
     steps:
       - uses: actions/checkout@v2
       - uses: actions-rs/toolchain@v1
