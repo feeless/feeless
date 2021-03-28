@@ -7,11 +7,12 @@ use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use std::convert::TryFrom;
 use std::fmt::{Debug, Formatter};
 use std::str::FromStr;
+use crate::FeelessError;
 
 /// 256 bit seed used to derive multiple addresses.
 ///
 /// See https://docs.nano.org/integration-guides/the-basics/#seed for details.
-#[derive(Clone)]
+#[derive(Clone, PartialEq)]
 pub struct Seed(pub [u8; Seed::LEN]);
 
 impl Seed {
@@ -44,18 +45,22 @@ impl Seed {
 }
 
 impl FromStr for Seed {
-    type Err = anyhow::Error;
+    type Err = FeelessError;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         expect_len(s.len(), Seed::LEN * 2, "Seed")?;
         let mut seed = Seed::zero();
-        hex::decode_to_slice(s, &mut seed.0)?;
+        hex::decode_to_slice(s, &mut seed.0)
+            .map_err(|e| FeelessError::FromHexError {
+                msg: String::from("Decoding seed"),
+                source: e,
+            })?;
         Ok(seed)
     }
 }
 
 impl TryFrom<&[u8]> for Seed {
-    type Error = anyhow::Error;
+    type Error = FeelessError;
 
     fn try_from(value: &[u8]) -> Result<Self, Self::Error> {
         expect_len(value.len(), Seed::LEN, "Seed")?;

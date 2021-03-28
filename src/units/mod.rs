@@ -93,6 +93,7 @@ use once_cell::sync::Lazy;
 pub use rai::Rai;
 use std::convert::TryFrom;
 use std::str::FromStr;
+use crate::FeelessError;
 
 /// This macro creates a struct to handle a specific denomination with arithmetic and conversions
 /// to/from [Rai].
@@ -153,7 +154,7 @@ See the [module documentation](crate::units) for more information as this is gen
             /// # Ok(())
             /// # }
             /// ```
-            pub fn to_rai(&self) -> anyhow::Result<Rai> {
+            pub fn to_rai(&self) -> Result<Rai, FeelessError> {
                 Rai::try_from(&self.to_rai_big_decimal())
             }
 
@@ -219,7 +220,7 @@ See the [module documentation](crate::units) for more information as this is gen
         }
 
         impl FromStr for $struct_name {
-            type Err = anyhow::Error;
+            type Err = FeelessError;
 
             fn from_str(s: &str) -> Result<Self, Self::Err> {
                 Ok(Self::new(BigDecimal::from_str(s)?))

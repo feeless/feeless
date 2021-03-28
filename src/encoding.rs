@@ -1,11 +1,10 @@
-use anyhow::anyhow;
 use bitvec::prelude::*;
 use blake2::digest::{Update, VariableOutput};
 use blake2::VarBlake2b;
 use serde::de::Error;
 use serde::{Deserialize, Deserializer};
-
 use std::str::FromStr;
+use crate::FeelessError;
 
 pub fn to_hex(bytes: &[u8]) -> String {
     let mut s = String::with_capacity(bytes.len() * 2);
@@ -72,12 +71,12 @@ pub fn encode_nano_base_32(bits: &BitSlice<Msb0, u8>) -> String {
     s
 }
 
-pub fn decode_nano_base_32(s: &str) -> anyhow::Result<BitVec<Msb0, u8>> {
+pub fn decode_nano_base_32(s: &str) -> Result<BitVec<Msb0, u8>, FeelessError> {
     let mut bits: BitVec<Msb0, u8> = BitVec::new(); // TODO: with_capacity
     for char in s.chars() {
         let value = ALPHABET
             .find(char) // TODO: performance
-            .ok_or_else(|| anyhow!("Unknown character found while decoding: {}", char))?;
+            .ok_or_else(|| FeelessError::DecodingError(char))?;
         let value = value as u8;
         let char_bits: &BitSlice<Msb0, u8> = value.view_bits();
         bits.extend_from_bitslice(&char_bits[(8 - ENCODING_BITS)..8]);

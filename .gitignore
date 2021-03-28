@@ -4,3 +4,4 @@
 node/*.db
 *.pcapng
 *.log
+test.wallet

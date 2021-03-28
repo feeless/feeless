@@ -40,24 +40,16 @@ serde_json = "1.0.64"
 blake2 = "0.9.1"
 num = "0.4.0"
 bytes = "1.0.1"
-bitvec = "0.20.1"
+bitvec = "0.21.1"
 regex = "1.4.5"
 rand = "0.8.3"
-tiny-bip39 = "0.8.0"
+tiny-bip39 = { git = "https://github.com/Fiono11/tiny-bip39" }
 chrono = "0.4.19"
 doc-comment = "0.3.3"
 fd-lock = "2.0.0"
-
-ed25519-dalek-bip32 = "0.1.1"
-
+thiserror = "1.0.24"
+ed25519-dalek-bip32 = { git = "https://github.com/Fiono11/ed25519-dalek-bip32" }
 ed25519-dalek = { version = "1.0.1", package = "ed25519-dalek-blake2-feeless" }
-#ed25519-dalek = { path = "../../ed25519-dalek" }
-#ed25519-dalek = { git = "https://github.com/gak/ed25519-dalek.git", branch = "blake2b" }
-
-# This is a fix for "multiple `BITS` found" while building.
-# It can be removed once the following is fixed:
-# https://github.com/bitvecto-rs/bitvec/issues/105
-funty = "=1.1.0"
 
 # node only
 sled = { version = "0.34.6", optional = true }
