@@ -12,15 +12,3 @@ on:
     branches: [ main ]
 
 jobs:
-  release:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/download-artifact@master
-        with:
-          path: feeless-x86_64-unknown-linux-gnu.gz
-      - uses: softprops/action-gh-release@v1
-        with:
-          tag_name: 0.1.10  # TODO Just a test
-          files: feeless-x86_64-unknown-linux-gnu.gz
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
