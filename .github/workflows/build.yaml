@@ -25,8 +25,6 @@ jobs:
           use-cross: true
           command: build
           args: --release --target x86_64-unknown-linux-gnu
-      - run: pwd
-      - run: find .
       - run: cp ./target/x86_64-unknown-linux-gnu/release/feeless feeless-x86_64-unknown-linux-gnu
       - run: gzip feeless-x86_64-unknown-linux-gnu
       - uses: actions/upload-artifact@master
@@ -34,22 +32,28 @@ jobs:
           name: feeless-x86_64-unknown-linux-gnu.gz
           path: feeless-x86_64-unknown-linux-gnu.gz
 
-#  x86_64-apple-darwin:
-#    name: 64-bit macOS (10.7+, Lion+)
-#    runs-on: macos-latest
-#    steps:
-#      - uses: actions/checkout@v2
-#      - uses: actions-rs/toolchain@v1
-#        with:
-#          toolchain: stable
-#          target: x86_64-apple-darwin
-#          override: true
-#      - uses: actions-rs/cargo@v1
-#        with:
-#          use-cross: true
-#          command: build
-#          args: --release --target x86_64-apple-darwin
-#
+  x86_64-apple-darwin:
+    name: 64-bit macOS (10.7+, Lion+)
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          target: x86_64-apple-darwin
+          override: true
+      - uses: actions-rs/cargo@v1
+        with:
+          use-cross: true
+          command: build
+          args: --release --target x86_64-apple-darwin
+      - run: find .
+      - run: cp ./target/x86_64-apple-darwin/release/feeless feeless-x86_64-apple-darwin
+      - uses: actions/upload-artifact@master
+        with:
+          name: feeless-x86_64-apple-darwin
+          path: feeless-x86_64-apple-darwin
+
 #  x86_64-pc-windows-msvc:
 #    name: 64-bit MSVC (Windows 7+)
 #    runs-on: windows-latest
