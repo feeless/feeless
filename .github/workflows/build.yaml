@@ -84,6 +84,7 @@ jobs:
 #
 
   release:
+    name: Release
     needs: [ x86_64-unknown-linux-gnu ]
     runs-on: ubuntu-latest
     steps:
@@ -92,9 +93,12 @@ jobs:
           name: x86_64-unknown-linux-gnu.gz
           path: feeless-x86_64-unknown-linux-gnu.gz
           working-directory: .
+      - run: pwd
+      - run: find .
       - uses: softprops/action-gh-release@v1
         with:
           tag_name: 0.1.10  # TODO Just a test
           files: feeless-x86_64-unknown-linux-gnu.gz
+          fail_on_unmatched_files: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
