@@ -1,0 +1,14 @@
+name: Build
+
+on:
+  push:
+    branches: [ main, ci ]
+  pull_request:
+    branches: [ main, ci ]
+
+jobs:
+  hmm:
+    name: hmm
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo what
