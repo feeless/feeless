@@ -5,3 +5,6 @@ test:
 
 docker:
 	docker build . --progress=plain -t feeless
+
+release:
+	cargo release
