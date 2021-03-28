@@ -34,28 +34,27 @@ jobs:
       - uses: actions-rs/toolchain@v1
         with:
 #          toolchain: stable
-          toolchain: beta
+           toolchain: beta
           target: x86_64-apple-darwin
           override: true
-          default: true
       - uses: actions-rs/cargo@v1
         with:
           use-cross: true
           command: build
-          args: --release
+          args: --release --target x86_64-apple-darwin
 
-#  i686-pc-windows-gnu:
-#    name: 64-bit MinGW (Windows 7+)
-#    runs-on: ubuntu-latest
-#    steps:
-#      - uses: actions/checkout@v2
-#      - uses: actions-rs/toolchain@v1
-#        with:
-#          toolchain: stable
-#          target: i686-pc-windows-gnu
-#          override: true
-#      - uses: actions-rs/cargo@v1
-#        with:
-#          use-cross: true
-#          command: build
-#          args: --release --target i686-pc-windows-gnu
+  i686-pc-windows-gnu:
+    name: 64-bit MinGW (Windows 7+)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          target: i686-pc-windows-gnu
+          override: true
+      - uses: actions-rs/cargo@v1
+        with:
+          use-cross: true
+          command: build
+          args: --release --target i686-pc-windows-gnu
