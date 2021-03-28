@@ -3,6 +3,9 @@ name: Release
 on:
   workflow_run:
     workflows: [ Build ]
+    branches: [ main, ci ]
+    types:
+      - completed
   push:
     branches: [ main, ci ]
   pull_request:
