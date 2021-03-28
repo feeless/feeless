@@ -10,7 +10,7 @@ env:
   CARGO_TERM_COLOR: always
 
 jobs:
-  linux_arm7:
+  armv7-unknown-linux-gnueabihf:
     name: Linux ARMv7
     runs-on: ubuntu-latest
     steps:
@@ -23,5 +23,37 @@ jobs:
       - uses: actions-rs/cargo@v1
         with:
           use-cross: true
-          command: build
+          command: build --release
           args: --target armv7-unknown-linux-gnueabihf
+
+  x86_64-apple-darwin:
+    name: 64-bit macOS
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          target: x86_64-apple-darwin
+          override: true
+      - uses: actions-rs/cargo@v1
+        with:
+          use-cross: true
+          command: build --release
+          args: --target x86_64-apple-darwin
+
+  i686-pc-windows-gnu:
+    name: 64-bit Windows (GNU)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          target: i686-pc-windows-gnu
+          override: true
+      - uses: actions-rs/cargo@v1
+        with:
+          use-cross: true
+          command: build --release
+          args: --target i686-pc-windows-gnu
