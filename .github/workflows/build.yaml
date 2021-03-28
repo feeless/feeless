@@ -34,7 +34,7 @@ jobs:
       - uses: actions-rs/toolchain@v1
         with:
 #          toolchain: stable
-           toolchain: beta
+          toolchain: beta
           target: x86_64-apple-darwin
           override: true
       - uses: actions-rs/cargo@v1
