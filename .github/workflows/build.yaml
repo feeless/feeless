@@ -31,6 +31,7 @@ jobs:
       - run: gzip feeless-x86_64-unknown-linux-gnu
       - uses: actions/upload-artifact@master
         with:
+          name: x86_64-unknown-linux-gnu.gz
           path: feeless-x86_64-unknown-linux-gnu.gz
 
 #  x86_64-apple-darwin:
@@ -88,6 +89,7 @@ jobs:
     steps:
       - uses: actions/download-artifact@master
         with:
+          name: x86_64-unknown-linux-gnu.gz
           path: feeless-x86_64-unknown-linux-gnu.gz
           working-directory: .
       - uses: softprops/action-gh-release@v1
