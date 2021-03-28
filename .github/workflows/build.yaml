@@ -11,7 +11,7 @@ env:
 
 jobs:
   armv7-unknown-linux-gnueabihf:
-    name: Linux ARMv7
+    name: ARMv7 Linux, hardfloat (kernel 3.2, glibc 2.17)
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
@@ -23,11 +23,27 @@ jobs:
       - uses: actions-rs/cargo@v1
         with:
           use-cross: true
-          command: build --release
-          args: --target armv7-unknown-linux-gnueabihf
+          command: build
+          args: --release --target armv7-unknown-linux-gnueabihf
+
+  aarch64-apple-darwin:
+    name: ARM64 macOS (11.0+, Big Sur+)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          target: aarch64-apple-darwin
+          override: true
+      - uses: actions-rs/cargo@v1
+        with:
+          use-cross: true
+          command: build
+          args: --release --target aarch64-apple-darwin
 
   x86_64-apple-darwin:
-    name: 64-bit macOS
+    name: 64-bit macOS (10.7+, Lion+)
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
@@ -39,11 +55,11 @@ jobs:
       - uses: actions-rs/cargo@v1
         with:
           use-cross: true
-          command: build --release
-          args: --target x86_64-apple-darwin
+          command: build
+          args: --release --target x86_64-apple-darwin
 
   i686-pc-windows-gnu:
-    name: 64-bit Windows (GNU)
+    name: 64-bit MinGW (Windows 7+)
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
@@ -55,5 +71,5 @@ jobs:
       - uses: actions-rs/cargo@v1
         with:
           use-cross: true
-          command: build --release
-          args: --target i686-pc-windows-gnu
+          command: build
+          args: --release --target i686-pc-windows-gnu
