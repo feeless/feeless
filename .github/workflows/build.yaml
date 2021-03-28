@@ -10,21 +10,22 @@ env:
   CARGO_TERM_COLOR: always
 
 jobs:
-#  armv7-unknown-linux-gnueabihf:
-#    name: ARMv7 Linux, hardfloat (kernel 3.2, glibc 2.17)
-#    runs-on: ubuntu-latest
-#    steps:
-#      - uses: actions/checkout@v2
-#      - uses: actions-rs/toolchain@v1
-#        with:
-#          toolchain: stable
-#          target: armv7-unknown-linux-gnueabihf
-#          override: true
-#      - uses: actions-rs/cargo@v1
-#        with:
-#          use-cross: true
-#          command: build
-#          args: --release --target armv7-unknown-linux-gnueabihf
+  x86_64-unknown-linux-gnu:
+    name: 64-bit Linux (kernel 2.6.32+, glibc 2.11+)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          target: 64-bit Linux (kernel 2.6.32+, glibc 2.11+)
+          override: true
+      - uses: actions-rs/cargo@v1
+        with:
+          use-cross: true
+          command: build
+          args: --release --target 64-bit Linux (kernel 2.6.32+, glibc 2.11+)
+
 
   x86_64-apple-darwin:
     name: 64-bit macOS (10.7+, Lion+)
@@ -42,50 +43,35 @@ jobs:
           command: build
           args: --release --target x86_64-apple-darwin
 
-#  x86_64-apple-darwin:
-#    name: 64-bit macOS (10.7+, Lion+)
-#    runs-on: ubuntu-latest
-#    steps:
-#      - uses: actions/checkout@v2
-#      - uses: actions-rs/toolchain@v1
-#        with:
-##          toolchain: stable
-#          toolchain: beta
-#          target: x86_64-apple-darwin
-#          override: true
-#      - uses: actions-rs/cargo@v1
-#        with:
-#          use-cross: true
-#          command: build
-#          args: --release --target x86_64-apple-darwin
-#
-#  i686-pc-windows-gnu:
-#    name: 64-bit MinGW (Windows 7+)
-#    runs-on: ubuntu-latest
-#    steps:
-#      - uses: actions/checkout@v2
-#      - uses: actions-rs/toolchain@v1
-#        with:
-#          toolchain: stable
-#          target: i686-pc-windows-gnu
-#          override: true
-#      - uses: actions-rs/cargo@v1
-#        with:
-#          use-cross: true
-#          command: build
-#          args: --release --target i686-pc-windows-gnu
-  i686-pc-windows-gnu:
-    name: 64-bit MinGW (Windows 7+)
+  x86_64-pc-windows-msvc:
+    name: 64-bit MSVC (Windows 7+)
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v2
       - uses: actions-rs/toolchain@v1
         with:
           toolchain: stable
-          target: i686-pc-windows-gnu
+          target: x86_64-pc-windows-msvc
           override: true
       - uses: actions-rs/cargo@v1
         with:
           use-cross: true
           command: build
-          args: --release --target i686-pc-windows-gnu
+          args: --release --target x86_64-pc-windows-msvc
+
+  armv7-unknown-linux-gnueabihf:
+    name: ARMv7 Linux, hardfloat (kernel 3.2, glibc 2.17)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          target: armv7-unknown-linux-gnueabihf
+          override: true
+      - uses: actions-rs/cargo@v1
+        with:
+          use-cross: true
+          command: build
+          args: --release --target armv7-unknown-linux-gnueabihf
+
