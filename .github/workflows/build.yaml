@@ -18,13 +18,13 @@ jobs:
       - uses: actions-rs/toolchain@v1
         with:
           toolchain: stable
-          target: 64-bit Linux (kernel 2.6.32+, glibc 2.11+)
+          target: x86_64-unknown-linux-gnu
           override: true
       - uses: actions-rs/cargo@v1
         with:
           use-cross: true
           command: build
-          args: --release --target 64-bit Linux (kernel 2.6.32+, glibc 2.11+)
+          args: --release --target x86_64-unknown-linux-gnu
 
 
   x86_64-apple-darwin:
