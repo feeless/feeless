@@ -47,12 +47,12 @@ jobs:
           use-cross: true
           command: build
           args: --release --target armv7-unknown-linux-gnueabihf
-      - run: cp ./target/armv7-unknown-linux-gnueabihf/release/feeless armv7-unknown-linux-gnueabihf
-      - run: gzip armv7-unknown-linux-gnueabihf
+      - run: cp ./target/armv7-unknown-linux-gnueabihf/release/feeless .
+      - run: tar czvf armv7-unknown-linux-gnueabihf.tar.gz
       - uses: actions/upload-artifact@master
         with:
-          name: feeless-armv7-unknown-linux-gnueabihf.gz
-          path: feeless-armv7-unknown-linux-gnueabihf.gz
+          name: feeless-armv7-unknown-linux-gnueabihf.tar.gz
+          path: feeless-armv7-unknown-linux-gnueabihf.tar.gz
 
   x86_64-apple-darwin:
     name: 64-bit macOS (10.7+, Lion+)
@@ -91,13 +91,12 @@ jobs:
           use-cross: true
           command: build
           args: --release --target x86_64-pc-windows-msvc
-      - run: find .
       - run: cp ./target/x86_64-pc-windows-msvc/release/feeless.exe .
-      - run: 7z a feeless-x86_64-pc-windows-msvc.zip feeless.exe
+      - run: 7z a feeless-win64.zip feeless.exe
       - uses: actions/upload-artifact@master
         with:
-          name: feeless-x86_64-pc-windows-msvc.zip
-          path: feeless-x86_64-pc-windows-msvc.zip
+          name: feeless-win64.zip
+          path: feeless-win64.zip
 
   release:
     name: Release
