@@ -38,6 +38,7 @@ pub(crate) enum InternalError {
     VerifyError,
     /// Two arrays did not match in size, making the called signature
     /// verification method impossible.
+    #[allow(dead_code)]
     ArrayLengthError{ name_a: &'static str, length_a: usize,
                       name_b: &'static str, length_b: usize,
                       name_c: &'static str, length_c: usize, },
