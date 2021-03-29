@@ -335,7 +335,6 @@ dependencies = [
 [[package]]
 name = "ed25519-dalek-bip32"
 version = "0.1.1"
-source = "git+https://github.com/Fiono11/ed25519-dalek-bip32#dfda6b45c22b9260d3937dcd4b96dd1f3bc92ae8"
 dependencies = [
  "derivation-path",
  "ed25519-dalek 1.0.1 (registry+https://github.com/rust-lang/crates.io-index)",
