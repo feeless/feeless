@@ -1,6 +1,6 @@
 [package]
 name = "feeless"
-version = "0.1.11"
+version = "0.1.11-alpha.0"
 authors = ["gak <gak@gak0.com>"]
 edition = "2018"
 license = "MIT OR Apache-2.0"
