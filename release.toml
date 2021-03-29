@@ -1,1 +1,1 @@
-tag-name = "{{prefix}}v{{version}}"
+tag-name = "{{prefix}}{{version}}"
