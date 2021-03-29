@@ -43,7 +43,7 @@ use std::fmt::{Debug, Formatter};
 use std::path::PathBuf;
 use std::str::FromStr;
 use tokio::fs::File;
-use ctr::cipher::stream::{NewStreamCipher, SyncStreamCipher};
+use ctr::cipher::stream::{NewStreamCipher, SyncStreamCipher, SyncStreamCipherSeek};
 use aes;
 use dialoguer::{theme::ColorfulTheme, Password};
 use tokio::fs::{read, write};
@@ -114,6 +114,39 @@ impl WalletManager {
             .to_owned())
     }
 
+    pub async fn wallet_encrypted(&self, reference: &WalletId, password: &str) -> anyhow::Result<Wallet> {
+        // decrypt file
+        let mut data = read(&self.path).await?;
+        let nonce = b"and secret nonce";
+        let salt_string = SaltString::generate(&mut OsRng);
+        //let salt = Salt::new(&salt_string.as_str()).unwrap();
+        let salt = Salt::new("olaaaaaaaaaaaaaa").unwrap();
+        let params = Params {
+            rounds: 4096,
+            output_length: 16,
+        };
+        let password_hash = Pbkdf2
+            .hash_password(password.as_bytes(), None, None, params.into(), salt)
+            .unwrap()
+            .hash
+            .unwrap();
+        let pass = password_hash.as_ref();
+        let mut cipher = Aes128Ctr::new(pass.into(), nonce.into());
+        cipher.apply_keystream(&mut data);
+        write(&self.path, data).await?;
+        // TODO: File lock
+        let store = self.load_unlocked().await?;
+        let mut new_data = read(&self.path).await?;
+        cipher.seek(0);
+        cipher.apply_keystream(&mut new_data);
+        write(&self.path, new_data).await?;
+        Ok(store
+            .wallets
+            .get(&reference)
+            .ok_or_else(|| anyhow!("Wallet reference not found: {:?}", &reference))?
+            .to_owned())
+    }
+
     pub async fn add_random_phrase(
         &self,
         id: WalletId,
@@ -165,7 +198,8 @@ impl WalletManager {
         let mut data = read(&self.path).await?;
         let nonce = b"and secret nonce";
         let salt_string = SaltString::generate(&mut OsRng);
-        let salt = Salt::new(&salt_string.as_str()).unwrap();
+        //let salt = Salt::new(&salt_string.as_str()).unwrap();
+        let salt = Salt::new("olaaaaaaaaaaaaaa").unwrap();
         let params = Params {
             rounds: 4096,
             output_length: 16,
@@ -181,6 +215,8 @@ impl WalletManager {
         write(&self.path, data).await?;
         Ok(())
     }
+
+
 }
 
 /// The secret of an individual wallet.

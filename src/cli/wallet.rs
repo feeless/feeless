@@ -3,6 +3,7 @@ use crate::wallet::{Wallet, WalletId, WalletManager};
 use crate::Phrase;
 use clap::Clap;
 use std::path::PathBuf;
+use dialoguer::{theme::ColorfulTheme, Password};
 
 #[derive(Clap)]
 pub struct WalletOpts {
@@ -61,16 +62,43 @@ impl WalletOpts {
                 }
             },
             Command::Private(o) => {
-                let wallet = WalletOpts::read(&o.opts).await?;
-                println!("{}", wallet.private(o.index)?);
+                match WalletOpts::read(&o.opts).await {
+                    Ok(wallet) => println!("{}", wallet.private(o.index)?),
+                    _ => {
+                        let password = Password::with_theme(&ColorfulTheme::default())
+                            .with_prompt("Enter password")
+                            .interact()
+                            .unwrap();
+                        let wallet = WalletOpts::read_encrypted(&o.opts, &password).await?;
+                        println!("{}", wallet.private(o.index)?);
+                    },
+                }         
             }
             Command::Public(o) => {
-                let wallet = WalletOpts::read(&o.opts).await?;
-                println!("{}", wallet.public(o.index)?);
+                match WalletOpts::read(&o.opts).await {
+                    Ok(wallet) => println!("{}", wallet.public(o.index)?),
+                    _ => {
+                        let password = Password::with_theme(&ColorfulTheme::default())
+                            .with_prompt("Enter password")
+                            .interact()
+                            .unwrap();
+                        let wallet = WalletOpts::read_encrypted(&o.opts, &password).await?;
+                        println!("{}", wallet.public(o.index)?);
+                    },
+                }     
             }
             Command::Address(o) => {
-                let wallet = WalletOpts::read(&o.opts).await?;
-                println!("{}", wallet.address(o.index)?);
+                match WalletOpts::read(&o.opts).await {
+                    Ok(wallet) => println!("{}", wallet.address(o.index)?),
+                    _ => {
+                        let password = Password::with_theme(&ColorfulTheme::default())
+                            .with_prompt("Enter password")
+                            .interact()
+                            .unwrap();
+                        let wallet = WalletOpts::read_encrypted(&o.opts, &password).await?;
+                        println!("{}", wallet.address(o.index)?);
+                    },
+                }     
             }
             Command::Password(o) => {
                 let manager = WalletOpts::encrypt(&o.opts).await?;
@@ -83,6 +111,13 @@ impl WalletOpts {
     async fn read(o: &CommonOpts) -> anyhow::Result<Wallet> {
         let manager = WalletManager::new(&o.file);
         let wallet = manager.wallet(&o.wallet_id()?).await?;
+        Ok(wallet)
+    }
+
+    async fn read_encrypted(o: &CommonOpts, password: &str) -> anyhow::Result<Wallet> {
+        let manager = WalletManager::new(&o.file);
+        //manager.decrypt(password).await?;
+        let wallet = manager.wallet_encrypted(&o.wallet_id()?, password).await?;
         Ok(wallet)
     }
 
