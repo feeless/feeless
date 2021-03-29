@@ -51,17 +51,17 @@ thiserror = "1.0.24"
 # This is a modified version of https://github.com/Fiono11/tiny-bip39
 # which uses thiserror for error handling instead of anyhow.
 # https://github.com/Fiono11/tiny-bip39/commit/d2b3e6a52be395fd652e546080e430ac71bb6c66
-tiny-bip39 = { version = "0.8.0", path = "external/tiny-bip39" }
+tiny-bip39 = { version = "0.8.0", package = "tiny-bip39-feeless" }
 
 # This is a modified version of https://github.com/jpopesculian/ed25519-dalek-bip32
 # which uses thiserror for error handling instead of failure.
 # https://github.com/Fiono11/ed25519-dalek-bip32/commit/dfda6b45c22b9260d3937dcd4b96dd1f3bc92ae8
-ed25519-dalek-bip32 = { version = "0.1.1", path = "external/ed25519-dalek-bip32" }
+ed25519-dalek-bip32 = { version = "0.1.1", package = "ed25519-dalek-bip32-feeless" }
 
 # This is a modified version of https://github.com/dalek-cryptography/ed25519-dalek
 # which hashes using blake2b instead of sha256.
 # https://github.com/gak/ed25519-dalek/commit/82ba167fdb3a7f667812f309acc98241e0959c8f
-ed25519-dalek = { version = "1.0.1", path = "external/ed25519-dalek" }
+ed25519-dalek = { version = "1.0.1", package = "ed25519-dalek-blake2-feeless" }
 
 # node only
 sled = { version = "0.34.6", optional = true }
