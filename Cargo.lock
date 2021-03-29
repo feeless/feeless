@@ -1212,7 +1212,6 @@ dependencies = [
 [[package]]
 name = "tiny-bip39"
 version = "0.8.0"
-source = "git+https://github.com/Fiono11/tiny-bip39#d2b3e6a52be395fd652e546080e430ac71bb6c66"
 dependencies = [
  "anyhow",
  "hmac 0.8.1",

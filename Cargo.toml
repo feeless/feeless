@@ -48,7 +48,10 @@ doc-comment = "0.3.3"
 fd-lock = "2.0.0"
 thiserror = "1.0.24"
 
-tiny-bip39 = { git = "https://github.com/Fiono11/tiny-bip39" }
+# This is a modified version of https://github.com/Fiono11/tiny-bip39
+# which uses thiserror for error handling instead of anyhow.
+# https://github.com/Fiono11/tiny-bip39/commit/d2b3e6a52be395fd652e546080e430ac71bb6c66
+tiny-bip39 = { path = "external/tiny-bip39" }
 
 # This is a modified version of https://github.com/jpopesculian/ed25519-dalek-bip32
 # which uses thiserror for error handling instead of failure.
