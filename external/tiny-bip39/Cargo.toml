@@ -1,13 +1,12 @@
 [package]
-name = "tiny-bip39"
+name = "tiny-bip39-feeless"
 version = "0.8.0"
 authors = [
     "Stephen Oliver <steve@infincia.com>",
     "Maciej Hirsz <hello@maciej.codes>",
 ]
 license = "MIT OR Apache-2.0"
-homepage = "https://github.com/maciejhirsz/tiny-bip39/"
-repository = "https://github.com/maciejhirsz/tiny-bip39/"
+repository = "https://github.com/feeless/feeless/tree/main/external/tiny-bip39"
 readme = "README.md"
 description = "A fork of the bip39 crate with fixes to v0.6. Rust implementation of BIP-0039"
 documentation = "https://docs.rs/tiny-bip39"

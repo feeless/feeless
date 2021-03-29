@@ -1,13 +1,12 @@
 [package]
-name = "ed25519-dalek-bip32"
+name = "ed25519-dalek-bip32-feeless"
 version = "0.1.1"
 authors = ["Julian Popescu <jpopesculian@gmail.com>"]
 edition = "2018"
 license = "MIT OR Apache-2.0"
 readme = "README.md"
-homepage = "https://github.com/jpopesculian/ed25519-dalek-bip32"
+repository = "https://github.com/feeless/feeless/tree/main/external/ed25519-dalek-bip32"
 documentation = "https://docs.rs/ed25519-dalek-bip32/"
-repository = "https://github.com/jpopesculian/ed25519-dalek-bip32"
 description = "Simplified ed25519 BIP32 derivations"
 keywords = ["derivation", "BIP32", "ed25519", "trezor", "blockchain"]
 categories = ["cryptography", "no-std"]
