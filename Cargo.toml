@@ -49,7 +49,10 @@ doc-comment = "0.3.3"
 fd-lock = "2.0.0"
 thiserror = "1.0.24"
 ed25519-dalek-bip32 = { git = "https://github.com/Fiono11/ed25519-dalek-bip32" }
-ed25519-dalek = { version = "1.0.1", package = "ed25519-dalek-blake2-feeless" }
+
+# This is a modified version of https://github.com/dalek-cryptography/ed25519-dalek
+# which hashes using blake2b instead of sha256.
+ed25519-dalek = { path = "external/ed25519-dalek" }
 
 # node only
 sled = { version = "0.34.6", optional = true }
