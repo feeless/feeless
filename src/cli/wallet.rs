@@ -93,7 +93,7 @@ impl WalletOpts {
                 match &o.remove {
                     Some(a) => {
                         if a == "remove" {
-                            println!("remove");
+                            println!("Removing password...");
                         }
                        else {
                             println!("Invalid argument");

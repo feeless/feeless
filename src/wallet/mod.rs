@@ -209,7 +209,6 @@ impl WalletManager {
             .unwrap();
         let mut data = read(&self.path).await?;
         let nonce = b"and secret nonce";
-        //let salt_string = SaltString::generate(&mut OsRng);
         let salt = Salt::new("olaaaaaaaaaaaaaa").unwrap();
         let password_hash = Pbkdf2
             .hash_password(password.as_bytes(), None, None, PARAMS.into(), salt)
