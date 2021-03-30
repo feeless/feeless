@@ -1,0 +1,45 @@
+[package]
+name = "tiny-bip39-feeless"
+version = "0.8.0"
+authors = [
+    "Stephen Oliver <steve@infincia.com>",
+    "Maciej Hirsz <hello@maciej.codes>",
+]
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/feeless/feeless/tree/main/external/tiny-bip39"
+readme = "README.md"
+description = "A fork of the bip39 crate with fixes to v0.6. Rust implementation of BIP-0039"
+documentation = "https://docs.rs/tiny-bip39"
+keywords = ["bip39", "bitcoin", "mnemonic"]
+edition = "2018"
+
+[lib]
+name = "bip39"
+path = "src/lib.rs"
+
+[features]
+chinese-simplified = []
+chinese-traditional = []
+# Note: English is the standard for bip39 so always included
+french = []
+italian = []
+japanese = []
+korean = []
+spanish = []
+
+default = ["chinese-simplified", "chinese-traditional", "french", "italian", "japanese", "korean", "spanish"]
+
+[dependencies]
+anyhow = "1.0.34"
+thiserror = "1.0.22"
+rustc-hash = "1.1.0"
+sha2 = "0.9.1"
+hmac = "0.8.1"
+pbkdf2 = { version = "0.4.0", default-features = false }
+rand = "0.7.3"
+once_cell = { version = "1.4.0", features = [ "parking_lot" ] }
+unicode-normalization = "0.1.13"
+zeroize = { version = "1.1.1", features = ["zeroize_derive"] }
+
+[dev-dependencies]
+hex = "0.4.2"

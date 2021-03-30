@@ -1,13 +1,13 @@
 use super::{MicroNano, Nano};
 use crate::units::{Cents, UnboundedRai};
 use crate::{expect_len, to_hex};
-use anyhow::Context;
 use bigdecimal::BigDecimal;
 use serde::{de, Deserialize, Deserializer, Serialize, Serializer};
 use std::cmp::Ordering;
 use std::convert::TryFrom;
 use std::fmt::Display;
 use std::str::FromStr;
+use crate::FeelessError;
 
 /// Special bounded container for the smallest unit, rai.
 ///
@@ -36,9 +36,12 @@ impl Rai {
         Self(v.into())
     }
 
-    pub fn from_hex(s: &str) -> anyhow::Result<Self> {
+    pub fn from_hex(s: &str) -> Result<Self, FeelessError> {
         expect_len(s.len(), Rai::LEN * 2, "Hex rai")?;
-        let vec = hex::decode(s.as_bytes()).context("Decoding hex rai")?;
+        let vec = hex::decode(s.as_bytes()).map_err(|e| FeelessError::FromHexError {
+            msg: String::from("Decoding hex rai"),
+            source: e,
+        })?;
         Ok(Rai::try_from(vec.as_slice())?)
     }
 
@@ -93,7 +96,7 @@ impl Rai {
 }
 
 impl FromStr for Rai {
-    type Err = anyhow::Error;
+    type Err = FeelessError;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         Ok(Self(u128::from_str(s)?))
@@ -152,7 +155,7 @@ impl From<u128> for Rai {
 }
 
 impl TryFrom<&[u8]> for Rai {
-    type Error = anyhow::Error;
+    type Error = FeelessError;
 
     fn try_from(value: &[u8]) -> Result<Self, Self::Error> {
         expect_len(value.len(), Self::LEN, "Raw")?;
@@ -164,7 +167,7 @@ impl TryFrom<&[u8]> for Rai {
 }
 
 impl TryFrom<&BigDecimal> for Rai {
-    type Error = anyhow::Error;
+    type Error = FeelessError;
 
     /// Convert from BigDecimal into Rai, removing any fraction.
     ///

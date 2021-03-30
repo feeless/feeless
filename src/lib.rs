@@ -39,8 +39,6 @@
 //! # }
 //! ```
 
-use anyhow::anyhow;
-
 pub(crate) use encoding::{hex_formatter, to_hex};
 pub use keys::address::Address;
 pub use keys::phrase;
@@ -51,6 +49,7 @@ pub use keys::seed::Seed;
 pub use keys::signature::Signature;
 pub use pow::work::Work;
 pub use units::rai::Rai;
+pub use errors::FeelessError;
 
 #[cfg(feature = "node")]
 mod node;
@@ -71,19 +70,20 @@ mod encoding;
 mod keys;
 mod network;
 mod pow;
+mod errors;
 pub mod units;
+pub mod vanity;
 
 /// The default TCP port that Nano nodes use.
 pub const DEFAULT_PORT: u16 = 7075;
 
-fn expect_len(got_len: usize, expected_len: usize, msg: &str) -> anyhow::Result<()> {
+fn expect_len(got_len: usize, expected_len: usize, msg: &str) -> Result<(), FeelessError> {
     if got_len != expected_len {
-        return Err(anyhow!(
-            "{} is the wrong length: got: {} expected: {}",
-            msg,
-            got_len,
-            expected_len,
-        ));
+        return Err(errors::FeelessError::WrongLength {
+            msg: msg.to_string(),
+            expected: expected_len,
+            found: got_len,
+        })
     }
     Ok(())
 }

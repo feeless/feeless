@@ -1,5 +1,6 @@
 use crate::cli::pcap::PcapDumpOpts;
 use crate::cli::unit::UnitOpts;
+use crate::cli::vanity::VanityOpts;
 use crate::cli::wallet::WalletOpts;
 use crate::debug::parse_pcap_log_file_to_csv;
 use crate::node::node_with_autodiscovery;
@@ -14,6 +15,8 @@ use std::io;
 use std::io::Read;
 use std::path::PathBuf;
 use std::str::FromStr;
+use tracing::Level;
+use tracing_subscriber::EnvFilter;
 
 mod address;
 mod pcap;
@@ -22,6 +25,7 @@ mod private;
 mod public;
 mod seed;
 mod unit;
+mod vanity;
 mod wallet;
 
 #[derive(Clap)]
@@ -33,6 +37,10 @@ struct Opts {
     /// Don't use ANSI colour codes when logging.
     #[clap(long)]
     no_color: bool,
+
+    /// Maximum level of logging to be displayed: trace, debug, info, warn, error.
+    #[clap(long)]
+    log_level: Option<Level>,
 }
 
 #[derive(Clap)]
@@ -60,6 +68,9 @@ enum Command {
 
     /// Address conversion.
     Address(AddressOpts),
+
+    /// Find a secret that can generate a custom vanity address.
+    Vanity(VanityOpts),
 
     /// Tool to analyse network capture dumps for Nano packets.
     Pcap(PcapDumpOpts),
@@ -95,9 +106,13 @@ struct PcapLogToCsvArgs {
 pub async fn run() -> anyhow::Result<()> {
     let opts = Opts::parse();
 
+    let mut filter = EnvFilter::from_default_env();
+    if let Some(level) = opts.log_level {
+        filter = filter.add_directive(level.into());
+    }
     let subscriber = tracing_subscriber::fmt::Subscriber::builder()
+        .with_env_filter(filter)
         .with_ansi(!opts.no_color)
-        .with_env_filter(tracing_subscriber::EnvFilter::from_default_env())
         .finish();
     tracing::subscriber::set_global_default(subscriber).expect("Could not initialize logger");
 
@@ -123,6 +138,7 @@ pub async fn run() -> anyhow::Result<()> {
         Command::Phrase(phrase) => phrase.handle(),
         Command::Address(address) => address.handle(),
         Command::Unit(unit) => unit.handle(),
+        Command::Vanity(vanity) => vanity.handle().await,
     }
 }
 

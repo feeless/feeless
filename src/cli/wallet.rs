@@ -61,6 +61,11 @@ impl WalletOpts {
                     println!("{:?}", wallet_id);
                 }
             },
+            Command::Delete(o) => {
+                let (manager, wallet_id) = WalletOpts::delete(&o.opts).await?;
+                manager.delete(&wallet_id).await?;
+                println!("Wallet {:?} was deleted", wallet_id);
+            }
             Command::Private(o) => {
                 match WalletOpts::read(&o.opts).await {
                     Ok(wallet) => println!("{}", wallet.private(o.index)?),
@@ -133,6 +138,13 @@ impl WalletOpts {
         let wallet_id = o.wallet_id()?.to_owned();
         Ok((manager, wallet_id))
     }
+
+    async fn delete(o: &CommonOpts) -> anyhow::Result<(WalletManager, WalletId)> {
+        let manager = WalletManager::new(&o.file);
+        manager.ensure().await?;
+        let wallet_id = o.wallet_id()?;
+        Ok((manager, wallet_id))
+    }
 }
 
 #[derive(Clap)]
@@ -154,6 +166,8 @@ enum Command {
 
     /// Encrypts the wallet file with a password.
     Password(PasswordOpts),
+    /// Delete an existing wallet.
+    Delete(DeleteOpts)
 }
 
 #[derive(Clap)]
@@ -314,4 +328,13 @@ struct PasswordOpts {
 
     //#[clap(takes_value = false)]
     remove: Option<String>,
+}
+
+#[derive(Clap)]
+struct DeleteOpts {
+    #[clap(default_value = "0")]
+    index: u32,
+
+    #[clap(flatten)]
+    opts: CommonOpts,
 }
