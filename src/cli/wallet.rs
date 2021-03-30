@@ -65,11 +65,7 @@ impl WalletOpts {
                 match WalletOpts::read(&o.opts).await {
                     Ok(wallet) => println!("{}", wallet.private(o.index)?),
                     _ => {
-                        let password = Password::with_theme(&ColorfulTheme::default())
-                            .with_prompt("Enter password")
-                            .interact()
-                            .unwrap();
-                        let wallet = WalletOpts::read_encrypted(&o.opts, &password).await?;
+                        let wallet = WalletOpts::read_encrypted(&o.opts).await?;
                         println!("{}", wallet.private(o.index)?);
                     },
                 }         
@@ -78,11 +74,7 @@ impl WalletOpts {
                 match WalletOpts::read(&o.opts).await {
                     Ok(wallet) => println!("{}", wallet.public(o.index)?),
                     _ => {
-                        let password = Password::with_theme(&ColorfulTheme::default())
-                            .with_prompt("Enter password")
-                            .interact()
-                            .unwrap();
-                        let wallet = WalletOpts::read_encrypted(&o.opts, &password).await?;
+                        let wallet = WalletOpts::read_encrypted(&o.opts).await?;
                         println!("{}", wallet.public(o.index)?);
                     },
                 }     
@@ -90,19 +82,30 @@ impl WalletOpts {
             Command::Address(o) => {
                 match WalletOpts::read(&o.opts).await {
                     Ok(wallet) => println!("{}", wallet.address(o.index)?),
-                    _ => {
-                        let password = Password::with_theme(&ColorfulTheme::default())
-                            .with_prompt("Enter password")
-                            .interact()
-                            .unwrap();
-                        let wallet = WalletOpts::read_encrypted(&o.opts, &password).await?;
+                    Err(_) => {
+                        let wallet = WalletOpts::read_encrypted(&o.opts).await?;
                         println!("{}", wallet.address(o.index)?);
                     },
                 }     
             }
             Command::Password(o) => {
-                let manager = WalletOpts::encrypt(&o.opts).await?;
-                manager.encrypt().await?;
+                let manager = WalletManager::new(&o.opts.file);
+                match &o.remove {
+                    Some(a) => {
+                        if a == "remove" {
+                            println!("remove");
+                        }
+                       else {
+                            println!("Invalid argument");
+                       }
+                    }   
+                    None => {
+                        match manager.load_unlocked().await {
+                            Ok(_) => manager.encrypt().await?,
+                            Err(_) => manager.reencrypt().await?,
+                        }
+                    }
+                }
             }
         };
         Ok(())
@@ -114,25 +117,22 @@ impl WalletOpts {
         Ok(wallet)
     }
 
-    async fn read_encrypted(o: &CommonOpts, password: &str) -> anyhow::Result<Wallet> {
+    async fn read_encrypted(o: &CommonOpts) -> anyhow::Result<Wallet> {
+        let password = Password::with_theme(&ColorfulTheme::default())
+            .with_prompt("Enter password")
+            .interact()
+            .unwrap();
         let manager = WalletManager::new(&o.file);
-        //manager.decrypt(password).await?;
-        let wallet = manager.wallet_encrypted(&o.wallet_id()?, password).await?;
+        let wallet = manager.wallet_encrypted(&o.wallet_id()?, &password).await?;
         Ok(wallet)
     }
 
-    async fn create(o: &CommonOptsCreate) -> anyhow::Result<(WalletManager, WalletId)> {
+    async fn create<'a>(o: &CommonOptsCreate) -> anyhow::Result<(WalletManager, WalletId)> {
         let manager = WalletManager::new(&o.common_opts.file);
         manager.ensure().await?;
         let wallet_id = o.wallet_id()?.to_owned();
         Ok((manager, wallet_id))
     }
-
-    async fn encrypt(o: &CommonOpts) -> anyhow::Result<WalletManager> {
-        let manager = WalletManager::new(&o.file);
-        Ok(manager)
-    }
-
 }
 
 #[derive(Clap)]
@@ -311,4 +311,7 @@ struct AddressOpts {
 struct PasswordOpts {
     #[clap(flatten)]
     opts: CommonOpts,
+
+    //#[clap(takes_value = false)]
+    remove: Option<String>,
 }

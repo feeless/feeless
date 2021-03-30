@@ -43,19 +43,23 @@ use std::fmt::{Debug, Formatter};
 use std::path::PathBuf;
 use std::str::FromStr;
 use tokio::fs::File;
-use ctr::cipher::stream::{NewStreamCipher, SyncStreamCipher, SyncStreamCipherSeek};
+use ctr::cipher::stream::{NewStreamCipher, SyncStreamCipher};
 use aes;
 use dialoguer::{theme::ColorfulTheme, Password};
 use tokio::fs::{read, write};
 use pbkdf2::{
-    password_hash::{PasswordHasher, SaltString, Salt}, 
+    password_hash::{PasswordHasher, Salt}, 
     Pbkdf2,
     Params,
 };
-use rand_core::OsRng;
 
 // `aes` crate provides AES block cipher implementation
 type Aes128Ctr = ctr::Ctr128<aes::Aes128>;
+
+const PARAMS: Params = Params {
+    rounds: 4096,
+    output_length: 16,
+};
 
 /// Manages multiple [Wallet]s of different types of [Wallet]s. **Warning**: Wallet files are not
 /// locked (yet).
@@ -89,7 +93,7 @@ impl WalletManager {
     /// An internal method for loading the wallet storage.
     ///
     /// TODO: There should be a file lock around this.
-    async fn load_unlocked(&self) -> anyhow::Result<WalletStorage> {
+    pub(crate) async fn load_unlocked(&self) -> anyhow::Result<WalletStorage> {
         let file = File::open(&self.path)
             .await
             .with_context(|| format!("Opening {:?}", &self.path))?;
@@ -114,37 +118,34 @@ impl WalletManager {
             .to_owned())
     }
 
-    pub async fn wallet_encrypted(&self, reference: &WalletId, password: &str) -> anyhow::Result<Wallet> {
-        // decrypt file
+    pub async fn apply_keystream(&self, password: &str) -> anyhow::Result<Vec<u8>> {
         let mut data = read(&self.path).await?;
         let nonce = b"and secret nonce";
-        let salt_string = SaltString::generate(&mut OsRng);
-        //let salt = Salt::new(&salt_string.as_str()).unwrap();
         let salt = Salt::new("olaaaaaaaaaaaaaa").unwrap();
-        let params = Params {
-            rounds: 4096,
-            output_length: 16,
-        };
         let password_hash = Pbkdf2
-            .hash_password(password.as_bytes(), None, None, params.into(), salt)
+            .hash_password(password.as_bytes(), None, None, PARAMS.into(), salt)
             .unwrap()
             .hash
             .unwrap();
         let pass = password_hash.as_ref();
         let mut cipher = Aes128Ctr::new(pass.into(), nonce.into());
         cipher.apply_keystream(&mut data);
-        write(&self.path, data).await?;
-        // TODO: File lock
-        let store = self.load_unlocked().await?;
-        let mut new_data = read(&self.path).await?;
-        cipher.seek(0);
-        cipher.apply_keystream(&mut new_data);
-        write(&self.path, new_data).await?;
-        Ok(store
-            .wallets
-            .get(&reference)
-            .ok_or_else(|| anyhow!("Wallet reference not found: {:?}", &reference))?
-            .to_owned())
+        Ok(data)
+    }
+
+    pub async fn wallet_encrypted(&self, reference: &WalletId, password: &str) -> anyhow::Result<Wallet> {
+        let data = self.apply_keystream(&password).await?;
+        let wallet_storage: Result<WalletStorage, serde_json::error::Error> = serde_json::from_slice(&data);
+        match wallet_storage {
+            Ok(store) => { 
+                return Ok(store
+                    .wallets
+                    .get(&reference)
+                    .ok_or_else(|| anyhow!("Wallet reference not found: {:?}", &reference))?
+                    .to_owned());
+            }
+            Err(_) => Err(anyhow!("Wrong password")),
+        }
     }
 
     pub async fn add_random_phrase(
@@ -195,28 +196,52 @@ impl WalletManager {
             .with_confirmation("Confirm password:", "Error: the passwords don't match.")
             .interact()
             .unwrap();
+        let data = self.apply_keystream(&password).await?;
+        write(&self.path, data).await?;
+        Ok(())
+    }
+
+    /// Encrypt the wallet file with a password.
+    pub async fn reencrypt(&self) -> anyhow::Result<()> {
+        let password = Password::with_theme(&ColorfulTheme::default())
+            .with_prompt("Enter existing password")
+            .interact()
+            .unwrap();
         let mut data = read(&self.path).await?;
         let nonce = b"and secret nonce";
-        let salt_string = SaltString::generate(&mut OsRng);
-        //let salt = Salt::new(&salt_string.as_str()).unwrap();
+        //let salt_string = SaltString::generate(&mut OsRng);
         let salt = Salt::new("olaaaaaaaaaaaaaa").unwrap();
-        let params = Params {
-            rounds: 4096,
-            output_length: 16,
-        };
         let password_hash = Pbkdf2
-            .hash_password(password.as_bytes(), None, None, params.into(), salt)
+            .hash_password(password.as_bytes(), None, None, PARAMS.into(), salt)
             .unwrap()
             .hash
             .unwrap();
         let pass = password_hash.as_ref();
         let mut cipher = Aes128Ctr::new(pass.into(), nonce.into());
         cipher.apply_keystream(&mut data);
-        write(&self.path, data).await?;
+        let wallet_storage: Result<WalletStorage, serde_json::error::Error> = serde_json::from_slice(&data);
+        match wallet_storage {
+            Ok(_) => {
+                let password = Password::with_theme(&ColorfulTheme::default())
+                    .with_prompt("Enter a new password")
+                    .with_confirmation("Confirm password:", "Error: the passwords don't match.")
+                    .interact()
+                    .unwrap();
+                let password_hash = Pbkdf2
+                    .hash_password(password.as_bytes(), None, None, PARAMS.into(), salt)
+                    .unwrap()
+                    .hash
+                    .unwrap();
+                let pass = password_hash.as_ref();
+                let mut cipher = Aes128Ctr::new(pass.into(), nonce.into());
+                cipher.apply_keystream(&mut data);
+                write(&self.path, data).await?;
+                println!("Password changed");
+            }
+            Err(_) => println!("Wrong password"),
+        }
         Ok(())
     }
-
-
 }
 
 /// The secret of an individual wallet.
