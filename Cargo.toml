@@ -1,6 +1,6 @@
 [package]
 name = "feeless"
-version = "0.1.8"
+version = "0.1.12-alpha.0"
 authors = ["gak <gak@gak0.com>"]
 edition = "2018"
 license = "MIT OR Apache-2.0"
@@ -43,18 +43,28 @@ bytes = "1.0.1"
 bitvec = "0.21.1"
 regex = "1.4.5"
 rand = "0.8.3"
-tiny-bip39 = { git = "https://github.com/Fiono11/tiny-bip39" }
 chrono = "0.4.19"
 doc-comment = "0.3.3"
 fd-lock = "2.0.0"
 thiserror = "1.0.24"
-ed25519-dalek-bip32 = { git = "https://github.com/Fiono11/ed25519-dalek-bip32" }
-ed25519-dalek = { version = "1.0.1", package = "ed25519-dalek-blake2-feeless" }
 
-# This is a fix for "multiple `BITS` found" while building.
-# It can be removed once the following is fixed:
-# https://github.com/bitvecto-rs/bitvec/issues/105
-#funty = "=1.1.0"
+# This is a modified version of https://github.com/Fiono11/tiny-bip39
+# which uses thiserror for error handling instead of anyhow.
+# https://github.com/Fiono11/tiny-bip39/commit/d2b3e6a52be395fd652e546080e430ac71bb6c66
+# It lives in external/tiny-bip39
+bip39 = { version = "0.8.0", package = "tiny-bip39-feeless" }
+
+# This is a modified version of https://github.com/jpopesculian/ed25519-dalek-bip32
+# which uses thiserror for error handling instead of failure.
+# https://github.com/Fiono11/ed25519-dalek-bip32/commit/dfda6b45c22b9260d3937dcd4b96dd1f3bc92ae8
+# It lives in external/ed25519-dalek-bip32
+ed25519-dalek-bip32 = { version = "0.1.1", package = "ed25519-dalek-bip32-feeless" }
+
+# This is a modified version of https://github.com/dalek-cryptography/ed25519-dalek
+# which hashes using blake2b instead of sha256.
+# https://github.com/gak/ed25519-dalek/commit/82ba167fdb3a7f667812f309acc98241e0959c8f
+# It lives in external/ed25519-dalek
+ed25519-dalek = { version = "1.0.1", package = "ed25519-dalek-blake2-feeless" }
 
 # node only
 sled = { version = "0.34.6", optional = true }
@@ -64,4 +74,4 @@ pcarp = { version = "1.2.0", optional = true }
 etherparse = { version = "0.9.0", optional = true }
 
 [dev-dependencies]
-cmd_lib = "0.14.4"
+cmd_lib = "1.0.1"

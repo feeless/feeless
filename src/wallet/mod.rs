@@ -140,6 +140,20 @@ impl WalletManager {
         self.save_unlocked(file, storage).await?;
         Ok(())
     }
+
+    /// If the wallet reference doesn't exist, there will be an error.
+    pub async fn delete(&self, reference: &WalletId) -> anyhow::Result<()> {
+        let mut storage = self.load_unlocked().await?;
+        if !storage.wallets.contains_key(reference) {
+            return Err(anyhow!("Wallet reference doesn't exist: {:?}", &reference));
+        }
+        storage.wallets.remove(reference);
+        let file = File::create(&self.path)
+            .await
+            .with_context(|| format!("Creating file {:?}", &self.path))?;
+        self.save_unlocked(file, storage).await?;
+        Ok(())
+    }
 }
 
 /// The secret of an individual wallet.

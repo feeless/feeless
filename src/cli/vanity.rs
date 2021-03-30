@@ -1,8 +1,7 @@
 use crate::vanity;
 use crate::vanity::Secret;
 use clap::Clap;
-use std::sync::Arc;
-use tokio::sync::RwLock;
+use std::sync::{Arc, RwLock};
 use tokio::time::{timeout, Duration, Instant};
 
 #[derive(Clap)]
@@ -87,7 +86,9 @@ async fn log(started: Instant, last_log: Instant, attempts: Arc<RwLock<usize>>) 
         last_log
     } else {
         let total_taken = Instant::now().duration_since(started);
-        let attempts = *attempts.read().await;
+        let attempts = *attempts
+            .read()
+            .expect("Could not unlock attempts for reading.");
         let rate = (attempts as f64) / total_taken.as_secs_f64();
         eprintln!("Attempted: {}, Rate: {:?} attempts/s", attempts, rate);
         now

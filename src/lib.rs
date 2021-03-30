@@ -80,6 +80,7 @@ pub const DEFAULT_PORT: u16 = 7075;
 fn expect_len(got_len: usize, expected_len: usize, msg: &str) -> Result<(), FeelessError> {
     if got_len != expected_len {
         return Err(errors::FeelessError::WrongLength {
+            msg: msg.to_string(),
             expected: expected_len,
             found: got_len,
         })
