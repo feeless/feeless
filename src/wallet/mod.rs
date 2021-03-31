@@ -121,8 +121,7 @@ impl WalletManager {
             .to_owned())
     }
 
-    pub async fn apply_keystream(&self, password: &str) -> anyhow::Result<Vec<u8>> {
-        let mut data = read(&self.path).await?;
+    pub async fn apply_keystream(&self, password: &str, mut data: Vec<u8>) -> anyhow::Result<Vec<u8>> {
         let mut hasher = VarBlake2b::new(16).unwrap();
         hasher.update(b"nonce");
         hasher.update(&password);
@@ -130,10 +129,9 @@ impl WalletManager {
         hasher.finalize_variable(|res| nonce.copy_from_slice(res));
         let mut salt_str = String::from("");
         let len = password.len();
-        if len < 2 {
+        if len < 4 {
             salt_str = password.repeat(5-len);
         }
-        println!("len: {:?}", salt_str.len());
         let salt: Salt = Salt::new(&salt_str).unwrap();
         let password_hash = Pbkdf2
             .hash_password(password.as_bytes(), None, None, PARAMS.into(), salt)
@@ -147,7 +145,8 @@ impl WalletManager {
     }
 
     pub async fn wallet_encrypted(&self, reference: &WalletId, password: &str) -> anyhow::Result<Wallet> {
-        let data = self.apply_keystream(&password).await?;
+        let file = read(&self.path).await?;
+        let data = self.apply_keystream(&password, file).await?;
         let wallet_storage: Result<WalletStorage, serde_json::error::Error> = serde_json::from_slice(&data);
         match wallet_storage {
             Ok(store) => { 
@@ -209,7 +208,8 @@ impl WalletManager {
             .with_confirmation("Confirm password:", "Error: the passwords don't match.")
             .interact()
             .unwrap();
-        let data = self.apply_keystream(&password).await?;
+        let file = read(&self.path).await?;
+        let data = self.apply_keystream(&password, file).await?;
         write(&self.path, data).await?;
         Ok(())
     }
@@ -220,27 +220,8 @@ impl WalletManager {
             .with_prompt("Enter existing password")
             .interact()
             .unwrap();
-        let mut data = read(&self.path).await?;
-        let mut hasher = VarBlake2b::new(16).unwrap();
-        hasher.update(b"nonce");
-        hasher.update(&password);
-        let mut nonce = [0u8; 16];
-        hasher.finalize_variable(|res| nonce.copy_from_slice(res));
-        let mut salt_str = String::from("");
-        let len = password.len();
-        if len < 2 {
-            salt_str = password.repeat(5-len);
-        }
-        println!("len: {:?}", salt_str.len());
-        let salt: Salt = Salt::new(&salt_str).unwrap();
-        let password_hash = Pbkdf2
-            .hash_password(password.as_bytes(), None, None, PARAMS.into(), salt)
-            .unwrap()
-            .hash
-            .unwrap();
-        let pass = password_hash.as_ref();
-        let mut cipher = Aes128Ctr::new(pass.into(), (&nonce[..]).into());
-        cipher.apply_keystream(&mut data);
+        let file = read(&self.path).await?;
+        let data = self.apply_keystream(&password, file).await?;
         let wallet_storage: Result<WalletStorage, serde_json::error::Error> = serde_json::from_slice(&data);
         match wallet_storage {
             Ok(_) => {
@@ -258,27 +239,8 @@ impl WalletManager {
             .with_prompt("Enter existing password")
             .interact()
             .unwrap();
-        let mut data = read(&self.path).await?;
-        let mut hasher = VarBlake2b::new(16).unwrap();
-        hasher.update(b"nonce");
-        hasher.update(&password);
-        let mut nonce = [0u8; 16];
-        hasher.finalize_variable(|res| nonce.copy_from_slice(res));
-        let mut salt_str = String::from("");
-        let len = password.len();
-        if len < 2 {
-            salt_str = password.repeat(5-len);
-        }
-        println!("len: {:?}", salt_str.len());
-        let salt: Salt = Salt::new(&salt_str).unwrap();
-        let password_hash = Pbkdf2
-            .hash_password(password.as_bytes(), None, None, PARAMS.into(), salt)
-            .unwrap()
-            .hash
-            .unwrap();
-        let pass = password_hash.as_ref();
-        let mut cipher = Aes128Ctr::new(pass.into(), (&nonce[..]).into());
-        cipher.apply_keystream(&mut data);
+        let file = read(&self.path).await?;
+        let data = self.apply_keystream(&password, file).await?;
         let wallet_storage: Result<WalletStorage, serde_json::error::Error> = serde_json::from_slice(&data);
         match wallet_storage {
             Ok(_) => {
@@ -287,27 +249,8 @@ impl WalletManager {
                         .with_confirmation("Confirm password:", "Error: the passwords don't match.")
                         .interact()
                         .unwrap();
-                let mut hasher = VarBlake2b::new(16).unwrap();
-                hasher.update(b"nonce");
-                hasher.update(&password);
-                let mut nonce = [0u8; 16];
-                hasher.finalize_variable(|res| nonce.copy_from_slice(res));
-                let mut salt_str = String::from("");
-                let len = password.len();
-                if len < 2 {
-                    salt_str = password.repeat(5-len);
-                }
-                println!("len: {:?}", salt_str.len());
-                let salt: Salt = Salt::new(&salt_str).unwrap();
-                    let password_hash = Pbkdf2
-                    .hash_password(password.as_bytes(), None, None, PARAMS.into(), salt)
-                    .unwrap()
-                    .hash
-                    .unwrap();
-                let pass = password_hash.as_ref();
-                let mut cipher = Aes128Ctr::new(pass.into(), (&nonce[..]).into());
-                cipher.apply_keystream(&mut data);
-                write(&self.path, data).await?;
+                let new_data = self.apply_keystream(&password, data).await?;
+                write(&self.path, new_data).await?;
                 println!("Password changed");
             }
             Err(_) => println!("Wrong password"),
