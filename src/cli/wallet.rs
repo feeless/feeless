@@ -96,15 +96,13 @@ impl WalletOpts {
             Command::Password(o) => {
                 let manager = WalletManager::new(&o.opts.file);
                 match &o.remove {
-                    Some(a) => {
-                        if a == "remove" {
-                            println!("Removing password...");
+                    true => {
+                        match manager.load_unlocked().await {
+                            Ok(_) => println!("You haven't defined a password"),
+                            Err(_) => manager.decrypt().await?,
                         }
-                       else {
-                            println!("Invalid argument");
-                       }
-                    }   
-                    None => {
+                    } 
+                    false => {
                         match manager.load_unlocked().await {
                             Ok(_) => manager.encrypt().await?,
                             Err(_) => manager.reencrypt().await?,
@@ -326,8 +324,8 @@ struct PasswordOpts {
     #[clap(flatten)]
     opts: CommonOpts,
 
-    //#[clap(takes_value = false)]
-    remove: Option<String>,
+    #[clap(short, long)]
+    remove: bool,
 }
 
 #[derive(Clap)]
