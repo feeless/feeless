@@ -130,7 +130,7 @@ impl WalletOpts {
         Ok(wallet)
     }
 
-    async fn create<'a>(o: &CommonOptsCreate) -> anyhow::Result<(WalletManager, WalletId)> {
+    async fn create(o: &CommonOptsCreate) -> anyhow::Result<(WalletManager, WalletId)> {
         let manager = WalletManager::new(&o.common_opts.file);
         manager.ensure().await?;
         let wallet_id = o.wallet_id()?.to_owned();
