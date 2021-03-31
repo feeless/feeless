@@ -180,20 +180,21 @@ dependencies = [
 
 [[package]]
 name = "cmd_lib"
-version = "1.0.4"
+version = "1.0.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1bbea13d4ed241b7f47c8cec8464ed2500861620dc41140ffd92e30700a77440"
+checksum = "02ff2a31a52a5c4ca608d8ce80de7e3fe825e7b903f6f20a5d164da3bb921544"
 dependencies = [
  "cmd_lib_macros",
+ "faccess",
  "lazy_static",
  "log",
 ]
 
 [[package]]
 name = "cmd_lib_macros"
-version = "1.0.4"
+version = "1.0.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4f027e067c7439454444d7479c3587b82adb030f5c79ea3996c6540d96077ef1"
+checksum = "33c075b958a1c8a4a3b48511614b0cf7aca8970e10d9b69bca5d3ce55a4b97c5"
 dependencies = [
  "proc-macro-error",
  "proc-macro2",
@@ -355,6 +356,17 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "2fa20922281f9ee5ffcda45e80d56085829279f1270f79fbabc39809a4354807"
 dependencies = [
  "byteorder",
+]
+
+[[package]]
+name = "faccess"
+version = "0.2.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "e039175679baf763ddddf4f76900b92d4dae9411ee88cf42d2f11b976b09e07c"
+dependencies = [
+ "bitflags",
+ "libc",
+ "winapi",
 ]
 
 [[package]]
