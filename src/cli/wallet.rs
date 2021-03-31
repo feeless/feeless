@@ -94,7 +94,7 @@ impl WalletOpts {
                 }     
             }
             Command::Password(o) => {
-                let manager = WalletManager::new(&o.opts.file);
+                let manager = WalletManager::new(&o.opts.file.as_ref().unwrap());
                 match &o.remove {
                     true => {
                         match manager.load_unlocked().await {
@@ -115,7 +115,7 @@ impl WalletOpts {
     }
 
     async fn read(o: &CommonOpts) -> anyhow::Result<Wallet> {
-        let manager = WalletManager::new(&o.file);
+        let manager = WalletManager::new(&o.file.as_ref().unwrap());
         let wallet = manager.wallet(&o.wallet_id()?).await?;
         Ok(wallet)
     }
@@ -125,20 +125,23 @@ impl WalletOpts {
             .with_prompt("Enter password")
             .interact()
             .unwrap();
-        let manager = WalletManager::new(&o.file);
+        let manager = WalletManager::new(&o.file.as_ref().unwrap());
         let wallet = manager.wallet_encrypted(&o.wallet_id()?, &password).await?;
         Ok(wallet)
     }
 
     async fn create(o: &CommonOptsCreate) -> anyhow::Result<(WalletManager, WalletId)> {
-        let manager = WalletManager::new(&o.common_opts.file);
+        let mut manager = WalletManager::new("default.wallet");
+        if let Some(file) = &o.common_opts.file {
+            manager = WalletManager::new(file);
+        }
         manager.ensure().await?;
         let wallet_id = o.wallet_id()?.to_owned();
         Ok((manager, wallet_id))
     }
 
     async fn delete(o: &CommonOpts) -> anyhow::Result<(WalletManager, WalletId)> {
-        let manager = WalletManager::new(&o.file);
+        let manager = WalletManager::new(&o.file.as_ref().unwrap());
         manager.ensure().await?;
         let wallet_id = o.wallet_id()?;
         Ok((manager, wallet_id))
@@ -172,7 +175,7 @@ enum Command {
 struct CommonOpts {
     /// Path to the wallet file.
     #[clap(short, long, env = "FEELESS_WALLET_FILE")]
-    file: PathBuf,
+    file: Option<PathBuf>,
 
     /// Wallet ID.
     #[clap(short, long, env = "FEELESS_WALLET_ID")]
