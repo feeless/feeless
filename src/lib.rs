@@ -77,7 +77,7 @@ pub mod vanity;
 /// The default TCP port that Nano nodes use.
 pub const DEFAULT_PORT: u16 = 7075;
 
-fn expect_len(got_len: usize, expected_len: usize, msg: &str) -> Result<(), FeelessError> {
+fn expect_len(got_len: usize, expected_len: usize, msg: &str) -> Result<()> {
     if got_len != expected_len {
         return Err(errors::Error::WrongLength {
             msg: msg.to_string(),

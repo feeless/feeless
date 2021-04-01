@@ -1,6 +1,5 @@
 use crate::Error;
 use crate::{expect_len, Address, Public, Signature};
-use anyhow::Context;
 use ed25519_dalek::ed25519::signature::Signature as InternalSignature;
 use ed25519_dalek::ExpandedSecretKey;
 use rand::RngCore;

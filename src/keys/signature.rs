@@ -2,7 +2,6 @@ use crate::encoding::{deserialize_from_str, hex_formatter};
 use crate::Error;
 use crate::{expect_len, to_hex};
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
-use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use std::convert::TryFrom;
 use std::fmt::{Debug, Display};
 use std::str::FromStr;
