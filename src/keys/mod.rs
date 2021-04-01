@@ -1,4 +1,5 @@
 pub mod address;
+pub mod armor;
 pub mod phrase;
 pub mod private;
 pub mod public;
@@ -8,7 +9,7 @@ pub mod signature;
 #[cfg(test)]
 mod tests {
     use crate::*;
-    
+
     use std::str::FromStr;
 
     #[test]

@@ -1,10 +1,9 @@
+use crate::Error;
 use bitvec::prelude::*;
 use blake2::digest::{Update, VariableOutput};
 use blake2::VarBlake2b;
-use serde::de::Error;
 use serde::{Deserialize, Deserializer};
 use std::str::FromStr;
-use crate::FeelessError;
 
 pub fn to_hex(bytes: &[u8]) -> String {
     let mut s = String::with_capacity(bytes.len() * 2);
@@ -30,7 +29,7 @@ where
     <T as std::str::FromStr>::Err: std::fmt::Display,
 {
     let s: &str = Deserialize::deserialize(deserializer)?;
-    Ok(T::from_str(s).map_err(D::Error::custom)?)
+    Ok(T::from_str(s).map_err(serde::de::Error::custom)?)
 }
 
 pub fn deserialize_from_string<'de, T, D>(
@@ -42,7 +41,7 @@ where
     <T as std::str::FromStr>::Err: std::fmt::Display,
 {
     let s: String = Deserialize::deserialize(deserializer)?;
-    Ok(T::from_str(s.as_str()).map_err(D::Error::custom)?)
+    Ok(T::from_str(s.as_str()).map_err(serde::de::Error::custom)?)
 }
 
 pub fn blake2b(size: usize, data: &[u8]) -> Box<[u8]> {
@@ -71,12 +70,12 @@ pub fn encode_nano_base_32(bits: &BitSlice<Msb0, u8>) -> String {
     s
 }
 
-pub fn decode_nano_base_32(s: &str) -> Result<BitVec<Msb0, u8>, FeelessError> {
+pub fn decode_nano_base_32(s: &str) -> Result<BitVec<Msb0, u8>, Error> {
     let mut bits: BitVec<Msb0, u8> = BitVec::new(); // TODO: with_capacity
     for char in s.chars() {
         let value = ALPHABET
             .find(char) // TODO: performance
-            .ok_or_else(|| FeelessError::DecodingError(char))?;
+            .ok_or_else(|| Error::DecodingError(char))?;
         let value = value as u8;
         let char_bits: &BitSlice<Msb0, u8> = value.view_bits();
         bits.extend_from_bitslice(&char_bits[(8 - ENCODING_BITS)..8]);

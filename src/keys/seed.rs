@@ -1,13 +1,12 @@
 use crate::encoding::{blake2b, deserialize_from_string};
+use crate::Error;
 use crate::{expect_len, to_hex, Private};
-
 use bytes::{BufMut, BytesMut};
 use rand::RngCore;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use std::convert::TryFrom;
 use std::fmt::{Debug, Formatter};
 use std::str::FromStr;
-use crate::FeelessError;
 
 /// 256 bit seed used to derive multiple addresses.
 ///
@@ -45,22 +44,21 @@ impl Seed {
 }
 
 impl FromStr for Seed {
-    type Err = FeelessError;
+    type Err = Error;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         expect_len(s.len(), Seed::LEN * 2, "Seed")?;
         let mut seed = Seed::zero();
-        hex::decode_to_slice(s, &mut seed.0)
-            .map_err(|e| FeelessError::FromHexError {
-                msg: String::from("Decoding seed"),
-                source: e,
-            })?;
+        hex::decode_to_slice(s, &mut seed.0).map_err(|e| Error::FromHexError {
+            msg: String::from("Decoding seed"),
+            source: e,
+        })?;
         Ok(seed)
     }
 }
 
 impl TryFrom<&[u8]> for Seed {
-    type Error = FeelessError;
+    type Error = Error;
 
     fn try_from(value: &[u8]) -> Result<Self, Self::Error> {
         expect_len(value.len(), Seed::LEN, "Seed")?;

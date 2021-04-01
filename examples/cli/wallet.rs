@@ -50,5 +50,7 @@ pub(crate) fn wallet(test: &mut Test, feeless: &str) -> anyhow::Result<()> {
     )
     .contains("nano_3tr7wk6ebc6ujptdnf471d8knnfaz1r469u83biws5s5jntb3hpe8oh65ogi");
 
+    remove_file(wallet_path)?;
+
     Ok(())
 }
