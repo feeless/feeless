@@ -86,6 +86,7 @@
 //! ```
 pub(crate) mod rai;
 
+use crate::Error;
 use bigdecimal::BigDecimal;
 use bigdecimal::ToPrimitive;
 use doc_comment::doc_comment;
@@ -93,7 +94,6 @@ use once_cell::sync::Lazy;
 pub use rai::Rai;
 use std::convert::TryFrom;
 use std::str::FromStr;
-use crate::FeelessError;
 
 /// This macro creates a struct to handle a specific denomination with arithmetic and conversions
 /// to/from [Rai].
@@ -154,7 +154,7 @@ See the [module documentation](crate::units) for more information as this is gen
             /// # Ok(())
             /// # }
             /// ```
-            pub fn to_rai(&self) -> Result<Rai, FeelessError> {
+            pub fn to_rai(&self) -> Result<Rai, Error> {
                 Rai::try_from(&self.to_rai_big_decimal())
             }
 
@@ -220,9 +220,9 @@ See the [module documentation](crate::units) for more information as this is gen
         }
 
         impl FromStr for $struct_name {
-            type Err = FeelessError;
+            type Err = Error;
 
-            fn from_str(s: &str) -> Result<Self, Self::Err> {
+            fn from_str(s: &str) -> std::result::Result<Self, Self::Err> {
                 Ok(Self::new(BigDecimal::from_str(s)?))
             }
         }
