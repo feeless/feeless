@@ -1,12 +1,11 @@
-use std::convert::TryFrom;
-use std::fmt::{Debug, Display};
-use std::str::FromStr;
-
-use serde::{Deserialize, Deserializer, Serialize, Serializer};
-
 use crate::encoding::{deserialize_from_str, hex_formatter};
 use crate::Error;
 use crate::{expect_len, to_hex};
+use serde::{Deserialize, Deserializer, Serialize, Serializer};
+use serde::{Deserialize, Deserializer, Serialize, Serializer};
+use std::convert::TryFrom;
+use std::fmt::{Debug, Display};
+use std::str::FromStr;
 
 /// A ed25519+blake2 signature that can be generated with [Private](crate::Private) and
 /// checked with [Public](crate::Public).

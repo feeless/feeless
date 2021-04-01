@@ -9,7 +9,6 @@ pub enum Error {
         msg: String,
         source: hex::FromHexError,
     },
-
     #[error("Signature error")]
     SignatureError {
         msg: String,

@@ -1,6 +1,7 @@
 use crate::cli::pcap::PcapDumpOpts;
 use crate::cli::unit::UnitOpts;
 use crate::cli::vanity::VanityOpts;
+use crate::cli::verify::VerifyOpts;
 use crate::cli::wallet::WalletOpts;
 use crate::debug::parse_pcap_log_file_to_csv;
 use crate::node::node_with_autodiscovery;
@@ -17,7 +18,6 @@ use std::path::PathBuf;
 use std::str::FromStr;
 use tracing::Level;
 use tracing_subscriber::EnvFilter;
-use crate::cli::verify::VerifyOpts;
 
 mod address;
 mod pcap;
@@ -27,8 +27,8 @@ mod public;
 mod seed;
 mod unit;
 mod vanity;
-mod wallet;
 mod verify;
+mod wallet;
 
 #[derive(Clap)]
 #[clap(author, about, version)]

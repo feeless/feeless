@@ -309,3 +309,12 @@ struct SignOpts {
     #[clap(flatten)]
     opts: CommonOpts,
 }
+
+#[derive(Clap)]
+struct DeleteOpts {
+    #[clap(default_value = "0")]
+    index: u32,
+
+    #[clap(flatten)]
+    opts: CommonOpts,
+}

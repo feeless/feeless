@@ -1,7 +1,6 @@
 use crate::encoding::{blake2b, deserialize_from_string};
-use crate::{expect_len, to_hex, Private};
-
 use crate::Error;
+use crate::{expect_len, to_hex, Private};
 use bytes::{BufMut, BytesMut};
 use rand::RngCore;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
