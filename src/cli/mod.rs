@@ -1,6 +1,7 @@
 use crate::cli::pcap::PcapDumpOpts;
 use crate::cli::unit::UnitOpts;
 use crate::cli::vanity::VanityOpts;
+use crate::cli::verify::VerifyOpts;
 use crate::cli::wallet::WalletOpts;
 use crate::debug::parse_pcap_log_file_to_csv;
 use crate::node::node_with_autodiscovery;
@@ -26,6 +27,7 @@ mod public;
 mod seed;
 mod unit;
 mod vanity;
+mod verify;
 mod wallet;
 
 #[derive(Clap)]
@@ -53,6 +55,9 @@ enum Command {
 
     /// Manage wallet files.
     Wallet(WalletOpts),
+
+    /// Verify Nano signed messages.
+    Verify(VerifyOpts),
 
     /// Word mnemonic phrase generation and conversion.
     Phrase(PhraseOpts),
@@ -139,6 +144,7 @@ pub async fn run() -> anyhow::Result<()> {
         Command::Address(address) => address.handle(),
         Command::Unit(unit) => unit.handle(),
         Command::Vanity(vanity) => vanity.handle().await,
+        Command::Verify(verify) => verify.handle(),
     }
 }
 

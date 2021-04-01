@@ -5,15 +5,14 @@ use crate::node::Wire;
 use crate::node::Header;
 
 use crate::encoding::deserialize_from_str;
+use crate::Error;
 use crate::{encoding, expect_len, to_hex, Address, Signature};
 use bitvec::prelude::*;
 use ed25519_dalek::Verifier;
-use serde::de::Error;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use std::convert::TryFrom;
 use std::iter::FromIterator;
 use std::str::FromStr;
-use crate::FeelessError;
 
 /// 256 bit public key which can be converted into an [Address](crate::Address) or verify a [Signature](crate::Signature).
 #[derive(Clone, Eq, PartialEq, Hash)]
@@ -23,12 +22,12 @@ impl Public {
     pub const LEN: usize = 32;
     const ADDRESS_CHECKSUM_LEN: usize = 5;
 
-    fn dalek_key(&self) -> Result<ed25519_dalek::PublicKey, FeelessError> {
-        Ok(ed25519_dalek::PublicKey::from_bytes(&self.0)
-            .map_err(|e| FeelessError::SignatureError {
+    fn dalek_key(&self) -> Result<ed25519_dalek::PublicKey, Error> {
+        Ok(
+            ed25519_dalek::PublicKey::from_bytes(&self.0).map_err(|e| Error::SignatureError {
                 msg: String::from("Converting to PublicKey"),
                 source: e,
-            })?
+            })?,
         )
     }
 
@@ -51,39 +50,41 @@ impl Public {
         encoding::encode_nano_base_32(&bits)
     }
 
-    pub fn verify(&self, message: &[u8], signature: &Signature) -> Result<(), FeelessError> {
+    pub fn verify(&self, message: &[u8], signature: &Signature) -> Result<(), Error> {
         let result = self.dalek_key();
 
         match result {
-            Ok(key) => key.verify(message, &signature.internal()).map_err(|e| FeelessError::SignatureError {
-                msg: format!(
-                    "Public verification failed: sig: {:?} message: {:?} key: {:?}",
-                    signature, message, key
-                ),
-                source: e,
-            }),
+            Ok(key) => {
+                key.verify(message, &signature.internal())
+                    .map_err(|e| Error::SignatureError {
+                        msg: format!(
+                            "Public verification failed: sig: {:?} message: {:?} key: {:?}",
+                            signature, message, key
+                        ),
+                        source: e,
+                    })
+            }
             // We're returning false here because someone we can be given a bad public key,
             // but since we're not checking the key for how valid it is, only the signature,
             // we just say that it does not pass validation.
-            _ => Err(FeelessError::BadPublicKey),
+            _ => Err(Error::BadPublicKey),
         }
     }
 }
 
 impl FromStr for Public {
-    type Err = FeelessError;
+    type Err = Error;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         expect_len(s.len(), Self::LEN * 2, "hex public key")?;
-        let vec = hex::decode(s.as_bytes())
-            .map_err(|e| FeelessError::FromHexError {
-                msg: String::from("Decoding hex public key"),
-                source: e,
-            })?;
+        let vec = hex::decode(s.as_bytes()).map_err(|e| Error::FromHexError {
+            msg: String::from("Decoding hex public key"),
+            source: e,
+        })?;
         let bytes = vec.as_slice();
 
         let x = <[u8; Self::LEN]>::try_from(bytes)?;
-     
+
         Ok(Self(x))
     }
 }
@@ -100,7 +101,7 @@ impl std::fmt::Debug for Public {
 }
 
 impl TryFrom<&[u8]> for Public {
-    type Error = FeelessError;
+    type Error = Error;
 
     fn try_from(value: &[u8]) -> Result<Self, Self::Error> {
         Ok(Self(<[u8; Self::LEN]>::try_from(value)?))
@@ -179,7 +180,9 @@ where
     D: Deserializer<'de>,
 {
     let s: &str = Deserialize::deserialize(deserializer)?;
-    Ok(Address::from_str(s).map_err(D::Error::custom)?.to_public())
+    Ok(Address::from_str(s)
+        .map_err(serde::de::Error::custom)?
+        .to_public())
 }
 
 #[cfg(test)]
