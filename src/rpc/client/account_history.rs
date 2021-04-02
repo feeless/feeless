@@ -46,7 +46,8 @@ impl AccountHistoryRequest {
 pub struct AccountHistoryResponse {
     pub account: Address,
     pub history: Vec<AccountHistoryEntry>,
-    pub previous: BlockHash,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub previous: Option<BlockHash>,
 }
 
 #[serde_with::serde_as]
@@ -109,10 +110,12 @@ mod tests {
                     )
                     .unwrap(),
                 },],
-                previous: BlockHash::from_str(
-                    "180938FFFD9E89DDA7B02F641D690DA8BF4ED8BB9ABCBCB294E6219A4FBE76E7"
-                )
-                .unwrap(),
+                previous: Some(
+                    BlockHash::from_str(
+                        "180938FFFD9E89DDA7B02F641D690DA8BF4ED8BB9ABCBCB294E6219A4FBE76E7"
+                    )
+                    .unwrap()
+                ),
             }
         );
     }

@@ -36,13 +36,6 @@ impl<'a, T> Request<'a, T> {
 }
 
 #[derive(Debug, Deserialize)]
-#[serde(untagged)]
-pub enum Response<T> {
-    Error(RPCError),
-    Success(T),
-}
-
-#[derive(Debug, Deserialize)]
 pub struct RPCError {
     error: String,
 }
@@ -90,14 +83,30 @@ impl Client {
 
         let text = res.text().await?;
         debug!("RECV: {}", text);
-        let res =
-            serde_json::from_str::<Response<R>>(&text).map_err(|err| Error::BadRPCResponse {
-                err,
-                response: text,
-            })?;
-        match res {
-            Response::Success(res) => Ok(res),
-            Response::Error(err) => Err(Error::RPCError(err.error)),
+
+        // This used to decode into an untagged enum, i.e.
+        // `enum Response<T> { Success(T), Error(RPCError) }`
+        // When there's an expected field from the RPC response, serde gives a non useful error:
+        // `data did not match any variant of untagged enum Response`
+        // Related issue: https://github.com/serde-rs/serde/issues/773
+        // This code now tries one then the other manually instead of using the enum.
+
+        let result = serde_json::from_str::<R>(&text).map_err(|err| Error::BadRPCResponse {
+            err,
+            response: text.to_owned(),
+        });
+        match result {
+            Ok(t) => Ok(t),
+            Err(err) => {
+                match serde_json::from_str::<RPCError>(&text) {
+                    Ok(err) => Err(Error::RPCError(err.error)),
+                    Err(_) => {
+                        // We have an error in both matching R and RPCError, let's return the error
+                        // given by from_str::<R>.
+                        Err(err)
+                    }
+                }
+            }
         }
     }
 }
