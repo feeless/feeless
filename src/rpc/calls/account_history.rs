@@ -48,9 +48,6 @@ impl RPCRequest for &AccountHistoryRequest {
     }
 
     async fn call(&self, client: &Client) -> Result<Self::Response> {
-        // // Force raw = true here because I can't work out how to do it with clap.
-        // let mut s = self.to_owned();
-        // s.raw = true;
         client.rpc(self).await
     }
 }
