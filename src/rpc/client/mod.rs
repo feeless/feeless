@@ -6,6 +6,7 @@ pub(crate) use cli::RPCClientOpts;
 use serde::de::DeserializeOwned;
 use serde::{de, Deserialize, Deserializer, Serialize};
 use std::fmt::{Debug, Display};
+use std::ops::Deref;
 use std::str::FromStr;
 use tracing::debug;
 
@@ -104,14 +105,4 @@ impl Client {
             }
         }
     }
-}
-
-pub(crate) fn from_str<'de, T, D>(deserializer: D) -> std::result::Result<T, D::Error>
-where
-    T: FromStr,
-    T::Err: Display,
-    D: Deserializer<'de>,
-{
-    let s = String::deserialize(deserializer)?;
-    T::from_str(&s).map_err(de::Error::custom)
 }

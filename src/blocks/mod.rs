@@ -25,7 +25,7 @@ pub use receive_block::ReceiveBlock;
 pub use send_block::SendBlock;
 use serde;
 use serde::{Deserialize, Serialize};
-use state_block::Link;
+pub use state_block::Link;
 pub use state_block::StateBlock;
 
 #[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
@@ -38,6 +38,7 @@ pub enum BlockType {
     Open,
     Change,
     State,
+    Epoch,
 }
 
 impl BlockType {
@@ -50,6 +51,7 @@ impl BlockType {
             BlockType::Open => 4,
             BlockType::Change => 5,
             BlockType::State => 6,
+            BlockType::Epoch => todo!(),
         }
     }
 }

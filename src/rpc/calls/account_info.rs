@@ -1,5 +1,5 @@
 use crate::blocks::BlockHash;
-use crate::rpc::client::from_str;
+use crate::rpc::calls::from_str;
 use crate::rpc::client::{Client, RPCRequest};
 use crate::{Address, Rai, Result};
 use async_trait::async_trait;

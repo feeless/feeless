@@ -1,5 +1,7 @@
 use crate::rpc::client::{Client, RPCRequest};
-use crate::rpc::{AccountBalanceRequest, AccountHistoryRequest, AccountInfoRequest};
+use crate::rpc::{
+    AccountBalanceRequest, AccountHistoryRequest, AccountInfoRequest, BlockInfoRequest,
+};
 use clap::Clap;
 use colored_json::ToColoredJson;
 use serde::Serialize;
@@ -26,6 +28,7 @@ enum Command {
     AccountBalance(AccountBalanceRequest),
     AccountHistory(AccountHistoryRequest),
     AccountInfo(AccountInfoRequest),
+    BlockInfo(BlockInfoRequest),
 }
 
 impl RPCClientOpts {
@@ -34,6 +37,7 @@ impl RPCClientOpts {
             Command::AccountBalance(c) => self.show(c).await?,
             Command::AccountHistory(c) => self.show(c).await?,
             Command::AccountInfo(c) => self.show(c).await?,
+            Command::BlockInfo(c) => self.show(c).await?,
         };
         Ok(())
     }

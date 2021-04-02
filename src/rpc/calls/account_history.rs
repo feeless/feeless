@@ -1,19 +1,19 @@
-use crate::blocks::BlockHash;
-use crate::rpc::client::from_str;
+use crate::blocks::Link;
+use crate::blocks::{BlockHash, BlockType};
+use crate::rpc::calls::from_str;
 use crate::rpc::client::{Client, RPCRequest};
-use crate::{Address, Rai, Result};
+use crate::{Address, Rai, Result, Signature, Work};
 use async_trait::async_trait;
 use chrono::Utc;
 use clap::Clap;
 use serde::{Deserialize, Serialize};
 use serde_with::TimestampSeconds;
 
-#[derive(Debug, Serialize, Clap)]
+#[derive(Debug, Serialize, Clap, Clone)]
 pub struct AccountHistoryRequest {
     pub account: Address,
 
-    // We only support raw.
-    #[clap(skip)]
+    #[clap(long)]
     raw: bool,
 
     /// Limit the number of results to `count`.
@@ -49,6 +49,9 @@ impl RPCRequest for &AccountHistoryRequest {
     }
 
     async fn call(&self, client: &Client) -> Result<Self::Response> {
+        // // Force raw = true here because I can't work out how to do it with clap.
+        // let mut s = self.to_owned();
+        // s.raw = true;
         client.rpc(self).await
     }
 }
@@ -80,10 +83,15 @@ pub struct AccountHistoryResponse {
 #[derive(Debug, Serialize, Deserialize, Eq, PartialEq)]
 pub struct AccountHistoryEntry {
     #[serde(rename = "type")]
-    pub block_type: String,
+    pub block_type: BlockType,
 
-    pub account: Address,
-    pub amount: Rai,
+    // This sometimes does not exist in raw mode.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub account: Option<Address>,
+
+    // This sometimes does not exist in raw mode.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub amount: Option<Rai>,
 
     #[serde_as(as = "TimestampSeconds<String>")]
     pub local_timestamp: chrono::DateTime<Utc>,
@@ -92,6 +100,30 @@ pub struct AccountHistoryEntry {
     pub height: u64,
 
     pub hash: BlockHash,
+
+    //
+    // Raw specific fields under here.
+    //
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub subtype: Option<BlockType>,
+
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub previous: Option<BlockHash>,
+
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub signature: Option<Signature>,
+
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub work: Option<Work>,
+
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub representative: Option<Address>,
+
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub balance: Option<Rai>,
+
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub link: Option<BlockHash>, // TODO: Link type, which could be a BlockHash or Address.
 }
 
 #[cfg(test)]
@@ -118,7 +150,6 @@ mod tests {
         "#;
 
         let r = serde_json::from_str::<AccountHistoryResponse>(s).unwrap();
-        // let a = DateTime::<Utc>::from_str().unwrap();
         assert_eq!(
             r,
             AccountHistoryResponse {
@@ -127,18 +158,26 @@ mod tests {
                 )
                 .unwrap(),
                 history: vec![AccountHistoryEntry {
-                    block_type: "send".into(),
-                    account: Address::from_str(
-                        "nano_3jwrszth46rk1mu7rmb4rhm54us8yg1gw3ipodftqtikf5yqdyr7471nsg1k"
-                    )
-                    .unwrap(),
-                    amount: Rai::new(1500000000000000000000000000000000001u128),
+                    block_type: BlockType::Send,
+                    account: Some(
+                        Address::from_str(
+                            "nano_3jwrszth46rk1mu7rmb4rhm54us8yg1gw3ipodftqtikf5yqdyr7471nsg1k"
+                        )
+                        .unwrap()
+                    ),
+                    amount: Some(Rai::new(1500000000000000000000000000000000001u128)),
                     local_timestamp: DateTime::<Utc>::from_str("2021-02-26T08:15:55Z").unwrap(),
                     height: 39,
                     hash: BlockHash::from_str(
                         "721BF781D07CEB0072C6BA8C9B5ADA6593F8F6E6DAA4B60889A1DDC2DFA553E2"
                     )
                     .unwrap(),
+                    previous: None,
+                    signature: None,
+                    work: None,
+                    representative: None,
+                    balance: None,
+                    link: None
                 },],
                 previous: Some(
                     BlockHash::from_str(
