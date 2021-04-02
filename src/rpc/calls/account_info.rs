@@ -11,6 +11,22 @@ use serde_with::TimestampSeconds;
 #[derive(Debug, Serialize, Clap)]
 pub struct AccountInfoRequest {
     pub account: Address,
+
+    /// Do not request the account representative.
+    #[clap(
+        short,
+        long = "no-representative",
+        parse(from_flag = std::ops::Not::not)
+    )]
+    pub representative: bool,
+
+    /// Do not request the account weight.
+    #[clap(short, long = "no-weight", parse(from_flag = std::ops::Not::not))]
+    pub weight: bool,
+
+    /// Do not request the pending amount.
+    #[clap(short, long = "no-pending", parse(from_flag = std::ops::Not::not))]
+    pub pending: bool,
 }
 
 #[async_trait]
@@ -28,7 +44,12 @@ impl RPCRequest for &AccountInfoRequest {
 
 impl AccountInfoRequest {
     pub fn new(account: Address) -> Self {
-        Self { account }
+        Self {
+            account,
+            weight: true,
+            representative: true,
+            pending: true,
+        }
     }
 }
 
@@ -53,4 +74,13 @@ pub struct AccountInfoResponse {
 
     #[serde(deserialize_with = "from_str")]
     account_version: u64,
+
+    #[serde(skip_serializing_if = "Option::is_none")]
+    representative: Option<Address>,
+
+    #[serde(skip_serializing_if = "Option::is_none")]
+    weight: Option<Rai>,
+
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pending: Option<Rai>,
 }
