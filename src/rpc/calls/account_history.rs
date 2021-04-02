@@ -1,4 +1,3 @@
-use crate::blocks::Link;
 use crate::blocks::{BlockHash, BlockType};
 use crate::rpc::calls::from_str;
 use crate::rpc::client::{Client, RPCRequest};

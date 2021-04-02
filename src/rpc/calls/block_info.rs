@@ -1,8 +1,8 @@
-use crate::blocks::{BlockHash, BlockType, StateBlock};
+use crate::blocks::{BlockHash, BlockHolder, BlockType};
 use crate::rpc::calls::from_str;
 use crate::rpc::client::{Client, RPCRequest};
 use crate::rpc::AlwaysTrue;
-use crate::{Address, Rai, Result, Signature, Work};
+use crate::{Address, Rai, Result};
 use async_trait::async_trait;
 use chrono::Utc;
 use clap::Clap;
@@ -56,22 +56,8 @@ pub struct BlockInfoResponse {
     #[serde(deserialize_with = "from_str")]
     pub confirmed: bool,
 
-    pub subtype: BlockType,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub subtype: Option<BlockType>,
 
-    pub contents: BlockContents,
-}
-
-#[derive(Debug, Serialize, Deserialize)]
-pub struct BlockContents {
-    #[serde(rename = "type")]
-    pub block_type: BlockType,
-
-    pub account: Address,
-    pub previous: BlockHash,
-    pub representative: Address,
-    pub balance: Rai,
-    pub link: BlockHash, // TODO: Link
-    pub link_as_account: Address,
-    pub signature: Signature,
-    pub work: Work,
+    pub contents: BlockHolder,
 }

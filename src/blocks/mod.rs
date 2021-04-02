@@ -75,7 +75,8 @@ impl TryFrom<u8> for BlockType {
 }
 
 /// For "holding" deserialized blocks that we can't convert to `Block` yet.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(tag = "type", rename_all = "snake_case")]
 pub enum BlockHolder {
     Send(SendBlock),
     Receive(ReceiveBlock),
@@ -421,7 +422,7 @@ mod tests {
         let a = serde_json::to_string_pretty(&genesis).unwrap();
         dbg!(&a);
         assert!(a.contains(r#"type": "open""#));
-        assert!(a.contains(r#"source": "E8"#));
+        assert!(a.contains(r#"link": "E8"#));
         assert!(a.contains(r#"representative": "nano_3t"#));
         assert!(a.contains(r#"account": "nano_3t"#));
         assert!(a.contains(r#"work": "62F"#));

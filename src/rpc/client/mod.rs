@@ -4,8 +4,8 @@ use crate::{Error, Result};
 use async_trait::async_trait;
 pub(crate) use cli::RPCClientOpts;
 use serde::de::DeserializeOwned;
-use serde::{de, Deserialize, Deserializer, Serialize};
-use std::fmt::{Debug, Display};
+use serde::{Deserialize, Serialize};
+use std::fmt::Debug;
 use tracing::debug;
 
 #[async_trait]

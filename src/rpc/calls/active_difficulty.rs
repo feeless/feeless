@@ -1,14 +1,10 @@
-use crate::blocks::{BlockHash, BlockType, StateBlock};
 use crate::pow::Difficulty;
 use crate::rpc::calls::from_str;
 use crate::rpc::client::{Client, RPCRequest};
-use crate::rpc::AlwaysTrue;
-use crate::{Address, Rai, Result, Signature, Work};
+use crate::Result;
 use async_trait::async_trait;
-use chrono::Utc;
 use clap::Clap;
 use serde::{Deserialize, Serialize};
-use serde_with::TimestampSeconds;
 
 #[derive(Debug, Serialize, Clap)]
 pub struct ActiveDifficultyRequest {}
