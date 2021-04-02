@@ -12,12 +12,32 @@ use serde_with::TimestampSeconds;
 pub struct AccountHistoryRequest {
     pub account: Address,
 
-    #[clap(short, long, default_value = "-1")]
-    pub count: i64,
-
     // We only support raw.
     #[clap(skip)]
     raw: bool,
+
+    /// Limit the number of results to `count`.
+    #[clap(short, long, default_value = "-1")]
+    pub count: i64,
+
+    /// Start displaying blocks from this hash. Useful for pagination.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    #[clap(short, long)]
+    head: Option<BlockHash>,
+
+    /// Skips a number of blocks starting from head.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    #[clap(short, long)]
+    offset: Option<u64>,
+
+    /// Request to reverse the results.
+    #[clap(short, long)]
+    reverse: bool,
+
+    /// Results will be filtered to only show sends/receives connected to the provided account(s).
+    #[serde(skip_serializing_if = "Option::is_none")]
+    #[clap(short, long)]
+    account_filter: Option<Vec<Address>>,
 }
 
 #[async_trait]
@@ -39,6 +59,10 @@ impl AccountHistoryRequest {
             account,
             count,
             raw: false,
+            head: None,
+            offset: None,
+            reverse: false,
+            account_filter: None,
         }
     }
 }
