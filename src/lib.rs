@@ -71,6 +71,7 @@ mod errors;
 mod keys;
 mod network;
 mod pow;
+pub mod rpc;
 pub mod units;
 pub mod vanity;
 

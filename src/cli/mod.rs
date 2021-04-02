@@ -5,6 +5,7 @@ use crate::cli::verify::VerifyOpts;
 use crate::cli::wallet::WalletOpts;
 use crate::debug::parse_pcap_log_file_to_csv;
 use crate::node::node_with_autodiscovery;
+use crate::rpc::client::RPCClientOpts;
 use address::AddressOpts;
 use anyhow::anyhow;
 use clap::Clap;
@@ -77,6 +78,9 @@ enum Command {
     /// Find a secret that can generate a custom vanity address.
     Vanity(VanityOpts),
 
+    /// Find a secret that can generate a custom vanity address.
+    Call(RPCClientOpts),
+
     /// Tool to analyse network capture dumps for Nano packets.
     Pcap(PcapDumpOpts),
 
@@ -131,6 +135,11 @@ pub async fn run() -> anyhow::Result<()> {
         Command::Pcap(o) => o.handle().await,
         #[cfg(not(feature = "pcap"))]
         Command::Pcap(o) => panic!("Compile with the `pcap` feature to enable this."),
+
+        #[cfg(feature = "rpc_client")]
+        Command::Call(o) => Ok(o.handle().await?),
+        #[cfg(not(feature = "rpc_client"))]
+        Command::Call(o) => panic!("Compile with the `rpc_client` feature to enable this."),
 
         Command::Debug(debug) => match debug.command {
             DebugCommand::PcapLogToCSV(huh) => parse_pcap_log_file_to_csv(&huh.src, &huh.dst),
