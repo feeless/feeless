@@ -4,7 +4,7 @@ pub type Result<T> = std::result::Result<T, Error>;
 
 #[derive(Debug, Error)]
 pub enum Error {
-    #[error("From hex error")]
+    #[error("From hex error: {msg} {source}")]
     FromHexError {
         msg: String,
         source: hex::FromHexError,
@@ -39,7 +39,7 @@ pub enum Error {
     #[error("Mnemonic error")]
     MnemonicError(#[from] bip39::ErrorKind),
 
-    #[error("Wrong length (expected {expected:?}, found {found:?})")]
+    #[error("Wrong length for {msg} (expected {expected:?}, found {found:?})")]
     WrongLength {
         msg: String,
         expected: usize,
@@ -57,4 +57,16 @@ pub enum Error {
 
     #[error("Invalid armor content: {0}")]
     InvalidArmor(String),
+
+    #[error("RPC request failed: {0}")]
+    RPCRequestFailed(#[from] reqwest::Error),
+
+    #[error("Bad RPC response: {err:?} response: {response}")]
+    BadRPCResponse {
+        err: serde_json::Error,
+        response: String,
+    },
+
+    #[error("RPC error: {0}")]
+    RPCError(String),
 }
