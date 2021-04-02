@@ -1,5 +1,5 @@
-use crate::rpc::client::account_info::AccountInfoRequest;
-use crate::rpc::client::{AccountBalanceRequest, AccountHistoryRequest, Client, RPCRequest};
+use crate::rpc::client::{Client, RPCRequest};
+use crate::rpc::{AccountBalanceRequest, AccountHistoryRequest, AccountInfoRequest};
 use clap::Clap;
 use colored_json::ToColoredJson;
 use serde::Serialize;

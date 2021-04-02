@@ -1,5 +1,5 @@
-use super::from_str;
 use crate::blocks::BlockHash;
+use crate::rpc::client::from_str;
 use crate::rpc::client::{Client, RPCRequest};
 use crate::{Address, Rai, Result};
 use async_trait::async_trait;
@@ -18,7 +18,7 @@ impl RPCRequest for &AccountInfoRequest {
     type Response = AccountInfoResponse;
 
     fn action(&self) -> &str {
-        "account_balance"
+        "account_info"
     }
 
     async fn call(&self, client: &Client) -> Result<AccountInfoResponse> {
@@ -47,7 +47,7 @@ pub struct AccountInfoResponse {
     block_count: u64,
 
     #[serde(deserialize_with = "from_str")]
-    confirmation_count: u64,
+    confirmation_height: u64,
 
     confirmation_height_frontier: BlockHash,
 

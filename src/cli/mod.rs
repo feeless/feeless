@@ -5,7 +5,7 @@ use crate::cli::verify::VerifyOpts;
 use crate::cli::wallet::WalletOpts;
 use crate::debug::parse_pcap_log_file_to_csv;
 use crate::node::node_with_autodiscovery;
-use crate::rpc::client::cli::RPCClientOpts;
+use crate::rpc::client::RPCClientOpts;
 use address::AddressOpts;
 use anyhow::anyhow;
 use clap::Clap;

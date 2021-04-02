@@ -1,14 +1,8 @@
-mod account_balance;
-mod account_history;
-mod account_info;
-pub(crate) mod cli;
+mod cli;
 
-pub use crate::rpc::client::account_balance::{AccountBalanceRequest, AccountBalanceResponse};
-pub use crate::rpc::client::account_history::{AccountHistoryRequest, AccountHistoryResponse};
 use crate::{Error, Result};
 use async_trait::async_trait;
-use clap::Clap;
-use colored_json::ToColoredJson;
+pub(crate) use cli::RPCClientOpts;
 use serde::de::DeserializeOwned;
 use serde::{de, Deserialize, Deserializer, Serialize};
 use std::fmt::{Debug, Display};
@@ -16,7 +10,7 @@ use std::str::FromStr;
 use tracing::debug;
 
 #[async_trait]
-trait RPCRequest {
+pub(crate) trait RPCRequest {
     type Response: Serialize;
 
     fn action(&self) -> &str;
@@ -60,7 +54,7 @@ impl Client {
         self.authorization = Some(auth.into());
     }
 
-    async fn rpc<S, R>(&self, request: &S) -> Result<R>
+    pub(crate) async fn rpc<S, R>(&self, request: &S) -> Result<R>
     where
         S: Sized + Serialize + RPCRequest,
         R: Sized + DeserializeOwned + Debug,
