@@ -27,7 +27,7 @@ use std::str::FromStr;
 /// [   ][encoded public key                                ][chksum]
 /// [5  ][52                                                ][8     ] <-- Bytes
 /// ```
-#[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
+#[derive(Debug, PartialEq, Clone, Serialize, Deserialize, Eq)]
 pub struct Address(String);
 
 impl Address {

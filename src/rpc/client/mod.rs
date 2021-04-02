@@ -4,14 +4,21 @@ mod account_history;
 use crate::rpc::client::account_balance::AccountBalanceRequest;
 use crate::rpc::client::account_history::AccountHistoryRequest;
 use crate::{Error, Result};
+use async_trait::async_trait;
 use clap::Clap;
+use colored_json::ToColoredJson;
 use serde::de::DeserializeOwned;
-use serde::{Deserialize, Serialize};
-use std::fmt::Debug;
+use serde::{de, Deserialize, Deserializer, Serialize};
+use std::fmt::{Debug, Display};
+use std::str::FromStr;
 use tracing::debug;
 
+#[async_trait]
 trait RPCRequest {
+    type Response: Serialize;
+
     fn action(&self) -> &str;
+    async fn call(&self, client: &Client) -> Result<Self::Response>;
 }
 
 #[derive(Debug, Serialize)]
@@ -80,6 +87,7 @@ impl Client {
             .body(body)
             .send()
             .await?;
+
         let text = res.text().await?;
         debug!("RECV: {}", text);
         let res =
@@ -119,26 +127,40 @@ enum Command {
 
 impl RPCClientOpts {
     pub(crate) async fn handle(&self) -> Result<()> {
+        match &self.command {
+            Command::AccountBalance(c) => self.show(c).await?,
+            Command::AccountHistory(c) => self.show(c).await?,
+        };
+        Ok(())
+    }
+
+    async fn show<T>(&self, request: T) -> Result<()>
+    where
+        T: Serialize + RPCRequest,
+    {
         let mut client = Client::new(&self.host);
         if let Some(a) = &self.auth {
             client.authorization(a);
         }
 
-        match &self.command {
-            Command::AccountBalance(c) => show(c.call(&client).await?)?,
-            Command::AccountHistory(c) => show(c.call(&client).await?)?,
-        };
+        let response = request.call(&client).await?;
+        println!(
+            "{}",
+            serde_json::to_string_pretty(&response)
+                .expect("Could not serialize")
+                .to_colored_json_auto()
+                .expect("Could not colorize")
+        );
         Ok(())
     }
 }
 
-fn show<T>(response: T) -> Result<()>
+pub(crate) fn from_str<'de, T, D>(deserializer: D) -> std::result::Result<T, D::Error>
 where
-    T: Serialize,
+    T: FromStr,
+    T::Err: Display,
+    D: Deserializer<'de>,
 {
-    println!(
-        "{}",
-        serde_json::to_string(&response).expect("Could not serialize")
-    );
-    Ok(())
+    let s = String::deserialize(deserializer)?;
+    T::from_str(&s).map_err(de::Error::custom)
 }
