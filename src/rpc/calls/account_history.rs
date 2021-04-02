@@ -172,6 +172,7 @@ mod tests {
                         "721BF781D07CEB0072C6BA8C9B5ADA6593F8F6E6DAA4B60889A1DDC2DFA553E2"
                     )
                     .unwrap(),
+                    subtype: None,
                     previous: None,
                     signature: None,
                     work: None,

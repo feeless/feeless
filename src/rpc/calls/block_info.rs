@@ -1,7 +1,8 @@
-use crate::blocks::{BlockHash, BlockType};
+use crate::blocks::{BlockHash, BlockType, StateBlock};
 use crate::rpc::calls::from_str;
 use crate::rpc::client::{Client, RPCRequest};
-use crate::{Address, Rai, Result};
+use crate::rpc::AlwaysTrue;
+use crate::{Address, Rai, Result, Signature, Work};
 use async_trait::async_trait;
 use chrono::Utc;
 use clap::Clap;
@@ -14,7 +15,7 @@ pub struct BlockInfoRequest {
 
     // We only support json_block being true.
     #[clap(skip)]
-    json_block: bool,
+    json_block: AlwaysTrue,
 }
 
 #[async_trait]
@@ -34,7 +35,7 @@ impl BlockInfoRequest {
     pub fn new(hash: BlockHash) -> Self {
         Self {
             hash,
-            json_block: true,
+            json_block: Default::default(),
         }
     }
 }
@@ -56,4 +57,21 @@ pub struct BlockInfoResponse {
     pub confirmed: bool,
 
     pub subtype: BlockType,
+
+    pub contents: BlockContents,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct BlockContents {
+    #[serde(rename = "type")]
+    pub block_type: BlockType,
+
+    pub account: Address,
+    pub previous: BlockHash,
+    pub representative: Address,
+    pub balance: Rai,
+    pub link: BlockHash, // TODO: Link
+    pub link_as_account: Address,
+    pub signature: Signature,
+    pub work: Work,
 }

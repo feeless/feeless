@@ -23,7 +23,7 @@ where
 }
 
 #[derive(Debug, Serialize, Clone)]
-struct AlwaysTrue(bool);
+pub(crate) struct AlwaysTrue(bool);
 
 impl Default for AlwaysTrue {
     fn default() -> Self {
