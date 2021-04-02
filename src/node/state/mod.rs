@@ -44,7 +44,7 @@ pub trait State: Debug + Sync + Send + 'static {
         socket_addr: &SocketAddr,
     ) -> anyhow::Result<Option<Cookie>>;
 
-    async fn add_peers(&mut self, addresses: Vec<SocketAddr>) -> anyhow::Result<()>;
+    async fn add_peers(&mut self, addresses: &[SocketAddr]) -> anyhow::Result<()>;
 
     async fn peers(&self) -> anyhow::Result<HashSet<SocketAddr>>;
 }

@@ -42,8 +42,8 @@ impl Packet {
     }
 }
 
-/// The controller handles the logic with handling and emitting messages, as well as time based
-/// actions, peer management, etc.
+/// The controller handles the logic of one peer. It handles and emits messages, as well as time
+/// based actions, peer management, etc.
 pub struct Controller {
     /// Disable when used for pcap dump, where might have our own different cookie.
     pub validate_handshakes: bool,
