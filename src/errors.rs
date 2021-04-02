@@ -4,7 +4,7 @@ pub type Result<T> = std::result::Result<T, Error>;
 
 #[derive(Debug, Error)]
 pub enum Error {
-    #[error("From hex error")]
+    #[error("From hex error: {msg} {source}")]
     FromHexError {
         msg: String,
         source: hex::FromHexError,

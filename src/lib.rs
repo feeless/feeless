@@ -48,7 +48,7 @@ pub use keys::private::Private;
 pub use keys::public::Public;
 pub use keys::seed::Seed;
 pub use keys::signature::Signature;
-pub use pow::work::Work;
+pub use pow::{Difficulty, Work};
 pub use units::rai::Rai;
 
 #[cfg(feature = "node")]

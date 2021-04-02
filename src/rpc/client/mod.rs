@@ -6,8 +6,6 @@ pub(crate) use cli::RPCClientOpts;
 use serde::de::DeserializeOwned;
 use serde::{de, Deserialize, Deserializer, Serialize};
 use std::fmt::{Debug, Display};
-use std::ops::Deref;
-use std::str::FromStr;
 use tracing::debug;
 
 #[async_trait]

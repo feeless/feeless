@@ -1,6 +1,7 @@
 use crate::rpc::client::{Client, RPCRequest};
 use crate::rpc::{
-    AccountBalanceRequest, AccountHistoryRequest, AccountInfoRequest, BlockInfoRequest,
+    AccountBalanceRequest, AccountHistoryRequest, AccountInfoRequest, ActiveDifficultyRequest,
+    BlockInfoRequest,
 };
 use clap::Clap;
 use colored_json::ToColoredJson;
@@ -28,6 +29,7 @@ enum Command {
     AccountBalance(AccountBalanceRequest),
     AccountHistory(AccountHistoryRequest),
     AccountInfo(AccountInfoRequest),
+    ActiveDifficulty(ActiveDifficultyRequest),
     BlockInfo(BlockInfoRequest),
 }
 
@@ -37,6 +39,7 @@ impl RPCClientOpts {
             Command::AccountBalance(c) => self.show(c).await?,
             Command::AccountHistory(c) => self.show(c).await?,
             Command::AccountInfo(c) => self.show(c).await?,
+            Command::ActiveDifficulty(c) => self.show(c).await?,
             Command::BlockInfo(c) => self.show(c).await?,
         };
         Ok(())
