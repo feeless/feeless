@@ -1,8 +1,10 @@
 mod account_balance;
 mod account_history;
+mod account_info;
+pub(crate) mod cli;
 
-use crate::rpc::client::account_balance::AccountBalanceRequest;
-use crate::rpc::client::account_history::AccountHistoryRequest;
+pub use crate::rpc::client::account_balance::{AccountBalanceRequest, AccountBalanceResponse};
+pub use crate::rpc::client::account_history::{AccountHistoryRequest, AccountHistoryResponse};
 use crate::{Error, Result};
 use async_trait::async_trait;
 use clap::Clap;
@@ -90,7 +92,6 @@ impl Client {
         // `data did not match any variant of untagged enum Response`
         // Related issue: https://github.com/serde-rs/serde/issues/773
         // This code now tries one then the other manually instead of using the enum.
-
         let result = serde_json::from_str::<R>(&text).map_err(|err| Error::BadRPCResponse {
             err,
             response: text.to_owned(),
@@ -108,59 +109,6 @@ impl Client {
                 }
             }
         }
-    }
-}
-
-#[derive(Clap)]
-pub(crate) struct RPCClientOpts {
-    #[clap(
-        long,
-        short,
-        default_value = "http://localhost:7076",
-        env = "FEELESS_RPC_URL"
-    )]
-    host: String,
-
-    #[clap(long, short, env = "FEELESS_RPC_AUTH")]
-    auth: Option<String>,
-
-    #[clap(subcommand)]
-    command: Command,
-}
-
-#[derive(Clap)]
-enum Command {
-    AccountBalance(AccountBalanceRequest),
-    AccountHistory(AccountHistoryRequest),
-}
-
-impl RPCClientOpts {
-    pub(crate) async fn handle(&self) -> Result<()> {
-        match &self.command {
-            Command::AccountBalance(c) => self.show(c).await?,
-            Command::AccountHistory(c) => self.show(c).await?,
-        };
-        Ok(())
-    }
-
-    async fn show<T>(&self, request: T) -> Result<()>
-    where
-        T: Serialize + RPCRequest,
-    {
-        let mut client = Client::new(&self.host);
-        if let Some(a) = &self.auth {
-            client.authorization(a);
-        }
-
-        let response = request.call(&client).await?;
-        println!(
-            "{}",
-            serde_json::to_string_pretty(&response)
-                .expect("Could not serialize")
-                .to_colored_json_auto()
-                .expect("Could not colorize")
-        );
-        Ok(())
     }
 }
 

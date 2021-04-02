@@ -15,6 +15,7 @@ pub struct AccountHistoryRequest {
     #[clap(short, long, default_value = "-1")]
     pub count: i64,
 
+    // We only support raw.
     #[clap(skip)]
     raw: bool,
 }
@@ -46,6 +47,7 @@ impl AccountHistoryRequest {
 pub struct AccountHistoryResponse {
     pub account: Address,
     pub history: Vec<AccountHistoryEntry>,
+
     #[serde(skip_serializing_if = "Option::is_none")]
     pub previous: Option<BlockHash>,
 }
@@ -54,14 +56,18 @@ pub struct AccountHistoryResponse {
 #[derive(Debug, Serialize, Deserialize, Eq, PartialEq)]
 pub struct AccountHistoryEntry {
     #[serde(rename = "type")]
-    block_type: String,
-    account: Address,
-    amount: Rai,
+    pub block_type: String,
+
+    pub account: Address,
+    pub amount: Rai,
+
     #[serde_as(as = "TimestampSeconds<String>")]
-    local_timestamp: chrono::DateTime<Utc>,
+    pub local_timestamp: chrono::DateTime<Utc>,
+
     #[serde(deserialize_with = "from_str")]
-    height: u64,
-    hash: BlockHash,
+    pub height: u64,
+
+    pub hash: BlockHash,
 }
 
 #[cfg(test)]
