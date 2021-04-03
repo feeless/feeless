@@ -13,6 +13,7 @@ use crate::node::messages::telemetry_req::TelemetryReq;
 use crate::{Public, Seed, Signature};
 use anyhow::Context;
 use tracing::{debug, instrument, trace, warn};
+use crate::blocks::{BlockHolder, Block, BlockHash};
 
 impl Controller {
     #[instrument(skip(self))]
@@ -136,9 +137,40 @@ impl Controller {
     pub async fn handle_publish(
         &mut self,
         _header: &Header,
-        _publish: Publish,
+        publish: Publish,
     ) -> anyhow::Result<()> {
         // dbg!(publish);
+        // # deduplication
+        let _block = match publish.block_holder {
+            BlockHolder::Send(_) => {
+                todo!("Received a send block")
+            }
+            BlockHolder::Receive(_) => {
+                todo!("Received a receive block")
+            }
+            BlockHolder::Open(_) => {
+                todo!("Received an open block")
+            }
+            BlockHolder::Change(_) => {
+                todo!("Received a change block")
+            }
+            BlockHolder::State(state_block) => {
+                let mut block = Block::from_state_block(&state_block);
+                let block_hash: &BlockHash = {
+                    block.calc_hash().unwrap();
+                    block.hash().unwrap()
+                };
+                let exists = self.state.lock().await
+                    .get_block_by_hash(block_hash).await?.is_some();
+                if exists {
+                    tracing::info!("Block {} already exists!", block_hash)
+                } else {
+                    tracing::info!("Block {} will be added", block_hash);
+                    self.state.lock().await.add_block(&block).await?;
+                }
+            }
+        };
+        //self.state.lock().await.add_block()
 
         // self.state.lock().await.add_block(&publish.0).await?;
         // todo!();

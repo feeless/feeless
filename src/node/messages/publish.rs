@@ -3,7 +3,9 @@ use crate::node::header::Header;
 use crate::node::wire::Wire;
 
 #[derive(Debug)]
-pub struct Publish(pub(crate) BlockHolder);
+pub struct Publish {
+    pub(crate) block_holder: BlockHolder
+}
 
 impl Wire for Publish {
     fn serialize(&self) -> Vec<u8> {
@@ -14,7 +16,7 @@ impl Wire for Publish {
     where
         Self: Sized,
     {
-        Ok(Publish(BlockHolder::deserialize(header, data)?))
+        Ok(Publish { block_holder : BlockHolder::deserialize(header, data)? })
     }
 
     fn len(header: Option<&Header>) -> Result<usize, anyhow::Error> {
