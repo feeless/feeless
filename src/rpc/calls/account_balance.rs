@@ -1,4 +1,4 @@
-use crate::rpc::client::{Client, RPCRequest};
+use crate::rpc::client::{RPCClient, RPCRequest};
 use crate::{Address, Rai, Result};
 use async_trait::async_trait;
 use clap::Clap;
@@ -17,7 +17,7 @@ impl RPCRequest for &AccountBalanceRequest {
         "account_balance"
     }
 
-    async fn call(&self, client: &Client) -> Result<AccountBalanceResponse> {
+    async fn call(&self, client: &RPCClient) -> Result<AccountBalanceResponse> {
         client.rpc(self).await
     }
 }

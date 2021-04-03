@@ -1,6 +1,6 @@
 use crate::pow::Difficulty;
 use crate::rpc::calls::from_str;
-use crate::rpc::client::{Client, RPCRequest};
+use crate::rpc::client::{RPCClient, RPCRequest};
 use crate::Result;
 use async_trait::async_trait;
 use clap::Clap;
@@ -17,7 +17,7 @@ impl RPCRequest for &ActiveDifficultyRequest {
         "active_difficulty"
     }
 
-    async fn call(&self, client: &Client) -> Result<ActiveDifficultyResponse> {
+    async fn call(&self, client: &RPCClient) -> Result<ActiveDifficultyResponse> {
         client.rpc(self).await
     }
 }

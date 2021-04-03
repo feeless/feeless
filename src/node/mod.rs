@@ -10,6 +10,7 @@ mod wire;
 
 use crate::network::Network;
 use crate::node::state::ArcState;
+use crate::rpc::server::{RPCCommand, RPCServer};
 use anyhow::Context;
 use channel::network_channel;
 pub use controller::{Controller, Packet};
@@ -18,13 +19,16 @@ pub use state::{MemoryState, SledDiskState};
 use std::net::SocketAddr;
 use std::sync::Arc;
 use tokio::net::TcpStream;
-use tokio::sync::Mutex;
+use tokio::sync::{mpsc, Mutex};
 use tracing::{debug, info};
 pub use wire::Wire;
 
 pub struct Node {
     network: Network,
     state: ArcState,
+
+    /// If an RPC server is running, this is where messages from it arrive to.
+    rpc_rx: Option<mpsc::Receiver<RPCCommand>>,
 }
 
 impl Node {
@@ -32,10 +36,22 @@ impl Node {
         // let state = SledDiskState::new(Network::Live);
         let state = MemoryState::new(network);
         let state = Arc::new(Mutex::new(state));
-        Self { state, network }
+        Self {
+            state,
+            network,
+            rpc_rx: None,
+        }
     }
 
-    pub async fn run(&mut self) -> anyhow::Result<()> {
+    // TODO: I think result will be needed here to make sure the RPC server can bind.
+    pub async fn enable_rpc_server(&mut self) -> anyhow::Result<()> {
+        let (rpc_server, rx) = RPCServer::new_with_rx();
+        tokio::spawn(rpc_server.run());
+        self.rpc_rx = Some(rx);
+        Ok(())
+    }
+
+    pub async fn run(self) -> anyhow::Result<()> {
         let mut handles = vec![];
         let initial_peers = self.state.lock().await.peers().await?;
         for socket_addr in initial_peers {

@@ -1,6 +1,6 @@
 use crate::blocks::{BlockHash, BlockHolder, BlockType};
 use crate::rpc::calls::from_str;
-use crate::rpc::client::{Client, RPCRequest};
+use crate::rpc::client::{RPCClient, RPCRequest};
 use crate::rpc::AlwaysTrue;
 use crate::{Address, Rai, Result};
 use async_trait::async_trait;
@@ -26,7 +26,7 @@ impl RPCRequest for &BlockInfoRequest {
         "block_info"
     }
 
-    async fn call(&self, client: &Client) -> Result<BlockInfoResponse> {
+    async fn call(&self, client: &RPCClient) -> Result<BlockInfoResponse> {
         client.rpc(self).await
     }
 }

@@ -1,4 +1,4 @@
-use crate::rpc::client::{Client, RPCRequest};
+use crate::rpc::client::{RPCClient, RPCRequest};
 use crate::rpc::{
     AccountBalanceRequest, AccountHistoryRequest, AccountInfoRequest, ActiveDifficultyRequest,
     BlockInfoRequest,
@@ -49,7 +49,7 @@ impl RPCClientOpts {
     where
         T: Serialize + RPCRequest,
     {
-        let mut client = Client::new(&self.host);
+        let mut client = RPCClient::new(&self.host);
         if let Some(a) = &self.auth {
             client.authorization(a);
         }

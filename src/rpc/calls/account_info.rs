@@ -1,6 +1,6 @@
 use crate::blocks::BlockHash;
 use crate::rpc::calls::from_str;
-use crate::rpc::client::{Client, RPCRequest};
+use crate::rpc::client::{RPCClient, RPCRequest};
 use crate::{Address, Rai, Result};
 use async_trait::async_trait;
 use chrono::Utc;
@@ -37,7 +37,7 @@ impl RPCRequest for &AccountInfoRequest {
         "account_info"
     }
 
-    async fn call(&self, client: &Client) -> Result<AccountInfoResponse> {
+    async fn call(&self, client: &RPCClient) -> Result<AccountInfoResponse> {
         client.rpc(self).await
     }
 }
