@@ -1,5 +1,5 @@
 #[cfg(any(feature = "rpc_client", feature = "rpc_server"))]
-mod calls;
+pub mod calls;
 
 #[cfg(feature = "rpc_client")]
 pub mod client;

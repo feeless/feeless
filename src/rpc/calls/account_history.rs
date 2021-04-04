@@ -1,5 +1,5 @@
 use crate::blocks::{BlockHash, BlockType};
-use crate::rpc::calls::from_str;
+use crate::rpc::calls::{as_str, from_str};
 use crate::rpc::client::{RPCClient, RPCRequest};
 use crate::{Address, Rai, Result, Signature, Work};
 use async_trait::async_trait;
@@ -8,7 +8,7 @@ use clap::Clap;
 use serde::{Deserialize, Serialize};
 use serde_with::TimestampSeconds;
 
-#[derive(Debug, Serialize, Clap, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clap, Clone)]
 pub struct AccountHistoryRequest {
     pub account: Address,
 
@@ -92,7 +92,7 @@ pub struct AccountHistoryEntry {
     #[serde_as(as = "TimestampSeconds<String>")]
     pub local_timestamp: chrono::DateTime<Utc>,
 
-    #[serde(deserialize_with = "from_str")]
+    #[serde(deserialize_with = "from_str", serialize_with = "as_str")]
     pub height: u64,
 
     pub hash: BlockHash,

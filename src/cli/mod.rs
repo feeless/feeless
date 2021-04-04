@@ -14,11 +14,11 @@ use phrase::PhraseOpts;
 use private::PrivateOpts;
 use public::PublicOpts;
 use seed::SeedOpts;
-use std::io;
 use std::io::Read;
 use std::net::SocketAddr;
 use std::path::PathBuf;
 use std::str::FromStr;
+use std::{env, io};
 use tracing::Level;
 use tracing_subscriber::EnvFilter;
 
@@ -120,6 +120,8 @@ pub async fn run() -> anyhow::Result<()> {
     let mut filter = EnvFilter::from_default_env();
     if let Some(level) = opts.log_level {
         filter = filter.add_directive(level.into());
+    } else if env::var_os("RUST_LOG").is_none() {
+        filter = filter.add_directive("feeless=info".parse()?);
     }
     let subscriber = tracing_subscriber::fmt::Subscriber::builder()
         .with_env_filter(filter)
@@ -131,6 +133,7 @@ pub async fn run() -> anyhow::Result<()> {
         #[cfg(feature = "node")]
         Command::Node(o) => {
             let mut node = Node::new(Network::Live);
+            node.enable_rpc_server().await?;
             if let Some(str_addrs) = o.override_peers {
                 let mut socket_addrs = vec![];
                 for str_addr in str_addrs {

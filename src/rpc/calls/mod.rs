@@ -9,10 +9,21 @@ pub use account_history::{AccountHistoryEntry, AccountHistoryRequest, AccountHis
 pub use account_info::{AccountInfoRequest, AccountInfoResponse};
 pub use active_difficulty::{ActiveDifficultyRequest, ActiveDifficultyResponse};
 pub use block_info::{BlockInfoRequest, BlockInfoResponse};
-use serde::{de, Deserialize, Deserializer, Serialize};
+use clap::Clap;
+use serde::{de, Deserialize, Deserializer, Serialize, Serializer};
 use std::fmt::Display;
 use std::ops::Deref;
 use std::str::FromStr;
+
+#[derive(Debug, Clap, Deserialize)]
+#[serde(tag = "action", rename_all = "snake_case")]
+pub enum Command {
+    AccountBalance(AccountBalanceRequest),
+    AccountHistory(AccountHistoryRequest),
+    AccountInfo(AccountInfoRequest),
+    ActiveDifficulty(ActiveDifficultyRequest),
+    BlockInfo(BlockInfoRequest),
+}
 
 pub(crate) fn from_str<'de, T, D>(deserializer: D) -> std::result::Result<T, D::Error>
 where
@@ -24,7 +35,15 @@ where
     T::from_str(&s).map_err(de::Error::custom)
 }
 
-#[derive(Debug, Serialize, Clone)]
+pub fn as_str<V, S>(v: &V, serializer: S) -> Result<S::Ok, S::Error>
+where
+    S: Serializer,
+    V: Display,
+{
+    serializer.serialize_str(v.to_string().as_str())
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub(crate) struct AlwaysTrue(bool);
 
 impl Default for AlwaysTrue {

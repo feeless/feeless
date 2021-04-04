@@ -30,9 +30,9 @@ impl<'a, T> Request<'a, T> {
     }
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct RPCError {
-    error: String,
+    pub(crate) error: String,
 }
 
 pub struct RPCClient {

@@ -4,7 +4,7 @@ use async_trait::async_trait;
 use clap::Clap;
 use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Serialize, Clap)]
+#[derive(Debug, Serialize, Deserialize, Clap)]
 pub struct AccountBalanceRequest {
     pub account: Address,
 }

@@ -1,5 +1,7 @@
-use crate::blocks::{Block, BlockHash};
+mod memory;
+mod sled_disk;
 
+use crate::blocks::{Block, BlockHash};
 use crate::node::cookie::Cookie;
 use crate::Public;
 use async_trait::async_trait;
@@ -10,9 +12,6 @@ use std::fmt::Debug;
 use std::net::SocketAddr;
 use std::sync::Arc;
 use tokio::sync::Mutex;
-
-mod memory;
-mod sled_disk;
 
 pub type DynState = dyn State + Send + Sync;
 pub type ArcState = Arc<Mutex<DynState>>;

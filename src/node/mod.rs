@@ -9,13 +9,12 @@ mod timestamp;
 mod wire;
 
 use crate::network::Network;
-use crate::node::state::ArcState;
-use crate::rpc::server::{RPCCommand, RPCServer};
+use crate::rpc::server::{RPCMessage, RPCServer};
 use anyhow::Context;
 use channel::network_channel;
 pub use controller::{Controller, Packet};
 pub use header::Header;
-pub use state::{MemoryState, SledDiskState};
+pub use state::{ArcState, MemoryState, SledDiskState};
 use std::net::SocketAddr;
 use std::sync::Arc;
 use tokio::net::TcpStream;
@@ -28,7 +27,7 @@ pub struct Node {
     state: ArcState,
 
     /// If an RPC server is running, this is where messages from it arrive to.
-    rpc_rx: Option<mpsc::Receiver<RPCCommand>>,
+    rpc_rx: Option<mpsc::Receiver<RPCMessage>>,
 }
 
 impl Node {
@@ -45,7 +44,7 @@ impl Node {
 
     // TODO: I think result will be needed here to make sure the RPC server can bind.
     pub async fn enable_rpc_server(&mut self) -> anyhow::Result<()> {
-        let (rpc_server, rx) = RPCServer::new_with_rx();
+        let (rpc_server, rx) = RPCServer::new_with_rx(self.state.clone());
         tokio::spawn(rpc_server.run());
         self.rpc_rx = Some(rx);
         Ok(())
