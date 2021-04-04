@@ -3,12 +3,12 @@ use crate::Error;
 use crate::{expect_len, to_hex};
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use std::convert::TryFrom;
-use std::fmt::{Debug, Display};
+use std::fmt::{Debug, Display, Formatter};
 use std::str::FromStr;
 
 /// A ed25519+blake2 signature that can be generated with [Private](crate::Private) and
 /// checked with [Public](crate::Public).
-#[derive(Clone, PartialEq, Eq, Debug)]
+#[derive(Clone, PartialEq, Eq)]
 pub struct Signature([u8; Signature::LEN]);
 
 impl Signature {
@@ -81,5 +81,11 @@ impl TryFrom<&[u8]> for Signature {
 impl std::fmt::UpperHex for Signature {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         crate::encoding::hex_formatter(f, &self.0)
+    }
+}
+
+impl Debug for Signature {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        hex_formatter(f, self.0.as_ref())
     }
 }

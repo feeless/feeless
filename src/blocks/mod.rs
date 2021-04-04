@@ -27,6 +27,7 @@ use serde;
 use serde::{Deserialize, Serialize};
 pub use state_block::Link;
 pub use state_block::StateBlock;
+use std::fmt::{Display, Formatter};
 
 #[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
@@ -92,8 +93,8 @@ impl Wire for BlockHolder {
     }
 
     fn deserialize(header: Option<&Header>, data: &[u8]) -> anyhow::Result<Self>
-    where
-        Self: Sized,
+        where
+            Self: Sized,
     {
         debug_assert!(header.is_some());
         let context = "Deserialize BlockHolder";
@@ -115,8 +116,8 @@ impl Wire for BlockHolder {
     }
 
     fn len(header: Option<&Header>) -> anyhow::Result<usize>
-    where
-        Self: Sized,
+        where
+            Self: Sized,
     {
         debug_assert!(header.is_some());
         match header.as_ref().unwrap().ext().block_type()? {
@@ -349,6 +350,10 @@ impl Block {
             .context("Verify block")?)
     }
 
+    pub fn verify_self_signature(&self) -> anyhow::Result<()> {
+        self.verify_signature(self.account())
+    }
+
     pub fn sign(&mut self, private: Private) -> anyhow::Result<()> {
         let hash = self.hash()?;
         let signature = private.sign(hash.as_bytes())?;
@@ -401,6 +406,23 @@ impl Block {
                 self
             ))
         }
+    }
+}
+
+impl Display for Block {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        let work_render = if self.work.is_none() {
+            "No Work".to_string()
+        } else {
+            self.work.as_ref().unwrap().to_string()
+        };
+        let signature_render = if self.signature.is_none() {
+            "No Signature".to_string()
+        } else {
+            self.signature.as_ref().unwrap().to_string()
+        };
+        write!(f, "Block(Account: {}, Previous: {:?}, Balance: {}, Link: {:?}, Work: {}, Signature: {})",
+               self.account, self.previous, self.balance, self.link, work_render, signature_render)
     }
 }
 

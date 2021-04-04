@@ -5,7 +5,7 @@ use crate::{expect_len, hex_formatter, to_hex, Public};
 use rand::RngCore;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use std::convert::TryFrom;
-use std::fmt::Debug;
+use std::fmt::{Debug, Formatter};
 use std::str::FromStr;
 
 #[derive(Debug)]
@@ -90,6 +90,13 @@ impl std::fmt::Debug for Work {
         write!(f, "Work(")?;
         hex_formatter(f, &self.0)?;
         write!(f, ")")?;
+        Ok(())
+    }
+}
+
+impl std::fmt::Display for Work {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{:?}", self)?;
         Ok(())
     }
 }

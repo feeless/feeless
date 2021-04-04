@@ -140,7 +140,6 @@ impl Controller {
         publish: Publish,
     ) -> anyhow::Result<()> {
         // dbg!(publish);
-        // # deduplication
         let _block = match publish.block_holder {
             BlockHolder::Send(_) => {
                 todo!("Received a send block")
@@ -160,10 +159,24 @@ impl Controller {
                     block.calc_hash().unwrap();
                     block.hash().unwrap()
                 };
-                let exists = self.state.lock().await
+                // dbg!(state_block);
+
+                // # deduplication
+                let already_exists = self.state.lock().await
                     .get_block_by_hash(block_hash).await?.is_some();
-                if exists {
-                    tracing::info!("Block {} already exists!", block_hash)
+
+                // # signature validation
+                let invalid_signature = || {
+                    let valid_signature = block.verify_self_signature()
+                        .map(|_| true)
+                        .unwrap_or(false);
+                    !valid_signature
+                };
+
+                if already_exists {
+                    tracing::info!("Block {} already exists!", block_hash);
+                } else if invalid_signature() {
+                    tracing::info!("Block {} has invalid signature!", block);
                 } else {
                     tracing::info!("Block {} will be added", block_hash);
                     self.state.lock().await.add_block(&block).await?;
@@ -215,5 +228,46 @@ impl Controller {
         // dbg!("----------------------------------------------------------------------");
 
         Ok(())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::network::Network;
+    use std::sync::Arc;
+    use tokio::sync::{Mutex};
+    use std::net::{SocketAddr};
+    use std::str::FromStr;
+    use crate::node::{MemoryState};
+    use crate::blocks::{StateBlock, Link};
+    use crate::Rai;
+
+    #[tokio::test]
+    async fn should_not_add_block_if_signature_is_invalid() {
+        let network = Network::Test;
+        let state = MemoryState::new(network);
+        let state = Arc::new(Mutex::new(state));
+        let test_header = Header::new(network, MessageType::Handshake, Extensions::new());
+        let test_socket_addr = SocketAddr::from_str("[::1]:1").unwrap();
+        let (mut controller, _, _) = Controller::new_with_channels(network, state, test_socket_addr);
+        let account = Public::from_str("570EDFC56651FBBC9AEFE5B0769DBD210614A0C0E6962F5CA0EA2FFF4C08A4B0").unwrap();
+        let previous = BlockHash::from_str("C5C475D699CEED546FEC2E3A6C32B1544AB2C604D58D732B7D9BAB2D6A1E43E9").unwrap();
+        let representative = Public::from_str("7194452B7997A9F5ABB2F434DB010CA18B5A2715D141F9CFA64A296B3EB4DCCD").unwrap();
+        let signature = Some(Signature::zero());
+        let state_block = StateBlock {
+            account,
+            previous,
+            representative,
+            balance: Rai(1344000000000000000000000000000),
+            link: Link::Nothing,
+            work: None,
+            signature,
+        };
+        let mut block = Block::from_state_block(&state_block);
+        block.calc_hash().unwrap();
+        let block_holder = BlockHolder::State(state_block);
+        controller.handle_publish(&test_header, Publish { block_holder }).await.unwrap();
+        assert!(controller.state.lock().await.get_block_by_hash(block.hash().unwrap()).await.unwrap().is_none())
     }
 }
