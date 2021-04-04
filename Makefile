@@ -1,7 +1,8 @@
 test:
+	cargo fmt -- --check
 	cargo test
-	cargo build
-	cargo run --example cli -- target/debug/feeless
+	cargo build --features deny_warnings
+	cargo run --example cli --features deny_warnings -- target/debug/feeless
 
 # Build a docker image, similar to the published one.
 docker:

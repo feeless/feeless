@@ -8,7 +8,6 @@ use crate::{Public, Signature};
 use anyhow::Context;
 use std::convert::TryFrom;
 
-
 /// This is a vote on the network by a representative for one or more block hashes.
 #[derive(Debug)]
 pub struct ConfirmAck {

@@ -1,3 +1,6 @@
+#![forbid(unsafe_code)]
+#![cfg_attr(feature = "deny_warnings", deny(warnings))]
+
 mod keys;
 mod signing;
 mod wallet;
