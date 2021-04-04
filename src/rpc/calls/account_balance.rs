@@ -1,10 +1,10 @@
-use crate::rpc::client::{Client, RPCRequest};
+use crate::rpc::client::{RPCClient, RPCRequest};
 use crate::{Address, Rai, Result};
 use async_trait::async_trait;
 use clap::Clap;
 use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Serialize, Clap)]
+#[derive(Debug, Serialize, Deserialize, Clap)]
 pub struct AccountBalanceRequest {
     pub account: Address,
 }
@@ -17,7 +17,7 @@ impl RPCRequest for &AccountBalanceRequest {
         "account_balance"
     }
 
-    async fn call(&self, client: &Client) -> Result<AccountBalanceResponse> {
+    async fn call(&self, client: &RPCClient) -> Result<AccountBalanceResponse> {
         client.rpc(self).await
     }
 }
