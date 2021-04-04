@@ -1,10 +1,8 @@
 use crate::node::ArcState;
 use crate::rpc::client::RPCError;
-use crate::rpc::{ActiveDifficultyResponse, Command};
-use crate::Difficulty;
+use crate::rpc::Command;
 use serde::Serialize;
 use tokio::sync::mpsc;
-use tokio::sync::oneshot;
 use tracing::{info, trace};
 use warp::http::StatusCode;
 use warp::Filter;
