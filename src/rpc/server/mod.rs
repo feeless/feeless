@@ -30,6 +30,7 @@ impl RPCServer {
             .and(warp::body::json())
             .and_then(Self::handle);
 
+        // TODO: Configurable
         warp::serve(rpc).run(([127, 0, 0, 1], 7076)).await;
         Ok(())
     }
@@ -56,8 +57,7 @@ fn json<T>(o: &T) -> Result<Box<dyn warp::Reply>, warp::Rejection>
 where
     T: ?Sized + Serialize,
 {
-    let result = serde_json::to_string(o);
-    match result {
+    match serde_json::to_string(o) {
         Ok(json) => Ok(Box::new(json)),
         Err(err) => {
             let error = RPCError {

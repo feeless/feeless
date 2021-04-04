@@ -3,6 +3,7 @@ mod account_history;
 mod account_info;
 mod active_difficulty;
 mod block_info;
+mod process;
 
 pub use account_balance::{AccountBalanceRequest, AccountBalanceResponse};
 pub use account_history::{AccountHistoryEntry, AccountHistoryRequest, AccountHistoryResponse};
@@ -10,6 +11,7 @@ pub use account_info::{AccountInfoRequest, AccountInfoResponse};
 pub use active_difficulty::{ActiveDifficultyRequest, ActiveDifficultyResponse};
 pub use block_info::{BlockInfoRequest, BlockInfoResponse};
 use clap::Clap;
+pub use process::{ProcessRequest, ProcessResponse};
 use serde::{de, Deserialize, Deserializer, Serialize, Serializer};
 use std::fmt::Display;
 use std::ops::Deref;
@@ -23,6 +25,7 @@ pub enum Command {
     AccountInfo(AccountInfoRequest),
     ActiveDifficulty(ActiveDifficultyRequest),
     BlockInfo(BlockInfoRequest),
+    Process(ProcessRequest),
 }
 
 pub(crate) fn from_str<'de, T, D>(deserializer: D) -> std::result::Result<T, D::Error>
