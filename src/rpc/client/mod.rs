@@ -13,7 +13,7 @@ pub(crate) trait RPCRequest {
     type Response: Serialize;
 
     fn action(&self) -> &str;
-    async fn call(&self, client: &Client) -> Result<Self::Response>;
+    async fn call(&self, client: &RPCClient) -> Result<Self::Response>;
 }
 
 #[derive(Debug, Serialize)]
@@ -30,17 +30,17 @@ impl<'a, T> Request<'a, T> {
     }
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct RPCError {
-    error: String,
+    pub(crate) error: String,
 }
 
-pub struct Client {
+pub struct RPCClient {
     url: String,
     authorization: Option<String>,
 }
 
-impl Client {
+impl RPCClient {
     pub fn new<S: Into<String>>(url: S) -> Self {
         let url = url.into();
         Self {

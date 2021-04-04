@@ -51,6 +51,13 @@ impl Network {
             _ => todo!(),
         }
     }
+
+    pub fn peering_host(&self) -> &str {
+        match self {
+            Self::Live => "peering.nano.org:7075",
+            _ => todo!(),
+        }
+    }
 }
 
 impl TryFrom<u8> for Network {

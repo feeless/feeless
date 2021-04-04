@@ -1,6 +1,6 @@
 use crate::blocks::{BlockHash, BlockHolder, BlockType};
-use crate::rpc::calls::from_str;
-use crate::rpc::client::{Client, RPCRequest};
+use crate::rpc::calls::{as_str, from_str};
+use crate::rpc::client::{RPCClient, RPCRequest};
 use crate::rpc::AlwaysTrue;
 use crate::{Address, Rai, Result};
 use async_trait::async_trait;
@@ -9,7 +9,7 @@ use clap::Clap;
 use serde::{Deserialize, Serialize};
 use serde_with::TimestampSeconds;
 
-#[derive(Debug, Serialize, Clap)]
+#[derive(Debug, Serialize, Deserialize, Clap)]
 pub struct BlockInfoRequest {
     pub hash: BlockHash,
 
@@ -26,7 +26,7 @@ impl RPCRequest for &BlockInfoRequest {
         "block_info"
     }
 
-    async fn call(&self, client: &Client) -> Result<BlockInfoResponse> {
+    async fn call(&self, client: &RPCClient) -> Result<BlockInfoResponse> {
         client.rpc(self).await
     }
 }
@@ -47,13 +47,13 @@ pub struct BlockInfoResponse {
     pub amount: Rai,
     pub balance: Rai,
 
-    #[serde(deserialize_with = "from_str")]
+    #[serde(deserialize_with = "from_str", serialize_with = "as_str")]
     pub height: u64,
 
     #[serde_as(as = "TimestampSeconds<String>")]
     pub local_timestamp: chrono::DateTime<Utc>,
 
-    #[serde(deserialize_with = "from_str")]
+    #[serde(deserialize_with = "from_str", serialize_with = "as_str")]
     pub confirmed: bool,
 
     #[serde(skip_serializing_if = "Option::is_none")]

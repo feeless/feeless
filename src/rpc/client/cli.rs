@@ -1,8 +1,5 @@
-use crate::rpc::client::{Client, RPCRequest};
-use crate::rpc::{
-    AccountBalanceRequest, AccountHistoryRequest, AccountInfoRequest, ActiveDifficultyRequest,
-    BlockInfoRequest,
-};
+use crate::rpc::calls::Command;
+use crate::rpc::client::{RPCClient, RPCRequest};
 use clap::Clap;
 use colored_json::ToColoredJson;
 use serde::Serialize;
@@ -24,15 +21,6 @@ pub(crate) struct RPCClientOpts {
     command: Command,
 }
 
-#[derive(Clap)]
-enum Command {
-    AccountBalance(AccountBalanceRequest),
-    AccountHistory(AccountHistoryRequest),
-    AccountInfo(AccountInfoRequest),
-    ActiveDifficulty(ActiveDifficultyRequest),
-    BlockInfo(BlockInfoRequest),
-}
-
 impl RPCClientOpts {
     pub(crate) async fn handle(&self) -> crate::Result<()> {
         match &self.command {
@@ -49,7 +37,7 @@ impl RPCClientOpts {
     where
         T: Serialize + RPCRequest,
     {
-        let mut client = Client::new(&self.host);
+        let mut client = RPCClient::new(&self.host);
         if let Some(a) = &self.auth {
             client.authorization(a);
         }
