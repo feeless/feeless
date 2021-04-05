@@ -52,7 +52,7 @@ impl BlockType {
             BlockType::Open => 4,
             BlockType::Change => 5,
             BlockType::State => 6,
-            BlockType::Epoch => todo!(), // TODO:
+            BlockType::Epoch => todo!(),
         }
     }
 }
