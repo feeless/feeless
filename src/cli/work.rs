@@ -2,7 +2,6 @@ use crate::blocks::BlockHash;
 use crate::pow::{Subject, Work};
 use crate::Difficulty;
 use clap::Clap;
-use std::str::FromStr;
 use tracing::info;
 
 #[derive(Clap)]

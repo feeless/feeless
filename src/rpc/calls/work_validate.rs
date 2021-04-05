@@ -1,7 +1,7 @@
 use crate::blocks::BlockHash;
 use crate::rpc::calls::{as_str, from_str};
 use crate::rpc::client::{RPCClient, RPCRequest};
-use crate::{Address, Difficulty, Rai, Result, Work};
+use crate::{Difficulty, Result, Work};
 use async_trait::async_trait;
 use clap::Clap;
 use serde::{Deserialize, Serialize};

@@ -1,7 +1,8 @@
 use crate::blocks::BlockHash;
-use crate::encoding::{blake2b, deserialize_from_str};
+use crate::encoding::{blake2b, blake2b_callback, deserialize_from_str};
 use crate::pow::difficulty::Difficulty;
 use crate::{expect_len, hex_formatter, to_hex, Public};
+use bytes::Buf;
 use rand::RngCore;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use std::convert::TryFrom;
@@ -42,19 +43,44 @@ impl Work {
 
     /// Block and generate forever until we find a solution.
     pub fn generate(subject: &Subject, threshold: &Difficulty) -> anyhow::Result<Work> {
-        loop {
-            let work = Work::attempt(&subject, &threshold)?;
-            if work.is_none() {
-                continue;
-            }
-            return Ok(work.unwrap());
-        }
-    }
+        let mut work_and_subject = [0u8; 40];
 
-    /// A single attempt. Returns None when unsuccessful.
-    pub fn attempt(subject: &Subject, threshold: &Difficulty) -> anyhow::Result<Option<Work>> {
-        let work = Work::random();
-        Ok(work.verify(subject, threshold)?.then(|| work))
+        // We can place the subject in the second part of the slice which will not change.
+        let subject_slice = &mut work_and_subject[Self::LEN..];
+
+        // This will panic if the source slice is too big. The assertion here is a safety measure
+        // in debug builds.
+        debug_assert_eq!(subject.as_bytes().len(), subject_slice.len());
+        subject.as_bytes().copy_to_slice(subject_slice);
+
+        let mut difficulty: Difficulty = Difficulty::new(0);
+
+        // Fill the first 8 bytes with the random work.
+        let work_slice = &mut work_and_subject[0..Self::LEN];
+        rand::thread_rng().fill_bytes(work_slice);
+
+        loop {
+            // Pick a random byte position and increment.
+            // I'm guessing this is slightly faster than using fill_bytes for a new set of numbers.
+            // TODO: Bench this guess.
+            let idx = (rand::random::<u8>() % (Self::LEN as u8)) as usize;
+            let c = work_and_subject[idx];
+            work_and_subject[idx] = if c == 0xff { 0 } else { c + 1 };
+
+            blake2b_callback(Self::LEN, &work_and_subject, |b| {
+                difficulty = Difficulty::from_le_slice(b).unwrap();
+            });
+            // TODO: Check if this is > or >=
+            if &difficulty > threshold {
+                break;
+            }
+        }
+
+        let work_slice = &work_and_subject[0..Self::LEN];
+        let mut work_bytes = Vec::from(work_slice);
+        work_bytes.reverse();
+        let work = Work::try_from(work_bytes.as_slice()).unwrap();
+        return Ok(work);
     }
 
     pub fn hash(work_and_subject: &[u8]) -> Box<[u8]> {
@@ -66,9 +92,8 @@ impl Work {
         Ok(&difficulty > threshold)
     }
 
-    // This is very probably not performant, but I'm just here to make it work first.
     pub fn difficulty(&self, subject: &Subject) -> anyhow::Result<Difficulty> {
-        let mut work_and_subject = Vec::new();
+        let mut work_and_subject = Vec::with_capacity(40);
 
         // For some reason this is reversed!
         let mut reversed_work = self.0.to_vec();
@@ -191,7 +216,7 @@ mod tests {
 
     #[test]
     fn generate_work() {
-        // Let's use a low difficulty in debug mode so it doesn't take forever.
+        // Let's use a low difficulty in debug mode so doesn't take forever.
         let threshold = if cfg!(debug_assertions) {
             Difficulty::from_str("ffff000000000000")
         } else {
