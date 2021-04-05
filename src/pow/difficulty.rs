@@ -4,9 +4,10 @@ use crate::{expect_len, to_hex, Error};
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use std::cmp::Ordering;
 use std::convert::TryFrom;
+use std::fmt::{Debug, Formatter};
 use std::str::FromStr;
 
-#[derive(Debug, Eq, PartialEq)]
+#[derive(Eq, PartialEq, Clone)]
 pub struct Difficulty(u64);
 
 impl Difficulty {
@@ -15,6 +16,14 @@ impl Difficulty {
 
     pub fn new(v: u64) -> Self {
         Self(v)
+    }
+
+    pub fn receive() -> Self {
+        Self::from_str("FFFFFE0000000000").unwrap()
+    }
+
+    pub fn normal() -> Self {
+        Self::from_str("FFFFFFF800000000").unwrap()
     }
 
     pub fn from_fixed_slice(s: &[u8; Self::LEN]) -> Result<Self> {
@@ -34,6 +43,12 @@ impl Difficulty {
 
     pub fn as_u64(&self) -> u64 {
         self.0
+    }
+}
+
+impl Debug for Difficulty {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", to_hex(&self.0.to_be_bytes()))
     }
 }
 
@@ -88,5 +103,12 @@ mod tests {
             Difficulty::from_str("ffffffc000000000").unwrap().as_u64(),
             18446743798831644672u64
         );
+    }
+
+    #[test]
+    fn dont_panic() {
+        // These have unwraps in them and so this is a sanity check to make sure it doesn't panic.
+        Difficulty::receive();
+        Difficulty::normal();
     }
 }

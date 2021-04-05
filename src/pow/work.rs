@@ -51,7 +51,7 @@ impl Work {
         }
     }
 
-    /// A single attempt.
+    /// A single attempt. Returns None when unsuccessful.
     pub fn attempt(subject: &Subject, threshold: &Difficulty) -> anyhow::Result<Option<Work>> {
         let work = Work::random();
         Ok(work.verify(subject, threshold)?.then(|| work))
@@ -191,7 +191,7 @@ mod tests {
 
     #[test]
     fn generate_work() {
-        // Let's use a low difficulty in debug mode, it doesn't take forever.
+        // Let's use a low difficulty in debug mode so it doesn't take forever.
         let threshold = if cfg!(debug_assertions) {
             Difficulty::from_str("ffff000000000000")
         } else {
