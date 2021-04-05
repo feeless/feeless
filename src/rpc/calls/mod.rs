@@ -4,6 +4,7 @@ mod account_info;
 mod active_difficulty;
 mod block_info;
 mod process;
+mod work_validate;
 
 pub use account_balance::{AccountBalanceRequest, AccountBalanceResponse};
 pub use account_history::{AccountHistoryEntry, AccountHistoryRequest, AccountHistoryResponse};
@@ -16,6 +17,7 @@ use serde::{de, Deserialize, Deserializer, Serialize, Serializer};
 use std::fmt::Display;
 use std::ops::Deref;
 use std::str::FromStr;
+pub use work_validate::{WorkValidateRequest, WorkValidateResponse};
 
 #[derive(Debug, Clap, Deserialize)]
 #[serde(tag = "action", rename_all = "snake_case")]
@@ -26,6 +28,7 @@ pub enum Command {
     ActiveDifficulty(ActiveDifficultyRequest),
     BlockInfo(BlockInfoRequest),
     Process(ProcessRequest),
+    WorkValidate(WorkValidateRequest),
 }
 
 pub(crate) fn from_str<'de, T, D>(deserializer: D) -> std::result::Result<T, D::Error>

@@ -33,6 +33,7 @@ impl RPCClientOpts {
             Command::ActiveDifficulty(c) => self.show(c).await?,
             Command::BlockInfo(c) => self.show(c).await?,
             Command::Process(c) => self.show(c).await?,
+            Command::WorkValidate(c) => self.show(c).await?,
         };
         Ok(())
     }

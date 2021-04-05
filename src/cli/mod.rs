@@ -3,6 +3,7 @@ use crate::cli::unit::UnitOpts;
 use crate::cli::vanity::VanityOpts;
 use crate::cli::verify::VerifyOpts;
 use crate::cli::wallet::WalletOpts;
+use crate::cli::work::WorkOpts;
 use crate::debug::parse_pcap_log_file_to_csv;
 use crate::network::Network;
 use crate::node::Node;
@@ -32,6 +33,7 @@ mod unit;
 mod vanity;
 mod verify;
 mod wallet;
+mod work;
 
 #[derive(Clap)]
 #[clap(author, about, version)]
@@ -76,6 +78,9 @@ enum Command {
 
     /// Address conversion.
     Address(AddressOpts),
+
+    /// Find a secret that can generate a custom vanity address.
+    Work(WorkOpts),
 
     /// Find a secret that can generate a custom vanity address.
     Vanity(VanityOpts),
@@ -172,6 +177,7 @@ pub async fn run() -> anyhow::Result<()> {
         Command::Phrase(phrase) => phrase.handle(),
         Command::Address(address) => address.handle(),
         Command::Unit(unit) => unit.handle(),
+        Command::Work(work) => work.handle(),
         Command::Vanity(vanity) => vanity.handle().await,
         Command::Verify(verify) => verify.handle(),
     }
