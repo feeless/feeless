@@ -37,9 +37,7 @@ impl Network {
         // Give the genesis block the maximum u128 value.
         let balance = Rai::max();
 
-        let mut block = Block::from_open_block(&open_block, &Previous::Open, &balance);
-        block.calc_hash().unwrap();
-        block
+        Block::from_open_block(&open_block, &Previous::Open, &balance)
     }
 
     pub fn genesis_hash(&self) -> BlockHash {
@@ -81,8 +79,7 @@ mod tests {
     #[test]
     fn hash_live_genesis_block() {
         let net = Network::Live;
-        let mut block = net.genesis_block();
-        block.calc_hash().unwrap();
+        let block = net.genesis_block();
         let hash = block.hash().unwrap();
         assert_eq!(hash, &net.genesis_hash());
     }
