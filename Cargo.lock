@@ -199,21 +199,22 @@ dependencies = [
 
 [[package]]
 name = "cmd_lib"
-version = "1.0.8"
+version = "1.0.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "80f138560e517c551a7e569e106d2ee24426a6be413c0ef245f50deba8eabea4"
+checksum = "8c7c3abf5fc3b6ae586466b4369d8ff7604859605abf8c56da4f967fe3e8b616"
 dependencies = [
  "cmd_lib_macros",
  "faccess",
  "lazy_static",
  "log",
+ "os_pipe",
 ]
 
 [[package]]
 name = "cmd_lib_macros"
-version = "1.0.8"
+version = "1.0.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a85ea9cd1848e9f07f95f21160efbd864a7897b51979f43ec9e59aa052045070"
+checksum = "4dba1162f85dbe774f525997d0fccf423d3e16381acda6d65648793f62afb8d1"
 dependencies = [
  "proc-macro-error",
  "proc-macro2",
@@ -1208,6 +1209,16 @@ dependencies = [
  "libc",
  "pkg-config",
  "vcpkg",
+]
+
+[[package]]
+name = "os_pipe"
+version = "0.9.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "fb233f06c2307e1f5ce2ecad9f8121cffbbee2c95428f44ea85222e460d0d213"
+dependencies = [
+ "libc",
+ "winapi",
 ]
 
 [[package]]
