@@ -55,6 +55,8 @@ use pbkdf2::{
 use crate::FeelessError;
 use blake2::VarBlake2b;
 use blake2::digest::{Update, VariableOutput};
+use secrecy::Secret;
+use std::io::{Read, Write};
 
 // `aes` crate provides AES block cipher implementation
 type Aes128Ctr = ctr::Ctr128<aes::Aes128>;
@@ -146,8 +148,20 @@ impl WalletManager {
 
     pub async fn wallet_encrypted(&self, reference: &WalletId, password: &str) -> anyhow::Result<Wallet> {
         let file = read(&self.path).await?;
-        let data = self.apply_keystream(&password, file).await?;
-        let wallet_storage: Result<WalletStorage, serde_json::error::Error> = serde_json::from_slice(&data);
+        //let data = self.apply_keystream(&password, file).await?;
+        let decrypted = {
+            let decryptor = match age::Decryptor::new(&file[..])? {
+                age::Decryptor::Passphrase(d) => d,
+                _ => unreachable!(),
+            };
+        
+            let mut decrypted = vec![];
+            let mut reader = decryptor.decrypt(&Secret::new(password.to_owned()), None)?;
+            reader.read_to_end(&mut decrypted)?;
+        
+            decrypted
+        };
+        let wallet_storage: Result<WalletStorage, serde_json::error::Error> = serde_json::from_slice(&decrypted);
         match wallet_storage {
             Ok(store) => { 
                 return Ok(store
@@ -209,8 +223,15 @@ impl WalletManager {
             .interact()
             .unwrap();
         let file = read(&self.path).await?;
-        let data = self.apply_keystream(&password, file).await?;
-        write(&self.path, data).await?;
+        //let data = self.apply_keystream(&password, file).await?;
+        //write(&self.path, data).await?;
+        let encryptor = age::Encryptor::with_user_passphrase(Secret::new(password.to_owned()));
+
+        let mut encrypted = vec![];
+        let mut writer = encryptor.wrap_output(&mut encrypted).unwrap();
+        writer.write_all(&file)?;
+        writer.finish()?;
+        write(&self.path, &encrypted).await?;
         Ok(())
     }
 
@@ -220,16 +241,29 @@ impl WalletManager {
             .with_prompt("Enter existing password")
             .interact()
             .unwrap();
-        let file = read(&self.path).await?;
-        let data = self.apply_keystream(&password, file).await?;
-        let wallet_storage: Result<WalletStorage, serde_json::error::Error> = serde_json::from_slice(&data);
+            let file = read(&self.path).await?;
+            let decrypted = {
+                let decryptor = match age::Decryptor::new(&file[..])? {
+                    age::Decryptor::Passphrase(d) => d,
+                    _ => unreachable!(),
+                };
+            
+                let mut decrypted = vec![];
+                let mut reader = decryptor.decrypt(&Secret::new(password.to_owned()), None)?;
+                reader.read_to_end(&mut decrypted)?;
+            
+                decrypted
+            };
+            write(&self.path, decrypted).await?;
+        //let data = self.apply_keystream(&password, file).await?;
+        /*let wallet_storage: Result<WalletStorage, serde_json::error::Error> = serde_json::from_slice(&decrypted);
         match wallet_storage {
             Ok(_) => {
                 write(&self.path, data).await?;
                 println!("Password removed");
             }
             Err(_) => println!("Wrong password"),
-        }
+        }*/
         Ok(())
     }
 
@@ -240,21 +274,40 @@ impl WalletManager {
             .interact()
             .unwrap();
         let file = read(&self.path).await?;
-        let data = self.apply_keystream(&password, file).await?;
-        let wallet_storage: Result<WalletStorage, serde_json::error::Error> = serde_json::from_slice(&data);
-        match wallet_storage {
-            Ok(_) => {
-                let password = Password::with_theme(&ColorfulTheme::default())
+            let decrypted = {
+                let decryptor = match age::Decryptor::new(&file[..])? {
+                    age::Decryptor::Passphrase(d) => d,
+                    _ => unreachable!(),
+                };
+            
+                let mut decrypted = vec![];
+                let mut reader = decryptor.decrypt(&Secret::new(password.to_owned()), None)?;
+                reader.read_to_end(&mut decrypted)?;
+            
+                decrypted
+            };
+        //let data = self.apply_keystream(&password, file).await?;
+        //let wallet_storage: Result<WalletStorage, serde_json::error::Error> = serde_json::from_slice(&data);
+        //match wallet_storage {
+            //Ok(_) => {
+                let new_password = Password::with_theme(&ColorfulTheme::default())
                         .with_prompt("Enter a new password")
                         .with_confirmation("Confirm password:", "Error: the passwords don't match.")
                         .interact()
                         .unwrap();
-                let new_data = self.apply_keystream(&password, data).await?;
-                write(&self.path, new_data).await?;
+                
+                let encryptor = age::Encryptor::with_user_passphrase(Secret::new(new_password.to_owned()));
+                let mut encrypted = vec![];
+                let mut writer = encryptor.wrap_output(&mut encrypted).unwrap();
+                writer.write_all(&decrypted)?;
+                writer.finish()?;
+                write(&self.path, &encrypted).await?;
+                //let new_data = self.apply_keystream(&password, data).await?;
+                //write(&self.path, new_data).await?;
                 println!("Password changed");
-            }
-            Err(_) => println!("Wrong password"),
-        }
+            //}
+            //Err(_) => println!("Wrong password"),
+        //}
         Ok(())
     }
 

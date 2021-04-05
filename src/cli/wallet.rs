@@ -85,6 +85,7 @@ impl WalletOpts {
                 }     
             }
             Command::Address(o) => {
+                // resolve case where wallet id is not provided and default is used and file is not encrypted
                 match WalletOpts::read(&o.opts).await {
                     Ok(wallet) => println!("{}", wallet.address(o.index)?),
                     Err(_) => {
@@ -94,6 +95,7 @@ impl WalletOpts {
                 }     
             }
             Command::Password(o) => {
+                // default file if none is provided
                 let manager = WalletManager::new(&o.opts.file.as_ref().unwrap());
                 match &o.remove {
                     true => {
@@ -136,6 +138,7 @@ impl WalletOpts {
             manager = WalletManager::new(file);
         }
         manager.ensure().await?;
+        // add case where wallet id is provided by user
         let wallet_id = o.wallet_id()?.to_owned();
         Ok((manager, wallet_id))
     }
