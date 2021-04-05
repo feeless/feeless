@@ -1,4 +1,5 @@
 #![forbid(unsafe_code)]
+#![cfg_attr(feature = "deny_warnings", deny(warnings))]
 
 use feeless::cli;
 use tracing::error;
