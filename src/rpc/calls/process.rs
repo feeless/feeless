@@ -1,4 +1,4 @@
-use crate::blocks::BlockHolder;
+use crate::blocks::{BlockHolder, StateBlock, Subtype};
 use crate::rpc::client::{RPCClient, RPCRequest};
 use crate::rpc::AlwaysTrue;
 use crate::Result;
@@ -12,9 +12,10 @@ pub struct ProcessRequest {
     #[clap(skip)]
     json_block: AlwaysTrue,
 
-    // pub subtype: Subtype,
-    #[clap(subcommand)]
-    pub block: BlockHolder,
+    pub subtype: Subtype,
+
+    #[clap(flatten)]
+    pub block: StateBlock,
 }
 
 #[async_trait]

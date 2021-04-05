@@ -50,6 +50,8 @@ chrono = { version = "0.4.19", features = ["serde"] }
 doc-comment = "0.3.3"
 fd-lock = "2.0.0"
 thiserror = "1.0.24"
+strum = "0.20.0"
+strum_macros = "0.20.1"
 
 # This is a modified version of https://github.com/Fiono11/tiny-bip39
 # which uses thiserror for error handling instead of anyhow.

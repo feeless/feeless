@@ -15,6 +15,7 @@ use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use std::convert::TryFrom;
 use std::fmt::Debug;
 use std::str::FromStr;
+use strum_macros::EnumString;
 
 pub fn deserialize_to_unsure_link<'de, D>(
     deserializer: D,
@@ -27,7 +28,8 @@ where
 }
 
 /// Not used within StateBlock yet.
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, EnumString)]
+#[strum(serialize_all = "snake_case")]
 pub enum Subtype {
     Send,
     Receive,
