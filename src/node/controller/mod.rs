@@ -315,9 +315,8 @@ mod tests {
 
         // TODO: This should be done somewhere (the controller?
         // e.g. controller.validate_send_block() or controller.fill_send_block()
-        let mut block: Block =
+        let block: Block =
             Block::from_send_block(&gen_send, genesis.account(), genesis.representative());
-        block.calc_hash().unwrap();
 
         controller.add_elected_block(&block).await.unwrap();
 
@@ -355,8 +354,7 @@ mod tests {
                 "signature": "E950FFDF0C9C4DAF43C27AE3993378E4D8AD6FA591C24497C53E07A3BC80468539B0A467992A916F0DDA6F267AD764A3C1A5BDBD8F489DFAE8175EEE0E337402"
             }"#,
         ).unwrap();
-        let mut land_open = Block::from_open_block(&land_open, &Previous::Open, &given);
-        land_open.calc_hash().unwrap();
+        let land_open = Block::from_open_block(&land_open, &Previous::Open, &given);
         assert_eq!(
             land_open.hash().unwrap(),
             &BlockHash::from_str(
@@ -382,9 +380,8 @@ mod tests {
     "signature": "434CF7E7B2C2CAA3E3910CC711B29498870636C1247EA8C72BD5C0A7BB15A7BACFEC9CF289B92E4BD56F56E68277B45B3A3FF9339D2547038B87DE38C851B70B"
   }"#).unwrap();
 
-        let mut land_send =
+        let land_send =
             Block::from_send_block(&land_send, &landing_account, &land_open.representative());
-        land_send.calc_hash().unwrap();
 
         controller.add_elected_block(&land_send).await.unwrap();
 
