@@ -1,5 +1,6 @@
-#![forbid(unsafe_code)]
 #![allow(dead_code)]
+#![forbid(unsafe_code)]
+#![cfg_attr(feature = "deny_warnings", deny(warnings))]
 // #![warn(missing_docs)] LOL not yet.
 //! A set of tools to handle many aspects of the Nano cryptocurrency.
 //!
@@ -72,7 +73,7 @@ pub use keys::private::Private;
 pub use keys::public::Public;
 pub use keys::seed::Seed;
 pub use keys::signature::Signature;
-pub use pow::{Difficulty, Work};
+pub use pow::{Difficulty, Subject, Work};
 pub use units::rai::Rai;
 
 /// The default TCP port that Nano nodes use.

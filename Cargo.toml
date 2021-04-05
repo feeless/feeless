@@ -21,6 +21,7 @@ node = ["sled"]
 wallet = []
 rpc_client = ["reqwest", "colored_json", "serde_with"]
 rpc_server = ["warp", "node"]
+deny_warnings = []
 
 # pcap needs node for all the messages. This could be moved outside of node in the future.
 pcap = ["node", "pcarp", "etherparse"]

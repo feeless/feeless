@@ -50,6 +50,13 @@ pub fn blake2b(size: usize, data: &[u8]) -> Box<[u8]> {
     blake.finalize_boxed()
 }
 
+/// Use this instead of [blake2b] to probably prevent an allocation.
+pub fn blake2b_callback(size: usize, data: &[u8], f: impl FnOnce(&[u8])) {
+    let mut blake = VarBlake2b::new(size).expect("Output size was zero");
+    blake.update(&data);
+    blake.finalize_variable(f)
+}
+
 pub(crate) const ALPHABET: &str = "13456789abcdefghijkmnopqrstuwxyz";
 const ENCODING_BITS: usize = 5;
 

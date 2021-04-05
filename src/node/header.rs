@@ -289,9 +289,9 @@ impl TryFrom<&[u8]> for Extensions {
 
 #[cfg(test)]
 mod tests {
-    use std::fmt::Debug;
-    use crate::node::state::MemoryState;
     use super::*;
+    use crate::node::state::MemoryState;
+    use std::fmt::Debug;
 
     #[test]
     fn serialize() {
@@ -316,7 +316,9 @@ mod tests {
         }
         assert!(
             false,
-            "Got error:\n{:?}\n\nExpecting: {}", &result.err().unwrap(), s
+            "Got error:\n{:?}\n\nExpecting: {}",
+            &result.err().unwrap(),
+            s
         );
     }
 
