@@ -1,5 +1,6 @@
-#![forbid(unsafe_code)]
 #![allow(dead_code)]
+#![forbid(unsafe_code)]
+#![cfg_attr(feature = "deny_warnings", deny(warnings))]
 // #![warn(missing_docs)] LOL not yet.
 //! A set of tools to handle many aspects of the Nano cryptocurrency.
 //!
@@ -39,18 +40,6 @@
 //! # }
 //! ```
 
-pub(crate) use encoding::{hex_formatter, to_hex};
-pub use errors::{Error, Result};
-pub use keys::address::Address;
-pub use keys::phrase;
-pub use keys::phrase::Phrase;
-pub use keys::private::Private;
-pub use keys::public::Public;
-pub use keys::seed::Seed;
-pub use keys::signature::Signature;
-pub use pow::work::Work;
-pub use units::rai::Rai;
-
 #[cfg(feature = "node")]
 mod node;
 
@@ -71,8 +60,21 @@ mod errors;
 mod keys;
 mod network;
 mod pow;
+pub mod rpc;
 pub mod units;
 pub mod vanity;
+
+pub(crate) use encoding::{hex_formatter, to_hex};
+pub use errors::{Error, Result};
+pub use keys::address::Address;
+pub use keys::phrase;
+pub use keys::phrase::Phrase;
+pub use keys::private::Private;
+pub use keys::public::Public;
+pub use keys::seed::Seed;
+pub use keys::signature::Signature;
+pub use pow::{Difficulty, Subject, Work};
+pub use units::rai::Rai;
 
 /// The default TCP port that Nano nodes use.
 pub const DEFAULT_PORT: u16 = 7075;

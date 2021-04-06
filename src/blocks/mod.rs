@@ -25,8 +25,9 @@ pub use receive_block::ReceiveBlock;
 pub use send_block::SendBlock;
 use serde;
 use serde::{Deserialize, Serialize};
-use state_block::Link;
+pub use state_block::Link;
 pub use state_block::StateBlock;
+use tracing::trace;
 
 #[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
@@ -38,6 +39,7 @@ pub enum BlockType {
     Open,
     Change,
     State,
+    Epoch,
 }
 
 impl BlockType {
@@ -50,6 +52,7 @@ impl BlockType {
             BlockType::Open => 4,
             BlockType::Change => 5,
             BlockType::State => 6,
+            BlockType::Epoch => todo!(),
         }
     }
 }
@@ -73,7 +76,8 @@ impl TryFrom<u8> for BlockType {
 }
 
 /// For "holding" deserialized blocks that we can't convert to `Block` yet.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(tag = "type", rename_all = "snake_case")]
 pub enum BlockHolder {
     Send(SendBlock),
     Receive(ReceiveBlock),
@@ -199,7 +203,7 @@ impl Block {
         link: Link,
         state: ValidationState,
     ) -> Self {
-        Self {
+        let mut new_block = Self {
             hash: None,
             block_type,
             account,
@@ -210,7 +214,9 @@ impl Block {
             work: None,
             signature: None,
             state,
-        }
+        };
+        new_block.calc_hash().unwrap();
+        new_block
     }
 
     pub fn from_open_block(open_block: &OpenBlock, previous: &Previous, balance: &Rai) -> Self {
@@ -263,16 +269,17 @@ impl Block {
     }
 
     pub fn hash(&self) -> anyhow::Result<&BlockHash> {
-        self.hash.as_ref().ok_or(anyhow!("Hash not calculated yet"))
+        match &self.hash {
+            Some(block_hash) => Ok(&block_hash),
+            None => Err(anyhow!("Block not hashable!")),
+        }
     }
 
-    /// Get existing hash or generate the hash for this block.
+    /// Generates the hash for this block.
+    /// Will be None if block type is Invalid or NotABlock
     // TODO: Can this ever fail?
-    pub fn calc_hash(&mut self) -> anyhow::Result<()> {
+    fn calc_hash(&mut self) -> anyhow::Result<()> {
         let context = || format!("Calculating hash for {:?}", &self);
-        if self.hash.is_some() {
-            return Ok(());
-        };
 
         let hash_result = match &self.block_type() {
             BlockType::Open => hash_block(&[
@@ -285,7 +292,16 @@ impl Block {
                 self.destination().with_context(context)?.as_bytes(),
                 self.balance.to_vec().as_slice(),
             ]),
-            BlockType::State => {
+            BlockType::Change => hash_block(&[
+                self.previous.to_bytes().as_slice(),
+                self.representative.as_bytes(),
+            ]),
+            BlockType::Receive => hash_block(&[
+                self.previous.to_bytes().as_slice(),
+                self.source().with_context(context)?.as_bytes(),
+            ]),
+            BlockType::State | BlockType::Epoch => {
+                // TODO: check if epoch is *always* a state block
                 let mut preamble = [0u8; 32];
                 preamble[31] = BlockType::State as u8;
 
@@ -298,11 +314,17 @@ impl Block {
                     self.link.as_bytes(),
                 ])
             }
-            _ => todo!(),
+            _ => Err(anyhow!("Block not hashable")),
         };
 
-        let hash = hash_result.with_context(context)?;
-        self.hash = Some(hash);
+        match hash_result {
+            Ok(block_hash) => self.hash = Some(block_hash),
+            Err(error) => {
+                trace!("Ignoring hash for block {:?}. Cause: {}", &self, error);
+                self.hash = None
+            }
+        }
+
         Ok(())
     }
 
@@ -419,7 +441,7 @@ mod tests {
         let a = serde_json::to_string_pretty(&genesis).unwrap();
         dbg!(&a);
         assert!(a.contains(r#"type": "open""#));
-        assert!(a.contains(r#"source": "E8"#));
+        assert!(a.contains(r#"link": "E8"#));
         assert!(a.contains(r#"representative": "nano_3t"#));
         assert!(a.contains(r#"account": "nano_3t"#));
         assert!(a.contains(r#"work": "62F"#));

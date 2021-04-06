@@ -3,6 +3,7 @@ use crate::keys::public::Public;
 use crate::Error;
 use bitvec::prelude::*;
 use regex::Regex;
+use serde::{Deserialize, Serialize};
 use std::convert::TryFrom;
 use std::str::FromStr;
 
@@ -26,7 +27,7 @@ use std::str::FromStr;
 /// [   ][encoded public key                                ][chksum]
 /// [5  ][52                                                ][8     ] <-- Bytes
 /// ```
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Debug, PartialEq, Clone, Serialize, Deserialize, Eq)]
 pub struct Address(String);
 
 impl Address {

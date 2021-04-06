@@ -16,9 +16,12 @@ name = "cli"
 
 [features]
 default = ["full"]
-full = ["pcap", "node", "wallet"]
+full = ["pcap", "node", "wallet", "rpc_client", "rpc_server"]
 node = ["sled"]
 wallet = []
+rpc_client = ["reqwest", "colored_json", "serde_with"]
+rpc_server = ["warp", "node"]
+deny_warnings = []
 
 # pcap needs node for all the messages. This could be moved outside of node in the future.
 pcap = ["node", "pcarp", "etherparse"]
@@ -40,10 +43,10 @@ serde_json = "1.0.64"
 blake2 = "0.9.1"
 num = "0.4.0"
 bytes = "1.0.1"
-bitvec = "0.21.1"
+bitvec = "0.22.1"
 regex = "1.4.5"
 rand = "0.8.3"
-chrono = "0.4.19"
+chrono = { version = "0.4.19", features = ["serde"] }
 doc-comment = "0.3.3"
 fd-lock = "2.0.0"
 thiserror = "1.0.24"
@@ -73,5 +76,13 @@ sled = { version = "0.34.6", optional = true }
 pcarp = { version = "1.2.0", optional = true }
 etherparse = { version = "0.9.0", optional = true }
 
+# rpc_client only
+reqwest = { version = "0.11.2", optional = true, features = ["json"] }
+colored_json = { version = "2.1.0", optional = true }
+serde_with = { version = "1.8.0", optional = true, features = ["chrono"] }
+
+# rpc_server only
+warp = { version = "0.3.1", optional = true }
+
 [dev-dependencies]
-cmd_lib = "1.0.4"
+cmd_lib = "1.0.9"

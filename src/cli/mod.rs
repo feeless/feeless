@@ -3,19 +3,23 @@ use crate::cli::unit::UnitOpts;
 use crate::cli::vanity::VanityOpts;
 use crate::cli::verify::VerifyOpts;
 use crate::cli::wallet::WalletOpts;
+use crate::cli::work::WorkOpts;
 use crate::debug::parse_pcap_log_file_to_csv;
-use crate::node::node_with_autodiscovery;
+use crate::network::Network;
+use crate::node::Node;
+use crate::rpc::client::RPCClientOpts;
 use address::AddressOpts;
-use anyhow::anyhow;
+use anyhow::{anyhow, Context};
 use clap::Clap;
 use phrase::PhraseOpts;
 use private::PrivateOpts;
 use public::PublicOpts;
 use seed::SeedOpts;
-use std::io;
 use std::io::Read;
+use std::net::SocketAddr;
 use std::path::PathBuf;
 use std::str::FromStr;
+use std::{env, io};
 use tracing::Level;
 use tracing_subscriber::EnvFilter;
 
@@ -29,6 +33,7 @@ mod unit;
 mod vanity;
 mod verify;
 mod wallet;
+mod work;
 
 #[derive(Clap)]
 #[clap(author, about, version)]
@@ -75,7 +80,13 @@ enum Command {
     Address(AddressOpts),
 
     /// Find a secret that can generate a custom vanity address.
+    Work(WorkOpts),
+
+    /// Find a secret that can generate a custom vanity address.
     Vanity(VanityOpts),
+
+    /// Find a secret that can generate a custom vanity address.
+    Call(RPCClientOpts),
 
     /// Tool to analyse network capture dumps for Nano packets.
     Pcap(PcapDumpOpts),
@@ -114,6 +125,8 @@ pub async fn run() -> anyhow::Result<()> {
     let mut filter = EnvFilter::from_default_env();
     if let Some(level) = opts.log_level {
         filter = filter.add_directive(level.into());
+    } else if env::var_os("RUST_LOG").is_none() {
+        filter = filter.add_directive("feeless=info".parse()?);
     }
     let subscriber = tracing_subscriber::fmt::Subscriber::builder()
         .with_env_filter(filter)
@@ -123,7 +136,23 @@ pub async fn run() -> anyhow::Result<()> {
 
     match opts.command {
         #[cfg(feature = "node")]
-        Command::Node(o) => node_with_autodiscovery(o.override_peers).await,
+        Command::Node(o) => {
+            let mut node = Node::new(Network::Live);
+            node.enable_rpc_server().await?;
+            if let Some(str_addrs) = o.override_peers {
+                let mut socket_addrs = vec![];
+                for str_addr in str_addrs {
+                    let socket_addr = SocketAddr::from_str(&str_addr)
+                        .with_context(|| format!("Could not parse host:port: {}", str_addr))?;
+                    socket_addrs.push(socket_addr);
+                }
+                node.add_peers(&socket_addrs).await?;
+            } else {
+                node.peer_autodiscovery().await?;
+            }
+
+            node.run().await
+        }
         #[cfg(not(feature = "node"))]
         Command::Node(_) => panic!("Compile with the `node` feature to enable this."),
 
@@ -131,6 +160,11 @@ pub async fn run() -> anyhow::Result<()> {
         Command::Pcap(o) => o.handle().await,
         #[cfg(not(feature = "pcap"))]
         Command::Pcap(o) => panic!("Compile with the `pcap` feature to enable this."),
+
+        #[cfg(feature = "rpc_client")]
+        Command::Call(o) => Ok(o.handle().await?),
+        #[cfg(not(feature = "rpc_client"))]
+        Command::Call(o) => panic!("Compile with the `rpc_client` feature to enable this."),
 
         Command::Debug(debug) => match debug.command {
             DebugCommand::PcapLogToCSV(huh) => parse_pcap_log_file_to_csv(&huh.src, &huh.dst),
@@ -143,6 +177,7 @@ pub async fn run() -> anyhow::Result<()> {
         Command::Phrase(phrase) => phrase.handle(),
         Command::Address(address) => address.handle(),
         Command::Unit(unit) => unit.handle(),
+        Command::Work(work) => work.handle(),
         Command::Vanity(vanity) => vanity.handle().await,
         Command::Verify(verify) => verify.handle(),
     }
