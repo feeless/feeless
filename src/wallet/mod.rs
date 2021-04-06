@@ -44,7 +44,6 @@ use std::path::PathBuf;
 use std::str::FromStr;
 use tokio::fs::File;
 use tokio::fs::{read, write};
-use crate::FeelessError;
 use secrecy::Secret;
 use std::io::{Read, Write};
 
@@ -100,11 +99,13 @@ impl WalletManager {
         match password {
             None => {
                 let store = self.load_unlocked().await?;
-                return Ok(store
+                let wallet = store
                     .wallets
                     .get(&reference)
-                    .ok_or_else(|| anyhow!("Wallet reference not found: {:?}", &reference))?
-                    .to_owned())
+                    .ok_or_else(|| anyhow!("Wallet reference not found: {:?}", &reference))
+                    .unwrap() // we want to catch the error if the wallet id doesn't exist
+                    .to_owned();
+                return Ok(wallet)
             }
             Some(password) => {
                 let decrypted = self.decrypt(&password, true).await?;

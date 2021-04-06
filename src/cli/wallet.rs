@@ -69,11 +69,11 @@ impl WalletOpts {
             }
             Command::Private(o) => {
                 let wallet = WalletOpts::read(&o.opts).await?;
-                println!("{}", wallet.private(o.private)?);
+                println!("{}", wallet.private(o.address)?);
             }
             Command::Public(o) => {
                 let wallet = WalletOpts::read(&o.opts).await?;
-                println!("{}", wallet.public(o.public)?);
+                println!("{}", wallet.public(o.address)?);
             }
             Command::Address(o) => {
                 let wallet = WalletOpts::read(&o.opts).await?;
@@ -194,7 +194,7 @@ enum Command {
 
     /// Encrypts the wallet file with a password.
     Password(PasswordOpts),
-    
+
     /// Sign a message using a key in this wallet.
     Sign(SignOpts),
 
