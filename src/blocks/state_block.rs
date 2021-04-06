@@ -6,18 +6,51 @@ use crate::node::Wire;
 
 use crate::blocks::{BlockHash, BlockType};
 use crate::bytes::Bytes;
-use crate::{expect_len, Public, Rai, Signature, Work};
-
-use serde::{Deserialize, Serialize};
+use crate::encoding::deserialize_from_str;
+use crate::keys::public::{from_address, to_address};
+use crate::{expect_len, to_hex, Error, Public, Rai, Signature, Work};
+use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use std::convert::TryFrom;
+use std::fmt::Debug;
+use std::str::FromStr;
+
+pub fn deserialize_to_unsure_link<'de, D>(
+    deserializer: D,
+) -> Result<Link, <D as Deserializer<'de>>::Error>
+where
+    D: Deserializer<'de>,
+{
+    let unsure = UnsureLink::deserialize(deserializer).map_err(serde::de::Error::custom)?;
+    Ok(Link::Unsure(unsure))
+
+    // let s: &str = Deserialize::deserialize(deserializer)?;
+    // expect_len(s.len(), Link::LEN * 2, "hex link").map_err(serde::de::Error::custom)?;
+    // let vec = hex::decode(s.as_bytes())
+    //     .map_err(|source| Error::FromHexError {
+    //         msg: "Decoding hex public key".into(),
+    //         source,
+    //     })
+    //     .map_err(serde::de::Error::custom)?;
+    // let bytes = vec.as_slice();
+    // let x = <[u8; Link::LEN]>::try_from(bytes).map_err(serde::de::Error::custom)?;
+    // Ok(Link::Unsure(UnsureLink(x)))
+}
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct StateBlock {
+    #[serde(serialize_with = "to_address", deserialize_with = "from_address")]
     pub account: Public,
+
     pub previous: BlockHash,
+
+    #[serde(serialize_with = "to_address", deserialize_with = "from_address")]
     pub representative: Public,
+
     pub balance: Rai,
+
+    #[serde(deserialize_with = "deserialize_to_unsure_link")]
     pub link: Link,
+
     pub work: Option<Work>,
     pub signature: Option<Signature>,
 }
@@ -63,7 +96,8 @@ impl Wire for StateBlock {
 
         let link_data = data.slice(Public::LEN)?;
         // We are unsure because we need to work out the previous balance of this account first.
-        let link = Link::Unsure(<[u8; 32]>::try_from(link_data)?);
+        let unsure = UnsureLink::try_from(link_data)?;
+        let link = Link::Unsure(unsure);
 
         let signature = Signature::try_from(data.slice(Signature::LEN)?)?;
         let work = Work::try_from(data.slice(Work::LEN)?)?;
@@ -117,7 +151,6 @@ mod tests {
 
         block.set_signature(signature);
         block.set_work(work);
-        block.calc_hash().unwrap();
 
         assert_eq!(
             block.hash().unwrap(),
@@ -129,14 +162,68 @@ mod tests {
     }
 }
 
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub struct UnsureLink([u8; Link::LEN]);
+
+impl UnsureLink {
+    pub fn as_bytes(&self) -> &[u8] {
+        &self.0
+    }
+}
+
+impl TryFrom<&[u8]> for UnsureLink {
+    type Error = Error;
+
+    fn try_from(value: &[u8]) -> Result<Self, Self::Error> {
+        expect_len(value.len(), Link::LEN, "UnsureLink")?;
+
+        let mut v = UnsureLink([0u8; Link::LEN]);
+        v.0.copy_from_slice(&value);
+        Ok(v)
+    }
+}
+
+impl Serialize for UnsureLink {
+    fn serialize<S>(&self, serializer: S) -> Result<<S as Serializer>::Ok, <S as Serializer>::Error>
+    where
+        S: Serializer,
+    {
+        serializer.serialize_str(to_hex(&self.0).as_str())
+    }
+}
+
+impl<'de> Deserialize<'de> for UnsureLink {
+    fn deserialize<D>(deserializer: D) -> Result<Self, <D as Deserializer<'de>>::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        deserialize_from_str(deserializer)
+    }
+}
+
+impl FromStr for UnsureLink {
+    type Err = Error;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        UnsureLink::try_from(
+            hex::decode(s.as_bytes())
+                .map_err(|source| Error::FromHexError {
+                    msg: "UnsureLink".to_string(),
+                    source,
+                })?
+                .as_slice(),
+        )
+    }
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
-#[serde(rename_all = "snake_case")]
+#[serde(rename_all = "snake_case", untagged)]
 pub enum Link {
     /// For the change block type.
     Nothing,
 
     /// When we've received and decoded a block, but don't know what kind of block this is yet.
-    Unsure([u8; Link::LEN]),
+    Unsure(UnsureLink),
 
     /// Reference the previous block, for receiving.
     Source(BlockHash),
@@ -156,7 +243,7 @@ impl Link {
         expect_len(s.len(), Self::LEN * 2, "Link")?;
         let mut slice = [0u8; Self::LEN];
         hex::decode_to_slice(s, &mut slice)?;
-        Ok(Link::Unsure(slice))
+        Ok(Link::Unsure(UnsureLink(slice)))
     }
 
     pub fn as_bytes(&self) -> &[u8] {
@@ -164,7 +251,7 @@ impl Link {
             Link::Nothing => &[0u8; Self::LEN],
             Link::Source(hash) => hash.as_bytes(),
             Link::DestinationAccount(key) => key.as_bytes(),
-            Link::Unsure(b) => b.as_ref(),
+            Link::Unsure(b) => b.as_bytes(),
         }
     }
 }

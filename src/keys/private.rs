@@ -1,3 +1,4 @@
+use crate::Error;
 use crate::{expect_len, Address, Public, Signature};
 use ed25519_dalek::ed25519::signature::Signature as InternalSignature;
 use ed25519_dalek::ExpandedSecretKey;
@@ -5,7 +6,6 @@ use rand::RngCore;
 use serde::{Deserialize, Serialize};
 use std::convert::TryFrom;
 use std::str::FromStr;
-use crate::FeelessError;
 
 /// 256 bit private key which can generate a public key.
 #[derive(Clone, Serialize, Deserialize, Debug)]
@@ -34,20 +34,20 @@ impl Private {
     /// # Ok(())
     /// # }
     /// ```
-    pub fn to_public(&self) -> Result<Public, FeelessError> {
+    pub fn to_public(&self) -> Result<Public, Error> {
         Ok(Public::from(self.internal_public()?))
     }
 
-    pub(crate) fn internal_public(&self) -> Result<ed25519_dalek::PublicKey, FeelessError> {
+    pub(crate) fn internal_public(&self) -> Result<ed25519_dalek::PublicKey, Error> {
         let dalek = self.to_ed25519_dalek()?;
         Ok(ed25519_dalek::PublicKey::from(&dalek))
     }
 
-    pub fn to_address(&self) -> Result<Address, FeelessError> {
+    pub fn to_address(&self) -> Result<Address, Error> {
         Ok(self.to_public()?.to_address())
     }
 
-    pub fn sign(&self, message: &[u8]) -> Result<Signature, FeelessError> {
+    pub fn sign(&self, message: &[u8]) -> Result<Signature, Error> {
         let dalek = self.to_ed25519_dalek()?;
         let expanded_secret = ExpandedSecretKey::from(&dalek);
         let internal_signed = expanded_secret.sign(message, &self.internal_public()?);
@@ -59,18 +59,18 @@ impl Private {
         Self([0u8; 32])
     }
 
-    fn to_ed25519_dalek(&self) -> Result<ed25519_dalek::SecretKey, FeelessError> {
-        Ok(ed25519_dalek::SecretKey::from_bytes(&self.0)
-            .map_err(|e| FeelessError::SignatureError {
+    fn to_ed25519_dalek(&self) -> Result<ed25519_dalek::SecretKey, Error> {
+        Ok(
+            ed25519_dalek::SecretKey::from_bytes(&self.0).map_err(|e| Error::SignatureError {
                 msg: String::from("Converting to SecretKey"),
                 source: e,
-            })?
+            })?,
         )
     }
 }
 
 impl TryFrom<&[u8]> for Private {
-    type Error = FeelessError;
+    type Error = Error;
 
     fn try_from(bytes: &[u8]) -> Result<Self, Self::Error> {
         expect_len(bytes.len(), Private::LEN, "Private key")?;
@@ -92,15 +92,14 @@ impl std::fmt::Display for Private {
 }
 
 impl FromStr for Private {
-    type Err = FeelessError;
+    type Err = Error;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         expect_len(s.len(), Self::LEN * 2, "hex private key")?;
-        let vec = hex::decode(s.as_bytes())
-            .map_err(|e| FeelessError::FromHexError {
-                msg: String::from("Decoding hex public key"),
-                source: e,
-            })?;
+        let vec = hex::decode(s.as_bytes()).map_err(|e| Error::FromHexError {
+            msg: String::from("Decoding hex public key"),
+            source: e,
+        })?;
         let bytes = vec.as_slice();
         Self::try_from(bytes)
     }

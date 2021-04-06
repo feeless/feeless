@@ -1,10 +1,11 @@
 use crate::encoding;
 use crate::keys::public::Public;
+use crate::Error;
 use bitvec::prelude::*;
 use regex::Regex;
+use serde::{Deserialize, Serialize};
 use std::convert::TryFrom;
 use std::str::FromStr;
-use crate::FeelessError;
 
 /// Nano address. e.g. `nano_3o3nkaqbgxbuhmcrf38tpxyhsf5semmcahejyk9z5ybffm7tjhizrfqo7xkg`
 ///
@@ -26,7 +27,7 @@ use crate::FeelessError;
 /// [   ][encoded public key                                ][chksum]
 /// [5  ][52                                                ][8     ] <-- Bytes
 /// ```
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Debug, PartialEq, Clone, Serialize, Deserialize, Eq)]
 pub struct Address(String);
 
 impl Address {
@@ -49,7 +50,7 @@ impl Address {
         self.extract_public_key().unwrap()
     }
 
-    fn extract_public_key(&self) -> Result<Public, FeelessError> {
+    fn extract_public_key(&self) -> Result<Public, Error> {
         let public_key_part =
             &self.0[Self::PREFIX_LEN..(Self::PREFIX_LEN + Self::ENCODED_PUBLIC_KEY_LEN)];
         debug_assert_eq!(public_key_part.len(), Self::ENCODED_PUBLIC_KEY_LEN);
@@ -68,25 +69,25 @@ impl Address {
         Public::try_from(public_key_bytes.as_slice())
     }
 
-    fn validate_checksum(&self, public: &Public) -> Result<(), FeelessError> {
+    fn validate_checksum(&self, public: &Public) -> Result<(), Error> {
         let idx = Self::PREFIX_LEN + Self::ENCODED_PUBLIC_KEY_LEN;
         let checksum = &self.0[idx..];
         if public.checksum() != checksum {
-            return Err(FeelessError::InvalidChecksum);
+            return Err(Error::InvalidChecksum);
         }
         Ok(())
     }
 }
 
 impl FromStr for Address {
-    type Err = FeelessError;
+    type Err = Error;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         // TODO: Lazy
         let re = Regex::new("^nano_[13][13456789abcdefghijkmnopqrstuwxyz]{59}$")
             .expect("Could not build regexp for nano address.");
         if !re.is_match(s) {
-            return Err(FeelessError::InvalidAddress);
+            return Err(Error::InvalidAddress);
         }
 
         let address = Address(s.into());

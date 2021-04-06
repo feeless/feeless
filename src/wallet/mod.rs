@@ -32,10 +32,10 @@
 //! # }
 //! ```
 use crate::phrase::{Language, MnemonicType};
+use crate::Error;
 use crate::{to_hex, Address, Phrase, Private, Public, Seed};
 use anyhow::{anyhow, Context};
 use rand::RngCore;
-use serde::de::Error;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use std::collections::HashMap;
 use std::convert::TryFrom;
@@ -228,12 +228,12 @@ pub enum Wallet {
 
 impl Wallet {
     /// Derive or return a private key for this wallet.
-    pub fn private(&self, index: u32) -> Result<Private, FeelessError> {
+    pub fn private(&self, index: u32) -> Result<Private, Error> {
         match &self {
             Wallet::Seed(seed) => Ok(seed.derive(index)),
             Wallet::Private(private) => {
                 if index != 0 {
-                   return Err(FeelessError::WalletError);
+                    return Err(Error::WalletError);
                 }
                 Ok(private.to_owned())
             }
@@ -242,7 +242,7 @@ impl Wallet {
     }
 
     /// Derive a public key for this wallet.
-    pub fn public(&self, index: u32) -> Result<Public, FeelessError> {
+    pub fn public(&self, index: u32) -> Result<Public, Error> {
         self.private(index)?.to_public()
     }
 
@@ -312,7 +312,7 @@ impl<'de> Deserialize<'de> for WalletId {
         D: Deserializer<'de>,
     {
         let s: String = Deserialize::deserialize(deserializer)?;
-        Self::from_str(s.as_str()).map_err(D::Error::custom)
+        Self::from_str(s.as_str()).map_err(serde::de::Error::custom)
     }
 }
 

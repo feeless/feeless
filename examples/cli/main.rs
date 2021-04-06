@@ -1,4 +1,8 @@
+#![forbid(unsafe_code)]
+#![cfg_attr(feature = "deny_warnings", deny(warnings))]
+
 mod keys;
+mod signing;
 mod wallet;
 
 use ansi_term::Color;
@@ -28,6 +32,7 @@ fn main() -> anyhow::Result<()> {
 
     keys::keys(&mut test, &feeless)?;
     wallet::wallet(&mut test, &feeless)?;
+    signing::signing(&mut test, &feeless)?;
 
     test.end()?;
 

@@ -37,9 +37,7 @@ impl Network {
         // Give the genesis block the maximum u128 value.
         let balance = Rai::max();
 
-        let mut block = Block::from_open_block(&open_block, &Previous::Open, &balance);
-        block.calc_hash().unwrap();
-        block
+        Block::from_open_block(&open_block, &Previous::Open, &balance)
     }
 
     pub fn genesis_hash(&self) -> BlockHash {
@@ -48,6 +46,13 @@ impl Network {
                 "991CF190094C00F0B68E2E5F75F6BEE95A2E0BD93CEAA4A6734DB9F19B728948",
             )
             .unwrap(),
+            _ => todo!(),
+        }
+    }
+
+    pub fn peering_host(&self) -> &str {
+        match self {
+            Self::Live => "peering.nano.org:7075",
             _ => todo!(),
         }
     }
@@ -74,8 +79,7 @@ mod tests {
     #[test]
     fn hash_live_genesis_block() {
         let net = Network::Live;
-        let mut block = net.genesis_block();
-        block.calc_hash().unwrap();
+        let block = net.genesis_block();
         let hash = block.hash().unwrap();
         assert_eq!(hash, &net.genesis_hash());
     }
