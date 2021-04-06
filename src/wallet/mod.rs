@@ -43,28 +43,10 @@ use std::fmt::{Debug, Formatter};
 use std::path::PathBuf;
 use std::str::FromStr;
 use tokio::fs::File;
-use ctr::cipher::stream::{NewStreamCipher, SyncStreamCipher};
-use aes;
-use dialoguer::{theme::ColorfulTheme, Password};
 use tokio::fs::{read, write};
-use pbkdf2::{
-    password_hash::{PasswordHasher, Salt}, 
-    Pbkdf2,
-    Params,
-};
 use crate::FeelessError;
-use blake2::VarBlake2b;
-use blake2::digest::{Update, VariableOutput};
 use secrecy::Secret;
 use std::io::{Read, Write};
-
-// `aes` crate provides AES block cipher implementation
-type Aes128Ctr = ctr::Ctr128<aes::Aes128>;
-
-const PARAMS: Params = Params {
-    rounds: 4096,
-    output_length: 16,
-};
 
 /// Manages multiple [Wallet]s of different types of [Wallet]s. **Warning**: Wallet files are not
 /// locked (yet).
@@ -82,7 +64,7 @@ impl WalletManager {
         }
     }
 
-    /// This should be called to create the file if it doesn't exists.
+    /// This should be called to create the file if it doesn't exist.
     pub async fn ensure(&self) -> anyhow::Result<()> {
         if self.path.exists() {
             return Ok(());
@@ -101,7 +83,7 @@ impl WalletManager {
     pub(crate) async fn load_unlocked(&self) -> anyhow::Result<WalletStorage> {
         let file = File::open(&self.path)
             .await
-            .with_context(|| format!("Opening {:?}", &self.path))?;
+            .with_context(|| format!("Opening {:?}", &self.path)).unwrap(); // we want the program to crash with error if the file doesn't exist
         let store: WalletStorage = serde_json::from_reader(&file.into_std().await)?;
         Ok(store)
     }
@@ -113,65 +95,33 @@ impl WalletManager {
         Ok(serde_json::to_writer_pretty(file.into_std().await, &store)?)
     }
 
-    pub async fn wallet(&self, reference: &WalletId) -> anyhow::Result<Wallet> {
+    pub async fn wallet(&self, reference: &WalletId, password: Option<&str>) -> anyhow::Result<Wallet> {
         // TODO: File lock
-        let store = self.load_unlocked().await?;
-        Ok(store
-            .wallets
-            .get(&reference)
-            .ok_or_else(|| anyhow!("Wallet reference not found: {:?}", &reference))?
-            .to_owned())
-    }
-
-    pub async fn apply_keystream(&self, password: &str, mut data: Vec<u8>) -> anyhow::Result<Vec<u8>> {
-        let mut hasher = VarBlake2b::new(16).unwrap();
-        hasher.update(b"nonce");
-        hasher.update(&password);
-        let mut nonce = [0u8; 16];
-        hasher.finalize_variable(|res| nonce.copy_from_slice(res));
-        let mut salt_str = String::from("");
-        let len = password.len();
-        if len < 4 {
-            salt_str = password.repeat(5-len);
-        }
-        let salt: Salt = Salt::new(&salt_str).unwrap();
-        let password_hash = Pbkdf2
-            .hash_password(password.as_bytes(), None, None, PARAMS.into(), salt)
-            .unwrap()
-            .hash
-            .unwrap();
-        let pass = password_hash.as_ref();
-        let mut cipher = Aes128Ctr::new(pass.into(), (&nonce[..]).into());
-        cipher.apply_keystream(&mut data);
-        Ok(data)
-    }
-
-    pub async fn wallet_encrypted(&self, reference: &WalletId, password: &str) -> anyhow::Result<Wallet> {
-        let file = read(&self.path).await?;
-        //let data = self.apply_keystream(&password, file).await?;
-        let decrypted = {
-            let decryptor = match age::Decryptor::new(&file[..])? {
-                age::Decryptor::Passphrase(d) => d,
-                _ => unreachable!(),
-            };
-        
-            let mut decrypted = vec![];
-            let mut reader = decryptor.decrypt(&Secret::new(password.to_owned()), None)?;
-            reader.read_to_end(&mut decrypted)?;
-        
-            decrypted
-        };
-        let wallet_storage: Result<WalletStorage, serde_json::error::Error> = serde_json::from_slice(&decrypted);
-        match wallet_storage {
-            Ok(store) => { 
+        match password {
+            None => {
+                let store = self.load_unlocked().await?;
                 return Ok(store
                     .wallets
                     .get(&reference)
                     .ok_or_else(|| anyhow!("Wallet reference not found: {:?}", &reference))?
-                    .to_owned());
+                    .to_owned())
             }
-            Err(_) => Err(anyhow!("Wrong password")),
+            Some(password) => {
+                let decrypted = self.decrypt(&password, true).await?;
+                let wallet_storage: Result<WalletStorage, serde_json::error::Error> = serde_json::from_slice(&decrypted);
+                match wallet_storage {
+                    Ok(store) => { 
+                        return Ok(store
+                            .wallets
+                            .get(&reference)
+                            .ok_or_else(|| anyhow!("Wallet reference not found: {:?}", &reference))?
+                            .to_owned());
+                    }
+                    Err(_) => Err(anyhow!("Wrong password")),
+                }
+            }
         }
+        
     }
 
     pub async fn add_random_phrase(
@@ -216,17 +166,9 @@ impl WalletManager {
     }
 
     /// Encrypt the wallet file with a password.
-    pub async fn encrypt(&self) -> anyhow::Result<()> {
-        let password = Password::with_theme(&ColorfulTheme::default())
-            .with_prompt("Enter password")
-            .with_confirmation("Confirm password:", "Error: the passwords don't match.")
-            .interact()
-            .unwrap();
+    pub async fn encrypt(&self, password: &str) -> anyhow::Result<()> {
         let file = read(&self.path).await?;
-        //let data = self.apply_keystream(&password, file).await?;
-        //write(&self.path, data).await?;
         let encryptor = age::Encryptor::with_user_passphrase(Secret::new(password.to_owned()));
-
         let mut encrypted = vec![];
         let mut writer = encryptor.wrap_output(&mut encrypted).unwrap();
         writer.write_all(&file)?;
@@ -236,79 +178,24 @@ impl WalletManager {
     }
 
     /// Decrypt the wallet file.
-    pub async fn decrypt(&self) -> anyhow::Result<()> {
-        let password = Password::with_theme(&ColorfulTheme::default())
-            .with_prompt("Enter existing password")
-            .interact()
-            .unwrap();
-            let file = read(&self.path).await?;
-            let decrypted = {
-                let decryptor = match age::Decryptor::new(&file[..])? {
-                    age::Decryptor::Passphrase(d) => d,
-                    _ => unreachable!(),
-                };
-            
-                let mut decrypted = vec![];
-                let mut reader = decryptor.decrypt(&Secret::new(password.to_owned()), None)?;
-                reader.read_to_end(&mut decrypted)?;
-            
-                decrypted
-            };
-            write(&self.path, decrypted).await?;
-        //let data = self.apply_keystream(&password, file).await?;
-        /*let wallet_storage: Result<WalletStorage, serde_json::error::Error> = serde_json::from_slice(&decrypted);
-        match wallet_storage {
-            Ok(_) => {
-                write(&self.path, data).await?;
-                println!("Password removed");
-            }
-            Err(_) => println!("Wrong password"),
-        }*/
-        Ok(())
-    }
-
-    /// Encrypt the wallet file with a password.
-    pub async fn reencrypt(&self) -> anyhow::Result<()> {
-        let password = Password::with_theme(&ColorfulTheme::default())
-            .with_prompt("Enter existing password")
-            .interact()
-            .unwrap();
+    pub async fn decrypt(&self, password: &str, only_read: bool) -> anyhow::Result<Vec<u8>> {
         let file = read(&self.path).await?;
-            let decrypted = {
-                let decryptor = match age::Decryptor::new(&file[..])? {
-                    age::Decryptor::Passphrase(d) => d,
-                    _ => unreachable!(),
-                };
-            
-                let mut decrypted = vec![];
-                let mut reader = decryptor.decrypt(&Secret::new(password.to_owned()), None)?;
-                reader.read_to_end(&mut decrypted)?;
-            
-                decrypted
+        let decrypted = {
+            let decryptor = match age::Decryptor::new(file.as_slice())? {
+                age::Decryptor::Passphrase(d) => d,
+                _ => unreachable!(),
             };
-        //let data = self.apply_keystream(&password, file).await?;
-        //let wallet_storage: Result<WalletStorage, serde_json::error::Error> = serde_json::from_slice(&data);
-        //match wallet_storage {
-            //Ok(_) => {
-                let new_password = Password::with_theme(&ColorfulTheme::default())
-                        .with_prompt("Enter a new password")
-                        .with_confirmation("Confirm password:", "Error: the passwords don't match.")
-                        .interact()
-                        .unwrap();
-                
-                let encryptor = age::Encryptor::with_user_passphrase(Secret::new(new_password.to_owned()));
-                let mut encrypted = vec![];
-                let mut writer = encryptor.wrap_output(&mut encrypted).unwrap();
-                writer.write_all(&decrypted)?;
-                writer.finish()?;
-                write(&self.path, &encrypted).await?;
-                //let new_data = self.apply_keystream(&password, data).await?;
-                //write(&self.path, new_data).await?;
-                println!("Password changed");
-            //}
-            //Err(_) => println!("Wrong password"),
-        //}
-        Ok(())
+            
+            let mut decrypted = vec![];
+            let mut reader = decryptor.decrypt(&Secret::new(password.to_owned()), None)?;
+            reader.read_to_end(&mut decrypted)?;
+            
+            decrypted
+        };
+        if !only_read {
+            write(&self.path, decrypted.clone()).await?;
+        }
+        Ok(decrypted)
     }
 
     /// If the wallet reference doesn't exist, there will be an error.

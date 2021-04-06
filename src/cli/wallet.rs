@@ -67,50 +67,19 @@ impl WalletOpts {
                 println!("Wallet {:?} was deleted", wallet_id);
             }
             Command::Private(o) => {
-                match WalletOpts::read(&o.opts).await {
-                    Ok(wallet) => println!("{}", wallet.private(o.index)?),
-                    _ => {
-                        let wallet = WalletOpts::read_encrypted(&o.opts).await?;
-                        println!("{}", wallet.private(o.index)?);
-                    },
-                }         
+                let wallet = WalletOpts::read(&o.opts).await?;
+                println!("{}", wallet.private(o.index)?);        
             }
             Command::Public(o) => {
-                match WalletOpts::read(&o.opts).await {
-                    Ok(wallet) => println!("{}", wallet.public(o.index)?),
-                    _ => {
-                        let wallet = WalletOpts::read_encrypted(&o.opts).await?;
-                        println!("{}", wallet.public(o.index)?);
-                    },
-                }     
+                let wallet = WalletOpts::read(&o.opts).await?;
+                println!("{}", wallet.public(o.index)?);     
             }
             Command::Address(o) => {
-                // resolve case where wallet id is not provided and default is used and file is not encrypted
-                match WalletOpts::read(&o.opts).await {
-                    Ok(wallet) => println!("{}", wallet.address(o.index)?),
-                    Err(_) => {
-                        let wallet = WalletOpts::read_encrypted(&o.opts).await?;
-                        println!("{}", wallet.address(o.index)?);
-                    },
-                }     
+                let wallet = WalletOpts::read(&o.opts).await?;
+                println!("{}", wallet.address(o.index)?);
             }
             Command::Password(o) => {
-                // default file if none is provided
-                let manager = WalletManager::new(&o.opts.file.as_ref().unwrap());
-                match &o.remove {
-                    true => {
-                        match manager.load_unlocked().await {
-                            Ok(_) => println!("You haven't defined a password"),
-                            Err(_) => manager.decrypt().await?,
-                        }
-                    } 
-                    false => {
-                        match manager.load_unlocked().await {
-                            Ok(_) => manager.encrypt().await?,
-                            Err(_) => manager.reencrypt().await?,
-                        }
-                    }
-                }
+                WalletOpts::encrypt(&o).await?;
             }
         };
         Ok(())
@@ -118,18 +87,14 @@ impl WalletOpts {
 
     async fn read(o: &CommonOpts) -> anyhow::Result<Wallet> {
         let manager = WalletManager::new(&o.file.as_ref().unwrap());
-        let wallet = manager.wallet(&o.wallet_id()?).await?;
-        Ok(wallet)
-    }
-
-    async fn read_encrypted(o: &CommonOpts) -> anyhow::Result<Wallet> {
-        let password = Password::with_theme(&ColorfulTheme::default())
-            .with_prompt("Enter password")
-            .interact()
-            .unwrap();
-        let manager = WalletManager::new(&o.file.as_ref().unwrap());
-        let wallet = manager.wallet_encrypted(&o.wallet_id()?, &password).await?;
-        Ok(wallet)
+        let wallet = manager.wallet(&o.wallet_id()?, None).await;
+        match wallet {
+            Ok(key) => return Ok(key),
+            Err(_) => {
+                let password = WalletOpts::ask_password(false).await?;
+                return manager.wallet(&o.wallet_id()?, Some(&password)).await;
+            }
+        }
     }
 
     async fn create(o: &CommonOptsCreate) -> anyhow::Result<(WalletManager, WalletId)> {
@@ -138,7 +103,6 @@ impl WalletOpts {
             manager = WalletManager::new(file);
         }
         manager.ensure().await?;
-        // add case where wallet id is provided by user
         let wallet_id = o.wallet_id()?.to_owned();
         Ok((manager, wallet_id))
     }
@@ -148,6 +112,54 @@ impl WalletOpts {
         manager.ensure().await?;
         let wallet_id = o.wallet_id()?;
         Ok((manager, wallet_id))
+    }
+
+    async fn encrypt(o: &PasswordOpts) -> anyhow::Result<()> {
+        let manager = WalletManager::new(&o.opts.file.as_ref().unwrap());
+        match &o.remove {
+            true => {
+                match manager.load_unlocked().await {
+                    Ok(_) => println!("You haven't defined a password"),
+                    Err(_) => {
+                        let password = WalletOpts::ask_password(false).await?;
+                        manager.decrypt(&password, false).await?;
+                    }
+                }
+            } 
+            false => {
+                match manager.load_unlocked().await {
+                    Ok(_) => { 
+                        let password = WalletOpts::ask_password(true).await?;
+                        manager.encrypt(&password).await?;
+                    }
+                    Err(_) => {
+                        let password = WalletOpts::ask_password(false).await?;
+                        manager.decrypt(&password, false).await?;
+                        let new_password = WalletOpts::ask_password(true).await?;
+                        manager.encrypt(&new_password).await?;
+                    }
+                }
+            }
+        }
+        Ok(())
+    }
+
+    async fn ask_password(new: bool) -> anyhow::Result<String> {
+        if new {
+            let password = Password::with_theme(&ColorfulTheme::default())
+                .with_prompt("Enter a new password")
+                .with_confirmation("Confirm password:", "Error: the passwords don't match.")
+                .interact()
+                .unwrap();
+            return Ok(password);
+        }
+        else {
+            let password = Password::with_theme(&ColorfulTheme::default())
+                .with_prompt("Enter existing password")
+                .interact()
+                .unwrap();
+            return Ok(password);
+        }
     }
 }
 
