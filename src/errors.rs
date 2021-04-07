@@ -72,10 +72,7 @@ pub enum Error {
     RPCError(String),
 
     #[error("IO error: {msg} {source}")]
-    IOError {
-        msg: String,
-        source: std::io::Error,
-    },
+    IOError { msg: String, source: std::io::Error },
 
     #[error("The file doesn't exist")]
     NonExistentFile,
@@ -91,7 +88,6 @@ pub enum Error {
 
     #[error("Error decrypting file")]
     DecryptionError(#[from] age::DecryptError),
-
     //#[error("Error encrypting file")]
     //EncryptionError(#[from] age::EncryptError),
     // this is giving an error, but I don't understand why

@@ -2,10 +2,10 @@ use crate::cli::StringOrStdin;
 use crate::keys::armor::Armor;
 use crate::wallet::{Wallet, WalletId, WalletManager};
 use crate::Phrase;
-use clap::Clap;
-use std::path::PathBuf;
-use dialoguer::{theme::ColorfulTheme, Password};
 use crate::{Error, Result};
+use clap::Clap;
+use dialoguer::{theme::ColorfulTheme, Password};
+use std::path::PathBuf;
 
 #[derive(Clap)]
 pub struct WalletOpts {
@@ -127,52 +127,36 @@ impl WalletOpts {
     async fn encrypt(o: &PasswordOpts) -> Result<()> {
         let manager = WalletManager::default_wallet_file(&o.opts.file);
         match &o.remove {
-            true => {
-                match manager.load_unlocked().await {
-                    Ok(_) => Err(Error::UndefinedPassword),
-                    Err(e) => match e {
-                        Error::ReadError(_) => {
-                            let password = WalletOpts::ask_password(false).await?;
-                            manager.decrypt(&password, false).await?;
-                            Ok(())
-                        }
-                        Error::IOError {
-                            msg, 
-                            source,
-                        } => Err(Error::IOError {
-                            msg, 
-                            source,
-                        }),
-                        _ => unreachable!(),
-                    }
-                }
-            } 
-            false => {
-                match manager.load_unlocked().await {
-                    Ok(_) => { 
-                        let password = WalletOpts::ask_password(true).await?;
-                        manager.encrypt(&password).await?;
+            true => match manager.load_unlocked().await {
+                Ok(_) => Err(Error::UndefinedPassword),
+                Err(e) => match e {
+                    Error::ReadError(_) => {
+                        let password = WalletOpts::ask_password(false).await?;
+                        manager.decrypt(&password, false).await?;
                         Ok(())
                     }
-                    Err(e) => match e {
-                        Error::ReadError(_) => {
-                            let password = WalletOpts::ask_password(false).await?;
-                            manager.decrypt(&password, false).await?;
-                            let new_password = WalletOpts::ask_password(true).await?;
-                            manager.encrypt(&new_password).await?;
-                            Ok(())
-                        }
-                        Error::IOError {
-                            msg, 
-                            source,
-                        } => Err(Error::IOError {
-                            msg, 
-                            source,
-                        }),
-                        _ => unreachable!(),
-                    }
+                    Error::IOError { msg, source } => Err(Error::IOError { msg, source }),
+                    _ => unreachable!(),
+                },
+            },
+            false => match manager.load_unlocked().await {
+                Ok(_) => {
+                    let password = WalletOpts::ask_password(true).await?;
+                    manager.encrypt(&password).await?;
+                    Ok(())
                 }
-            }
+                Err(e) => match e {
+                    Error::ReadError(_) => {
+                        let password = WalletOpts::ask_password(false).await?;
+                        manager.decrypt(&password, false).await?;
+                        let new_password = WalletOpts::ask_password(true).await?;
+                        manager.encrypt(&new_password).await?;
+                        Ok(())
+                    }
+                    Error::IOError { msg, source } => Err(Error::IOError { msg, source }),
+                    _ => unreachable!(),
+                },
+            },
         }
     }
 
@@ -181,16 +165,17 @@ impl WalletOpts {
             let password = Password::with_theme(&ColorfulTheme::default())
                 .with_prompt("Enter a new password")
                 .with_confirmation("Confirm password:", "Error: the passwords don't match.")
-                .interact().map_err(|e| Error::IOError {
+                .interact()
+                .map_err(|e| Error::IOError {
                     msg: String::from("Receiving password"),
                     source: e,
                 })?;
             return Ok(password);
-        }
-        else {
+        } else {
             let password = Password::with_theme(&ColorfulTheme::default())
                 .with_prompt("Enter existing password")
-                .interact().map_err(|e| Error::IOError {
+                .interact()
+                .map_err(|e| Error::IOError {
                     msg: String::from("Receiving password"),
                     source: e,
                 })?;
