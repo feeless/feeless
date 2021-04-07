@@ -69,4 +69,26 @@ pub enum Error {
 
     #[error("RPC error: {0}")]
     RPCError(String),
+
+    #[error("I/O error")]
+    IOError(#[from] std::io::Error),
+
+    #[error("The file doesn't exist")]
+    NonExistentFile,
+
+    #[error("You haven't defined a password")]
+    UndefinedPassword,
+
+    #[error("Wallet id error")]
+    WalletIdError(String),
+
+    #[error("Error reading file")]
+    ReadError(#[from] serde_json::Error),
+
+    #[error("Error decrypting file")]
+    DecryptionError(#[from] age::DecryptError),
+
+    //#[error("Error encrypting file")]
+    //EncryptionError(#[from] age::EncryptError),
+    // this is giving an error, but I don't understand why
 }

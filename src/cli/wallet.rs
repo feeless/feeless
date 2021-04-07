@@ -5,6 +5,7 @@ use crate::Phrase;
 use clap::Clap;
 use std::path::PathBuf;
 use dialoguer::{theme::ColorfulTheme, Password};
+use crate::{Error, Result};
 
 #[derive(Clap)]
 pub struct WalletOpts {
@@ -97,44 +98,46 @@ impl WalletOpts {
         Ok(())
     }
 
-    async fn read(o: &CommonOpts) -> anyhow::Result<Wallet> {
-        let manager = WalletManager::new(&o.file.as_ref().unwrap());
-        let wallet = manager.wallet(&o.wallet_id()?, None).await;
+    async fn read(o: &CommonOpts) -> Result<Wallet> {
+        let manager = WalletManager::default_wallet_file(&o.file);
+        let wallet = manager.wallet(&o.wallet_id(), None).await;
         match wallet {
             Ok(key) => return Ok(key),
             Err(_) => {
                 let password = WalletOpts::ask_password(false).await?;
-                return manager.wallet(&o.wallet_id()?, Some(&password)).await;
+                return manager.wallet(&o.wallet_id(), Some(&password)).await;
             }
         }
     }
 
-    async fn create(o: &CommonOptsCreate) -> anyhow::Result<(WalletManager, WalletId)> {
-        let mut manager = WalletManager::new("default.wallet");
-        if let Some(file) = &o.common_opts.file {
-            manager = WalletManager::new(file);
-        }
+    async fn create(o: &CommonOptsCreate) -> Result<(WalletManager, WalletId)> {
+        let manager = WalletManager::default_wallet_file(&o.common_opts.file);
         manager.ensure().await?;
-        let wallet_id = o.wallet_id()?.to_owned();
+        let wallet_id = o.wallet_id().to_owned();
         Ok((manager, wallet_id))
     }
 
-    async fn delete(o: &CommonOpts) -> anyhow::Result<(WalletManager, WalletId)> {
-        let manager = WalletManager::new(&o.file.as_ref().unwrap());
+    async fn delete(o: &CommonOpts) -> Result<(WalletManager, WalletId)> {
+        let manager = WalletManager::default_wallet_file(&o.file);
         manager.ensure().await?;
-        let wallet_id = o.wallet_id()?;
+        let wallet_id = o.wallet_id();
         Ok((manager, wallet_id))
     }
 
-    async fn encrypt(o: &PasswordOpts) -> anyhow::Result<()> {
-        let manager = WalletManager::new(&o.opts.file.as_ref().unwrap());
+    async fn encrypt(o: &PasswordOpts) -> Result<()> {
+        let manager = WalletManager::default_wallet_file(&o.opts.file);
         match &o.remove {
             true => {
                 match manager.load_unlocked().await {
-                    Ok(_) => println!("You haven't defined a password"),
-                    Err(_) => {
-                        let password = WalletOpts::ask_password(false).await?;
-                        manager.decrypt(&password, false).await?;
+                    Ok(_) => Err(Error::UndefinedPassword),
+                    Err(e) => match e {
+                        Error::ReadError(_) => {
+                            let password = WalletOpts::ask_password(false).await?;
+                            manager.decrypt(&password, false).await?;
+                            Ok(())
+                        }
+                        Error::IOError(_) => Err(Error::NonExistentFile),
+                        _ => unreachable!(),
                     }
                 }
             } 
@@ -143,33 +146,36 @@ impl WalletOpts {
                     Ok(_) => { 
                         let password = WalletOpts::ask_password(true).await?;
                         manager.encrypt(&password).await?;
+                        Ok(())
                     }
-                    Err(_) => {
-                        let password = WalletOpts::ask_password(false).await?;
-                        manager.decrypt(&password, false).await?;
-                        let new_password = WalletOpts::ask_password(true).await?;
-                        manager.encrypt(&new_password).await?;
+                    Err(e) => match e {
+                        Error::ReadError(_) => {
+                            let password = WalletOpts::ask_password(false).await?;
+                            manager.decrypt(&password, false).await?;
+                            let new_password = WalletOpts::ask_password(true).await?;
+                            manager.encrypt(&new_password).await?;
+                            Ok(())
+                        }
+                        Error::IOError(_) => Err(Error::NonExistentFile), 
+                        _ => unreachable!(),
                     }
                 }
             }
         }
-        Ok(())
     }
 
-    async fn ask_password(new: bool) -> anyhow::Result<String> {
+    async fn ask_password(new: bool) -> Result<String> {
         if new {
             let password = Password::with_theme(&ColorfulTheme::default())
                 .with_prompt("Enter a new password")
                 .with_confirmation("Confirm password:", "Error: the passwords don't match.")
-                .interact()
-                .unwrap();
+                .interact()?;
             return Ok(password);
         }
         else {
             let password = Password::with_theme(&ColorfulTheme::default())
                 .with_prompt("Enter existing password")
-                .interact()
-                .unwrap();
+                .interact()?;
             return Ok(password);
         }
     }
@@ -214,11 +220,11 @@ struct CommonOpts {
 }
 
 impl CommonOpts {
-    fn wallet_id(&self) -> anyhow::Result<WalletId> {
+    fn wallet_id(&self) -> WalletId {
         if let Some(wallet_id) = &self.id {
-            Ok(wallet_id.to_owned())
+            wallet_id.to_owned()
         } else {
-            Ok(WalletId::zero())
+            WalletId::zero()
         }
     }
 }
@@ -233,15 +239,15 @@ struct CommonOptsCreate {
 }
 
 impl CommonOptsCreate {
-    fn wallet_id(&self) -> anyhow::Result<WalletId> {
+    fn wallet_id(&self) -> WalletId {
         if self.default {
-            return Ok(WalletId::zero());
+            return WalletId::zero();
         }
 
         if let Some(wallet_id) = &self.common_opts.id {
-            Ok(wallet_id.to_owned())
+            wallet_id.to_owned()
         } else {
-            Ok(WalletId::random())
+            WalletId::random()
         }
     }
 }

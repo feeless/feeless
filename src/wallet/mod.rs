@@ -32,9 +32,8 @@
 //! # }
 //! ```
 use crate::phrase::{Language, MnemonicType};
-use crate::Error;
+use crate::{Error, Result};
 use crate::{to_hex, Address, Phrase, Private, Public, Seed};
-use anyhow::{anyhow, Context};
 use rand::RngCore;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use std::collections::HashMap;
@@ -46,6 +45,8 @@ use tokio::fs::File;
 use tokio::fs::{read, write};
 use secrecy::Secret;
 use std::io::{Read, Write};
+
+const DEFAULT_WALLET_FILE: &str = "default.wallet";
 
 /// Manages multiple [Wallet]s of different types of [Wallet]s. **Warning**: Wallet files are not
 /// locked (yet).
@@ -63,8 +64,16 @@ impl WalletManager {
         }
     }
 
+    pub fn default_wallet_file(file: &Option<PathBuf>) -> WalletManager {
+        let mut manager = WalletManager::new(DEFAULT_WALLET_FILE);
+        if let Some(f) = file {
+            manager = WalletManager::new(f);
+        }
+        manager
+    }
+
     /// This should be called to create the file if it doesn't exist.
-    pub async fn ensure(&self) -> anyhow::Result<()> {
+    pub async fn ensure(&self) -> Result<()> {
         if self.path.exists() {
             return Ok(());
         }
@@ -79,10 +88,8 @@ impl WalletManager {
     /// An internal method for loading the wallet storage.
     ///
     /// TODO: There should be a file lock around this.
-    pub(crate) async fn load_unlocked(&self) -> anyhow::Result<WalletStorage> {
-        let file = File::open(&self.path)
-            .await
-            .with_context(|| format!("Opening {:?}", &self.path)).unwrap(); // we want the program to crash with error if the file doesn't exist
+    pub(crate) async fn load_unlocked(&self) -> Result<WalletStorage> {
+        let file = File::open(&self.path).await?;
         let store: WalletStorage = serde_json::from_reader(&file.into_std().await)?;
         Ok(store)
     }
@@ -90,39 +97,36 @@ impl WalletManager {
     /// An internal method for save the wallet storage.
     ///
     /// TODO: There should be a file lock around this.
-    async fn save_unlocked(&self, file: File, store: WalletStorage) -> anyhow::Result<()> {
+    async fn save_unlocked(&self, file: File, store: WalletStorage) -> Result<()> {
         Ok(serde_json::to_writer_pretty(file.into_std().await, &store)?)
     }
 
-    pub async fn wallet(&self, reference: &WalletId, password: Option<&str>) -> anyhow::Result<Wallet> {
+    pub async fn wallet(&self, reference: &WalletId, password: Option<&str>) -> Result<Wallet> {
         // TODO: File lock
         match password {
             None => {
-                let store = self.load_unlocked().await?;
-                let wallet = store
+                let store = self.load_unlocked().await?; 
+                Ok(store
                     .wallets
                     .get(&reference)
-                    .ok_or_else(|| anyhow!("Wallet reference not found: {:?}", &reference))
-                    .unwrap() // we want to catch the error if the wallet id doesn't exist
-                    .to_owned();
-                return Ok(wallet)
+                    .ok_or_else(|| Error::WalletIdError(format!("Wallet id {:?} doesn't exist", &reference)))?
+                    .to_owned())
             }
             Some(password) => {
                 let decrypted = self.decrypt(&password, true).await?;
-                let wallet_storage: Result<WalletStorage, serde_json::error::Error> = serde_json::from_slice(&decrypted);
+                let wallet_storage: std::result::Result<WalletStorage, serde_json::error::Error> = serde_json::from_slice(&decrypted);
                 match wallet_storage {
                     Ok(store) => { 
-                        return Ok(store
+                        Ok(store
                             .wallets
                             .get(&reference)
-                            .ok_or_else(|| anyhow!("Wallet reference not found: {:?}", &reference))?
-                            .to_owned());
+                            .ok_or_else(|| Error::WalletIdError(format!("Wallet id {:?} doesn't exist", &reference)))?
+                            .to_owned())
                     }
-                    Err(_) => Err(anyhow!("Wrong password")),
+                    Err(_) => Err(Error::UndefinedPassword),
                 }
             }
-        }
-        
+        } 
     }
 
     pub async fn add_random_phrase(
@@ -130,19 +134,19 @@ impl WalletManager {
         id: WalletId,
         mnemonic_type: MnemonicType,
         lang: Language,
-    ) -> anyhow::Result<Wallet> {
+    ) -> Result<Wallet> {
         let wallet = Wallet::Phrase(Phrase::random(mnemonic_type, lang));
         self.add(id, wallet.clone()).await?;
         Ok(wallet)
     }
 
-    pub async fn add_random_seed(&self, id: WalletId) -> anyhow::Result<Wallet> {
+    pub async fn add_random_seed(&self, id: WalletId) -> Result<Wallet> {
         let wallet = Wallet::Seed(Seed::random());
         self.add(id, wallet.clone()).await?;
         Ok(wallet)
     }
 
-    pub async fn add_random_private(&self, reference: WalletId) -> anyhow::Result<Wallet> {
+    pub async fn add_random_private(&self, reference: WalletId) -> Result<Wallet> {
         let wallet = Wallet::Private(Private::random());
         self.add(reference, wallet.clone()).await?;
         Ok(wallet)
@@ -151,27 +155,25 @@ impl WalletManager {
     /// Add a new wallet to the store.
     ///
     /// If the wallet reference already exists, there will be an error.
-    pub async fn add(&self, reference: WalletId, wallet: Wallet) -> anyhow::Result<()> {
+    pub async fn add(&self, reference: WalletId, wallet: Wallet) -> Result<()> {
         // TODO: File lock
         let mut storage = self.load_unlocked().await?;
         if storage.wallets.contains_key(&reference) {
-            return Err(anyhow!("Wallet reference already exists: {:?}", &reference));
+            return Err(Error::WalletIdError(format!("Wallet id {:?} already exists", &reference)));
         }
 
         storage.wallets.insert(reference.clone(), wallet);
-        let file = File::create(&self.path)
-            .await
-            .with_context(|| format!("Creating file {:?}", &self.path))?;
+        let file = File::create(&self.path).await?;
         self.save_unlocked(file, storage).await?;
         Ok(())
     }
 
     /// Encrypt the wallet file with a password.
-    pub async fn encrypt(&self, password: &str) -> anyhow::Result<()> {
+    pub async fn encrypt(&self, password: &str) -> Result<()> {
         let file = read(&self.path).await?;
         let encryptor = age::Encryptor::with_user_passphrase(Secret::new(password.to_owned()));
         let mut encrypted = vec![];
-        let mut writer = encryptor.wrap_output(&mut encrypted).unwrap();
+        let mut writer = encryptor.wrap_output(&mut encrypted).unwrap(); // see errors.rs
         writer.write_all(&file)?;
         writer.finish()?;
         write(&self.path, &encrypted).await?;
@@ -179,7 +181,7 @@ impl WalletManager {
     }
 
     /// Decrypt the wallet file.
-    pub async fn decrypt(&self, password: &str, only_read: bool) -> anyhow::Result<Vec<u8>> {
+    pub async fn decrypt(&self, password: &str, only_read: bool) -> Result<Vec<u8>> {
         let file = read(&self.path).await?;
         let decrypted = {
             let decryptor = match age::Decryptor::new(file.as_slice())? {
@@ -200,15 +202,13 @@ impl WalletManager {
     }
 
     /// If the wallet reference doesn't exist, there will be an error.
-    pub async fn delete(&self, reference: &WalletId) -> anyhow::Result<()> {
+    pub async fn delete(&self, reference: &WalletId) -> Result<()> {
         let mut storage = self.load_unlocked().await?;
         if !storage.wallets.contains_key(reference) {
-            return Err(anyhow!("Wallet reference doesn't exist: {:?}", &reference));
+            return Err(Error::WalletIdError(format!("Wallet id {:?} doesn't exist", &reference)));
         }
         storage.wallets.remove(reference);
-        let file = File::create(&self.path)
-            .await
-            .with_context(|| format!("Creating file {:?}", &self.path))?;
+        let file = File::create(&self.path).await?;
         self.save_unlocked(file, storage).await?;
         Ok(())
     }
@@ -229,7 +229,7 @@ pub enum Wallet {
 
 impl Wallet {
     /// Derive or return a private key for this wallet.
-    pub fn private(&self, index: u32) -> Result<Private, Error> {
+    pub fn private(&self, index: u32) -> Result<Private> {
         match &self {
             Wallet::Seed(seed) => Ok(seed.derive(index)),
             Wallet::Private(private) => {
@@ -243,12 +243,12 @@ impl Wallet {
     }
 
     /// Derive a public key for this wallet.
-    pub fn public(&self, index: u32) -> Result<Public, Error> {
+    pub fn public(&self, index: u32) -> Result<Public> {
         self.private(index)?.to_public()
     }
 
     /// Derive an address for this wallet.
-    pub fn address(&self, index: u32) -> anyhow::Result<Address> {
+    pub fn address(&self, index: u32) -> Result<Address> {
         Ok(self.public(index)?.to_address())
     }
 }
@@ -287,10 +287,13 @@ impl WalletId {
 }
 
 impl FromStr for WalletId {
-    type Err = anyhow::Error;
+    type Err = Error;
 
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        let vec = hex::decode(s.as_bytes())?;
+    fn from_str(s: &str) -> Result<Self> {
+        let vec = hex::decode(s.as_bytes()).map_err(|e| Error::FromHexError {
+            msg: String::from("Decoding hex wallet id"),
+            source: e,
+        })?;
         let decoded = vec.as_slice();
         let d = <[u8; WalletId::LEN]>::try_from(decoded)?;
         Ok(Self(d))
@@ -298,7 +301,7 @@ impl FromStr for WalletId {
 }
 
 impl Serialize for WalletId {
-    fn serialize<S>(&self, serializer: S) -> Result<<S as Serializer>::Ok, <S as Serializer>::Error>
+    fn serialize<S>(&self, serializer: S) -> core::result::Result<<S as Serializer>::Ok, <S as Serializer>::Error>
     where
         S: Serializer,
     {
@@ -308,7 +311,7 @@ impl Serialize for WalletId {
 
 impl<'de> Deserialize<'de> for WalletId {
     /// Convert from a string of hex into a `WalletId` [u8; ..]
-    fn deserialize<D>(deserializer: D) -> Result<Self, <D as Deserializer<'de>>::Error>
+    fn deserialize<D>(deserializer: D) -> core::result::Result<Self, <D as Deserializer<'de>>::Error>
     where
         D: Deserializer<'de>,
     {
