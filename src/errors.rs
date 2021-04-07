@@ -9,7 +9,8 @@ pub enum Error {
         msg: String,
         source: hex::FromHexError,
     },
-    #[error("Signature error")]
+
+    #[error("Signature error: {msg} {source}")]
     SignatureError {
         msg: String,
         source: ed25519_dalek::SignatureError,
@@ -70,8 +71,11 @@ pub enum Error {
     #[error("RPC error: {0}")]
     RPCError(String),
 
-    #[error("I/O error")]
-    IOError(#[from] std::io::Error),
+    #[error("IO error: {msg} {source}")]
+    IOError {
+        msg: String,
+        source: std::io::Error,
+    },
 
     #[error("The file doesn't exist")]
     NonExistentFile,

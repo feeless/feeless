@@ -136,7 +136,13 @@ impl WalletOpts {
                             manager.decrypt(&password, false).await?;
                             Ok(())
                         }
-                        Error::IOError(_) => Err(Error::NonExistentFile),
+                        Error::IOError {
+                            msg, 
+                            source,
+                        } => Err(Error::IOError {
+                            msg, 
+                            source,
+                        }),
                         _ => unreachable!(),
                     }
                 }
@@ -156,7 +162,13 @@ impl WalletOpts {
                             manager.encrypt(&new_password).await?;
                             Ok(())
                         }
-                        Error::IOError(_) => Err(Error::NonExistentFile), 
+                        Error::IOError {
+                            msg, 
+                            source,
+                        } => Err(Error::IOError {
+                            msg, 
+                            source,
+                        }),
                         _ => unreachable!(),
                     }
                 }
@@ -169,13 +181,19 @@ impl WalletOpts {
             let password = Password::with_theme(&ColorfulTheme::default())
                 .with_prompt("Enter a new password")
                 .with_confirmation("Confirm password:", "Error: the passwords don't match.")
-                .interact()?;
+                .interact().map_err(|e| Error::IOError {
+                    msg: String::from("Receiving password"),
+                    source: e,
+                })?;
             return Ok(password);
         }
         else {
             let password = Password::with_theme(&ColorfulTheme::default())
                 .with_prompt("Enter existing password")
-                .interact()?;
+                .interact().map_err(|e| Error::IOError {
+                    msg: String::from("Receiving password"),
+                    source: e,
+                })?;
             return Ok(password);
         }
     }

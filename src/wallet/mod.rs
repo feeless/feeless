@@ -24,7 +24,7 @@
 //! let address = wallet.address(2)?;
 //!
 //! // Grab an existing wallet
-//! let wallet = manager.wallet(&wallet_id).await?;
+//! let wallet = manager.wallet(&wallet_id, None).await?;
 //!
 //! # remove_file("my.wallet")?;
 //!
@@ -79,7 +79,10 @@ impl WalletManager {
         }
 
         let store = WalletStorage::new();
-        let file = File::create(&self.path).await?;
+        let file = File::create(&self.path).await.map_err(|e| Error::IOError {
+            msg: format!("Opening file {:?}", &self.path),
+            source: e,
+        })?;
         serde_json::to_writer_pretty(file.into_std().await, &store)?;
 
         Ok(())
@@ -89,7 +92,10 @@ impl WalletManager {
     ///
     /// TODO: There should be a file lock around this.
     pub(crate) async fn load_unlocked(&self) -> Result<WalletStorage> {
-        let file = File::open(&self.path).await?;
+        let file = File::open(&self.path).await.map_err(|e| Error::IOError {
+            msg: format!("Opening file {:?}", &self.path),
+            source: e,
+        })?;
         let store: WalletStorage = serde_json::from_reader(&file.into_std().await)?;
         Ok(store)
     }
@@ -163,26 +169,44 @@ impl WalletManager {
         }
 
         storage.wallets.insert(reference.clone(), wallet);
-        let file = File::create(&self.path).await?;
+        let file = File::create(&self.path).await.map_err(|e| Error::IOError {
+            msg: format!("Creating file {:?}", &self.path),
+            source: e,
+        })?;
         self.save_unlocked(file, storage).await?;
         Ok(())
     }
 
     /// Encrypt the wallet file with a password.
     pub async fn encrypt(&self, password: &str) -> Result<()> {
-        let file = read(&self.path).await?;
+        let file = read(&self.path).await.map_err(|e| Error::IOError {
+            msg: format!("Reading file {:?}", &self.path),
+            source: e,
+        })?;
         let encryptor = age::Encryptor::with_user_passphrase(Secret::new(password.to_owned()));
         let mut encrypted = vec![];
         let mut writer = encryptor.wrap_output(&mut encrypted).unwrap(); // see errors.rs
-        writer.write_all(&file)?;
-        writer.finish()?;
-        write(&self.path, &encrypted).await?;
+        writer.write_all(&file).map_err(|e| Error::IOError {
+            msg: format!("Writing file {:?}", &self.path),
+            source: e,
+        })?;
+        writer.finish().map_err(|e| Error::IOError {
+            msg: format!("Writing file {:?}", &self.path),
+            source: e,
+        })?;
+        write(&self.path, &encrypted).await.map_err(|e| Error::IOError {
+            msg: format!("Writing file {:?}", &self.path),
+            source: e,
+        })?;
         Ok(())
     }
 
     /// Decrypt the wallet file.
     pub async fn decrypt(&self, password: &str, only_read: bool) -> Result<Vec<u8>> {
-        let file = read(&self.path).await?;
+        let file = read(&self.path).await.map_err(|e| Error::IOError {
+            msg: format!("Reading file {:?}", &self.path),
+            source: e,
+        })?;
         let decrypted = {
             let decryptor = match age::Decryptor::new(file.as_slice())? {
                 age::Decryptor::Passphrase(d) => d,
@@ -191,12 +215,18 @@ impl WalletManager {
             
             let mut decrypted = vec![];
             let mut reader = decryptor.decrypt(&Secret::new(password.to_owned()), None)?;
-            reader.read_to_end(&mut decrypted)?;
+            reader.read_to_end(&mut decrypted).map_err(|e| Error::IOError {
+                msg: format!("Reading file {:?}", &self.path),
+                source: e,
+            })?;
             
             decrypted
         };
         if !only_read {
-            write(&self.path, decrypted.clone()).await?;
+            write(&self.path, decrypted.clone()).await.map_err(|e| Error::IOError {
+                msg: format!("Writing file {:?}", &self.path),
+                source: e,
+            })?;
         }
         Ok(decrypted)
     }
@@ -208,7 +238,10 @@ impl WalletManager {
             return Err(Error::WalletIdError(format!("Wallet id {:?} doesn't exist", &reference)));
         }
         storage.wallets.remove(reference);
-        let file = File::create(&self.path).await?;
+        let file = File::create(&self.path).await.map_err(|e| Error::IOError {
+            msg: format!("Creating file {:?}", &self.path),
+            source: e,
+        })?;
         self.save_unlocked(file, storage).await?;
         Ok(())
     }
@@ -354,7 +387,7 @@ mod tests {
     async fn sanity_check() {
         let (_clean, manager) = prepare("test.wallet").await;
         let w1 = manager.add_random_seed(WalletId::zero()).await.unwrap();
-        let w2 = manager.wallet(&WalletId::zero()).await.unwrap();
+        let w2 = manager.wallet(&WalletId::zero(), None).await.unwrap();
         assert_eq!(w1.address(0).unwrap(), w2.address(0).unwrap())
     }
 
