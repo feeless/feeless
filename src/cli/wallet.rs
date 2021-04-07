@@ -4,8 +4,6 @@ use crate::wallet::{Wallet, WalletId, WalletManager};
 use crate::Phrase;
 use clap::Clap;
 use std::path::PathBuf;
-use dialoguer::{theme::ColorfulTheme, Password};
-use crate::{Error, Result};
 
 #[derive(Clap)]
 pub struct WalletOpts {
@@ -91,111 +89,28 @@ impl WalletOpts {
                     println!("{:X}", signed);
                 }
             }
-            Command::Password(o) => {
-                WalletOpts::encrypt(&o).await?;
-            }
         };
         Ok(())
     }
 
-    async fn read(o: &CommonOpts) -> Result<Wallet> {
-        let manager = WalletManager::default_wallet_file(&o.file);
-        let wallet = manager.wallet(&o.wallet_id(), None).await;
-        match wallet {
-            Ok(key) => return Ok(key),
-            Err(_) => {
-                let password = WalletOpts::ask_password(false).await?;
-                return manager.wallet(&o.wallet_id(), Some(&password)).await;
-            }
-        }
+    async fn read(o: &CommonOpts) -> anyhow::Result<Wallet> {
+        let manager = WalletManager::new(&o.file);
+        let wallet = manager.wallet(&o.wallet_id()?).await?;
+        Ok(wallet)
     }
 
-    async fn create(o: &CommonOptsCreate) -> Result<(WalletManager, WalletId)> {
-        let manager = WalletManager::default_wallet_file(&o.common_opts.file);
+    async fn create(o: &CommonOptsCreate) -> anyhow::Result<(WalletManager, WalletId)> {
+        let manager = WalletManager::new(&o.common_opts.file);
         manager.ensure().await?;
-        let wallet_id = o.wallet_id().to_owned();
+        let wallet_id = o.wallet_id()?.to_owned();
         Ok((manager, wallet_id))
     }
 
-    async fn delete(o: &CommonOpts) -> Result<(WalletManager, WalletId)> {
-        let manager = WalletManager::default_wallet_file(&o.file);
+    async fn delete(o: &CommonOpts) -> anyhow::Result<(WalletManager, WalletId)> {
+        let manager = WalletManager::new(&o.file);
         manager.ensure().await?;
-        let wallet_id = o.wallet_id();
+        let wallet_id = o.wallet_id()?;
         Ok((manager, wallet_id))
-    }
-
-    async fn encrypt(o: &PasswordOpts) -> Result<()> {
-        let manager = WalletManager::default_wallet_file(&o.opts.file);
-        match &o.remove {
-            true => {
-                match manager.load_unlocked().await {
-                    Ok(_) => Err(Error::UndefinedPassword),
-                    Err(e) => match e {
-                        Error::ReadError(_) => {
-                            let password = WalletOpts::ask_password(false).await?;
-                            manager.decrypt(&password, false).await?;
-                            Ok(())
-                        }
-                        Error::IOError {
-                            msg, 
-                            source,
-                        } => Err(Error::IOError {
-                            msg, 
-                            source,
-                        }),
-                        _ => unreachable!(),
-                    }
-                }
-            } 
-            false => {
-                match manager.load_unlocked().await {
-                    Ok(_) => { 
-                        let password = WalletOpts::ask_password(true).await?;
-                        manager.encrypt(&password).await?;
-                        Ok(())
-                    }
-                    Err(e) => match e {
-                        Error::ReadError(_) => {
-                            let password = WalletOpts::ask_password(false).await?;
-                            manager.decrypt(&password, false).await?;
-                            let new_password = WalletOpts::ask_password(true).await?;
-                            manager.encrypt(&new_password).await?;
-                            Ok(())
-                        }
-                        Error::IOError {
-                            msg, 
-                            source,
-                        } => Err(Error::IOError {
-                            msg, 
-                            source,
-                        }),
-                        _ => unreachable!(),
-                    }
-                }
-            }
-        }
-    }
-
-    async fn ask_password(new: bool) -> Result<String> {
-        if new {
-            let password = Password::with_theme(&ColorfulTheme::default())
-                .with_prompt("Enter a new password")
-                .with_confirmation("Confirm password:", "Error: the passwords don't match.")
-                .interact().map_err(|e| Error::IOError {
-                    msg: String::from("Receiving password"),
-                    source: e,
-                })?;
-            return Ok(password);
-        }
-        else {
-            let password = Password::with_theme(&ColorfulTheme::default())
-                .with_prompt("Enter existing password")
-                .interact().map_err(|e| Error::IOError {
-                    msg: String::from("Receiving password"),
-                    source: e,
-                })?;
-            return Ok(password);
-        }
     }
 }
 
@@ -216,9 +131,6 @@ enum Command {
     /// Output the address of a wallet.
     Address(AddressOpts),
 
-    /// Encrypts the wallet file with a password.
-    Password(PasswordOpts),
-
     /// Sign a message using a key in this wallet.
     Sign(SignOpts),
 
@@ -230,7 +142,7 @@ enum Command {
 struct CommonOpts {
     /// Path to the wallet file.
     #[clap(short, long, env = "FEELESS_WALLET_FILE")]
-    file: Option<PathBuf>,
+    file: PathBuf,
 
     /// Wallet ID.
     #[clap(short, long, env = "FEELESS_WALLET_ID")]
@@ -238,11 +150,11 @@ struct CommonOpts {
 }
 
 impl CommonOpts {
-    fn wallet_id(&self) -> WalletId {
+    fn wallet_id(&self) -> anyhow::Result<WalletId> {
         if let Some(wallet_id) = &self.id {
-            wallet_id.to_owned()
+            Ok(wallet_id.to_owned())
         } else {
-            WalletId::zero()
+            Ok(WalletId::zero())
         }
     }
 }
@@ -257,15 +169,15 @@ struct CommonOptsCreate {
 }
 
 impl CommonOptsCreate {
-    fn wallet_id(&self) -> WalletId {
+    fn wallet_id(&self) -> anyhow::Result<WalletId> {
         if self.default {
-            return WalletId::zero();
+            return Ok(WalletId::zero());
         }
 
         if let Some(wallet_id) = &self.common_opts.id {
-            wallet_id.to_owned()
+            Ok(wallet_id.to_owned())
         } else {
-            WalletId::random()
+            Ok(WalletId::random())
         }
     }
 }
@@ -375,15 +287,6 @@ struct AddressOpts {
 
     #[clap(flatten)]
     opts: CommonOpts,
-}
-
-#[derive(Clap)]
-struct PasswordOpts {
-    #[clap(flatten)]
-    opts: CommonOpts,
-
-    #[clap(short, long)]
-    remove: bool,
 }
 
 #[derive(Clap)]

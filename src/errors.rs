@@ -9,8 +9,7 @@ pub enum Error {
         msg: String,
         source: hex::FromHexError,
     },
-
-    #[error("Signature error: {msg} {source}")]
+    #[error("Signature error")]
     SignatureError {
         msg: String,
         source: ed25519_dalek::SignatureError,
@@ -70,29 +69,4 @@ pub enum Error {
 
     #[error("RPC error: {0}")]
     RPCError(String),
-
-    #[error("IO error: {msg} {source}")]
-    IOError {
-        msg: String,
-        source: std::io::Error,
-    },
-
-    #[error("The file doesn't exist")]
-    NonExistentFile,
-
-    #[error("You haven't defined a password")]
-    UndefinedPassword,
-
-    #[error("Wallet id error")]
-    WalletIdError(String),
-
-    #[error("Error reading file")]
-    ReadError(#[from] serde_json::Error),
-
-    #[error("Error decrypting file")]
-    DecryptionError(#[from] age::DecryptError),
-
-    //#[error("Error encrypting file")]
-    //EncryptionError(#[from] age::EncryptError),
-    // this is giving an error, but I don't understand why
 }
