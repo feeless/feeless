@@ -230,6 +230,7 @@ impl FromStr for UnsureLink {
     }
 }
 
+/// Used in state block as a reference to either the previous block or a destination address.
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "snake_case", untagged)]
 pub enum Link {

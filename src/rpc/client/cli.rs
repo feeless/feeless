@@ -31,6 +31,7 @@ impl RPCClientOpts {
             Command::AccountHistory(c) => self.show(c).await?,
             Command::AccountInfo(c) => self.show(c).await?,
             Command::ActiveDifficulty(c) => self.show(c).await?,
+            Command::BlockCreate(c) => self.show(c).await?,
             Command::BlockInfo(c) => self.show(c).await?,
             Command::Process(c) => self.show(c).await?,
             Command::WorkValidate(c) => self.show(c).await?,

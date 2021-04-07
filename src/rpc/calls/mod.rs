@@ -2,6 +2,7 @@ mod account_balance;
 mod account_history;
 mod account_info;
 mod active_difficulty;
+mod block_create;
 mod block_info;
 mod process;
 mod work_validate;
@@ -10,6 +11,7 @@ pub use account_balance::{AccountBalanceRequest, AccountBalanceResponse};
 pub use account_history::{AccountHistoryEntry, AccountHistoryRequest, AccountHistoryResponse};
 pub use account_info::{AccountInfoRequest, AccountInfoResponse};
 pub use active_difficulty::{ActiveDifficultyRequest, ActiveDifficultyResponse};
+pub use block_create::{BlockCreateRequest, BlockCreateResponse};
 pub use block_info::{BlockInfoRequest, BlockInfoResponse};
 use clap::Clap;
 pub use process::{ProcessRequest, ProcessResponse};
@@ -27,6 +29,7 @@ pub enum Command {
     AccountInfo(AccountInfoRequest),
     ActiveDifficulty(ActiveDifficultyRequest),
     BlockInfo(BlockInfoRequest),
+    BlockCreate(BlockCreateRequest),
     Process(ProcessRequest),
     WorkValidate(WorkValidateRequest),
 }
