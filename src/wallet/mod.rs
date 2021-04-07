@@ -210,6 +210,7 @@ impl WalletManager {
         let decrypted = {
             let decryptor = match age::Decryptor::new(file.as_slice())? {
                 age::Decryptor::Passphrase(d) => d,
+                // TODO: find out why it is unreachable
                 _ => unreachable!(),
             };
             
