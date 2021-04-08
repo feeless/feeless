@@ -1,12 +1,12 @@
-use crate::{Public, Address, Result};
 use crate::rpc::client::{RPCClient, RPCRequest};
-use serde::{Deserialize, Serialize};
-use clap::Clap;
+use crate::{Address, Public, Result};
 use async_trait::async_trait;
+use clap::Clap;
+use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Serialize, Deserialize, Clap)]
 pub struct AccountGetRequest {
-    pub key: Public, 
+    pub key: Public,
 }
 
 #[async_trait]
@@ -24,9 +24,7 @@ impl RPCRequest for &AccountGetRequest {
 
 impl AccountGetRequest {
     pub fn new(key: Public) -> Self {
-        Self {
-            key,
-        }
+        Self { key }
     }
 }
 

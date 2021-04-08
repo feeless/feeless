@@ -1,12 +1,12 @@
-use crate::Rai;
 use crate::rpc::client::{RPCClient, RPCRequest};
+use crate::Rai;
 use crate::Result;
 use async_trait::async_trait;
 use clap::Clap;
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Serialize, Deserialize, Clap)]
-// should it be pub struct AvailableSupplyRequest;? 
+// should it be pub struct AvailableSupplyRequest;?
 pub struct AvailableSupplyRequest {}
 
 #[async_trait]

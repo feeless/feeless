@@ -25,9 +25,7 @@ impl RPCRequest for &BlockConfirmRequest {
 
 impl BlockConfirmRequest {
     pub fn new(hash: BlockHash) -> Self {
-        Self {
-            hash,
-        }
+        Self { hash }
     }
 }
 

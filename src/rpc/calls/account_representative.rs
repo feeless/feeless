@@ -1,12 +1,12 @@
-use crate::{Address, Result};
 use crate::rpc::client::{RPCClient, RPCRequest};
-use serde::{Deserialize, Serialize};
-use clap::Clap;
+use crate::{Address, Result};
 use async_trait::async_trait;
+use clap::Clap;
+use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Serialize, Deserialize, Clap)]
 pub struct AccountRepresentativeRequest {
-    pub account: Address, 
+    pub account: Address,
 }
 
 #[async_trait]
@@ -24,9 +24,7 @@ impl RPCRequest for &AccountRepresentativeRequest {
 
 impl AccountRepresentativeRequest {
     pub fn new(account: Address) -> Self {
-        Self {
-            account,
-        }
+        Self { account }
     }
 }
 

@@ -1,14 +1,14 @@
-use crate::{Address, Result};
 use crate::blocks::BlockHash;
 use crate::rpc::client::{RPCClient, RPCRequest};
-use serde::{Deserialize, Serialize};
-use clap::Clap;
+use crate::{Address, Result};
 use async_trait::async_trait;
+use clap::Clap;
+use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
 #[derive(Debug, Serialize, Deserialize, Clap)]
 pub struct AccountsFrontiersRequest {
-    pub accounts: Vec<Address>, 
+    pub accounts: Vec<Address>,
 }
 
 #[async_trait]
@@ -26,9 +26,7 @@ impl RPCRequest for &AccountsFrontiersRequest {
 
 impl AccountsFrontiersRequest {
     pub fn new(accounts: Vec<Address>) -> Self {
-        Self {
-            accounts,
-        }
+        Self { accounts }
     }
 }
 

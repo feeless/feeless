@@ -1,6 +1,6 @@
 use crate::blocks::BlockHash;
 use crate::rpc::client::{RPCClient, RPCRequest};
-use crate:: {Result, Address};
+use crate::{Address, Result};
 use async_trait::async_trait;
 use clap::Clap;
 use serde::{Deserialize, Serialize};
@@ -25,9 +25,7 @@ impl RPCRequest for &BlockAccountRequest {
 
 impl BlockAccountRequest {
     pub fn new(hash: BlockHash) -> Self {
-        Self {
-            hash,
-        }
+        Self { hash }
     }
 }
 
