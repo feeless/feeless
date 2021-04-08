@@ -192,7 +192,7 @@ impl WalletManager {
         })?;
         let encryptor = age::Encryptor::with_user_passphrase(Secret::new(password.to_owned()));
         let mut encrypted = vec![];
-        let mut writer = encryptor.wrap_output(&mut encrypted).unwrap(); // see errors.rs
+        let mut writer = encryptor.wrap_output(&mut encrypted).unwrap(); // TODO: see errors.rs
         writer.write_all(&file).map_err(|e| Error::IOError {
             msg: format!("Writing file {:?}", &self.path),
             source: e,

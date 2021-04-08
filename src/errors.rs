@@ -88,7 +88,8 @@ pub enum Error {
 
     #[error("Error decrypting file")]
     DecryptionError(#[from] age::DecryptError),
+    
     //#[error("Error encrypting file")]
     //EncryptionError(#[from] age::EncryptError),
-    // this is giving an error, but I don't understand why
+    // TODO: this is giving an error, but I don't understand why
 }
