@@ -28,6 +28,7 @@ use serde::{Deserialize, Serialize};
 pub use state_block::Link;
 pub use state_block::StateBlock;
 use std::fmt::{Display, Formatter};
+use tracing::trace;
 
 #[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
@@ -207,7 +208,7 @@ impl Block {
         state: ValidationState,
         is_head: bool,
     ) -> Self {
-        Self {
+        let mut new_block = Self {
             hash: None,
             block_type,
             account,
@@ -219,7 +220,9 @@ impl Block {
             signature: None,
             state,
             is_head,
-        }
+        };
+        new_block.calc_hash().unwrap();
+        new_block
     }
 
     pub fn from_open_block(open_block: &OpenBlock, previous: &Previous, balance: &Rai) -> Self {
@@ -275,16 +278,17 @@ impl Block {
     }
 
     pub fn hash(&self) -> anyhow::Result<&BlockHash> {
-        self.hash.as_ref().ok_or(anyhow!("Hash not calculated yet"))
+        match &self.hash {
+            Some(block_hash) => Ok(&block_hash),
+            None => Err(anyhow!("Block not hashable!")),
+        }
     }
 
-    /// Get existing hash or generate the hash for this block.
+    /// Generates the hash for this block.
+    /// Will be None if block type is Invalid or NotABlock
     // TODO: Can this ever fail?
-    pub fn calc_hash(&mut self) -> anyhow::Result<()> {
+    fn calc_hash(&mut self) -> anyhow::Result<()> {
         let context = || format!("Calculating hash for {:?}", &self);
-        if self.hash.is_some() {
-            return Ok(());
-        };
 
         let hash_result = match &self.block_type() {
             BlockType::Open => hash_block(&[
@@ -297,7 +301,16 @@ impl Block {
                 self.destination().with_context(context)?.as_bytes(),
                 self.balance.to_vec().as_slice(),
             ]),
-            BlockType::State => {
+            BlockType::Change => hash_block(&[
+                self.previous.to_bytes().as_slice(),
+                self.representative.as_bytes(),
+            ]),
+            BlockType::Receive => hash_block(&[
+                self.previous.to_bytes().as_slice(),
+                self.source().with_context(context)?.as_bytes(),
+            ]),
+            BlockType::State | BlockType::Epoch => {
+                // TODO: check if epoch is *always* a state block
                 let mut preamble = [0u8; 32];
                 preamble[31] = BlockType::State as u8;
 
@@ -310,11 +323,17 @@ impl Block {
                     self.link.as_bytes(),
                 ])
             }
-            _ => todo!(),
+            _ => Err(anyhow!("Block not hashable")),
         };
 
-        let hash = hash_result.with_context(context)?;
-        self.hash = Some(hash);
+        match hash_result {
+            Ok(block_hash) => self.hash = Some(block_hash),
+            Err(error) => {
+                trace!("Ignoring hash for block {:?}. Cause: {}", &self, error);
+                self.hash = None
+            }
+        }
+
         Ok(())
     }
 

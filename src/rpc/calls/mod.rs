@@ -1,14 +1,36 @@
 mod account_balance;
+mod account_block_count;
+mod account_get;
 mod account_history;
 mod account_info;
+mod account_key;
+mod account_representative;
+mod account_weight;
+mod accounts_balances;
+mod accounts_frontiers;
 mod active_difficulty;
+mod available_supply;
+mod block_account;
+mod block_confirm;
+mod block_count;
 mod block_info;
 mod work_validate;
 
 pub use account_balance::{AccountBalanceRequest, AccountBalanceResponse};
+pub use account_block_count::{AccountBlockCountRequest, AccountBlockCountResponse};
+pub use account_get::{AccountGetRequest, AccountGetResponse};
 pub use account_history::{AccountHistoryEntry, AccountHistoryRequest, AccountHistoryResponse};
 pub use account_info::{AccountInfoRequest, AccountInfoResponse};
+pub use account_key::{AccountKeyRequest, AccountKeyResponse};
+pub use account_representative::{AccountRepresentativeRequest, AccountRepresentativeResponse};
+pub use account_weight::{AccountWeightRequest, AccountWeightResponse};
+pub use accounts_balances::{AccountsBalancesRequest, AccountsBalancesResponse};
+pub use accounts_frontiers::{AccountsFrontiersRequest, AccountsFrontiersResponse};
 pub use active_difficulty::{ActiveDifficultyRequest, ActiveDifficultyResponse};
+pub use available_supply::{AvailableSupplyRequest, AvailableSupplyResponse};
+pub use block_account::{BlockAccountRequest, BlockAccountResponse};
+pub use block_confirm::{BlockConfirmRequest, BlockConfirmResponse};
+pub use block_count::{BlockCountRequest, BlockCountResponse};
 pub use block_info::{BlockInfoRequest, BlockInfoResponse};
 use clap::Clap;
 use serde::{de, Deserialize, Deserializer, Serialize, Serializer};
@@ -26,6 +48,17 @@ pub enum Command {
     ActiveDifficulty(ActiveDifficultyRequest),
     BlockInfo(BlockInfoRequest),
     WorkValidate(WorkValidateRequest),
+    AccountBlockCount(AccountBlockCountRequest),
+    AccountGet(AccountGetRequest),
+    AccountKey(AccountKeyRequest),
+    AccountRepresentative(AccountRepresentativeRequest),
+    AccountWeight(AccountWeightRequest),
+    AccountsBalances(AccountsBalancesRequest),
+    AccountsFrontiers(AccountsFrontiersRequest),
+    AvailableSupply(AvailableSupplyRequest),
+    BlockAccount(BlockAccountRequest),
+    BlockConfirm(BlockConfirmRequest),
+    BlockCount(BlockCountRequest),
 }
 
 pub(crate) fn from_str<'de, T, D>(deserializer: D) -> std::result::Result<T, D::Error>
