@@ -79,13 +79,13 @@ enum Command {
     /// Address conversion.
     Address(AddressOpts),
 
-    /// Find a secret that can generate a custom vanity address.
+    /// Generate proof of work.
     Work(WorkOpts),
 
     /// Find a secret that can generate a custom vanity address.
     Vanity(VanityOpts),
 
-    /// Find a secret that can generate a custom vanity address.
+    /// RPC client.
     Call(RPCClientOpts),
 
     /// Tool to analyse network capture dumps for Nano packets.
