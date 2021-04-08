@@ -4,12 +4,22 @@ mod account_info;
 mod active_difficulty;
 mod block_info;
 mod work_validate;
+mod account_block_count;
+mod account_get;
+mod account_key;
+mod account_representative;
+mod account_weight;
 
 pub use account_balance::{AccountBalanceRequest, AccountBalanceResponse};
 pub use account_history::{AccountHistoryEntry, AccountHistoryRequest, AccountHistoryResponse};
 pub use account_info::{AccountInfoRequest, AccountInfoResponse};
 pub use active_difficulty::{ActiveDifficultyRequest, ActiveDifficultyResponse};
 pub use block_info::{BlockInfoRequest, BlockInfoResponse};
+pub use account_block_count::{AccountBlockCountRequest, AccountBlockCountResponse};
+pub use account_get::{AccountGetRequest, AccountGetResponse};
+pub use account_key::{AccountKeyRequest, AccountKeyResponse};
+pub use account_representative::{AccountRepresentativeRequest, AccountRepresentativeResponse};
+pub use account_weight::{AccountWeightRequest, AccountWeightResponse};
 use clap::Clap;
 use serde::{de, Deserialize, Deserializer, Serialize, Serializer};
 use std::fmt::Display;
@@ -26,6 +36,11 @@ pub enum Command {
     ActiveDifficulty(ActiveDifficultyRequest),
     BlockInfo(BlockInfoRequest),
     WorkValidate(WorkValidateRequest),
+    AccountBlockCount(AccountBlockCountRequest),
+    AccountGet(AccountGetRequest),
+    AccountKey(AccountKeyRequest),
+    AccountRepresentative(AccountRepresentativeRequest),
+    AccountWeight(AccountWeightRequest),
 }
 
 pub(crate) fn from_str<'de, T, D>(deserializer: D) -> std::result::Result<T, D::Error>
