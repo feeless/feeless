@@ -35,6 +35,12 @@ impl RPCClientOpts {
             Command::AccountKey(c) => self.show(c).await?,
             Command::AccountRepresentative(c) => self.show(c).await?,
             Command::AccountWeight(c) => self.show(c).await?,
+            Command::AccountsBalances(c) => self.show(c).await?,
+            Command::AccountsFrontiers(c) => self.show(c).await?,
+            Command::AvailableSupply(c) => self.show(c).await?,
+            Command::BlockAccount(c) => self.show(c).await?,
+            Command::BlockConfirm(c) => self.show(c).await?,
+            Command::BlockCount(c) => self.show(c).await?,
         };
         Ok(())
     }
