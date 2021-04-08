@@ -1,4 +1,5 @@
 use super::Controller;
+use crate::blocks::{Block, BlockHash, BlockHolder, BlockType, Previous, StateBlock};
 use crate::node::cookie::Cookie;
 use crate::node::header::{Extensions, Header, MessageType};
 use crate::node::messages::confirm_ack::ConfirmAck;
@@ -11,9 +12,9 @@ use crate::node::messages::publish::Publish;
 use crate::node::messages::telemetry_ack::TelemetryAck;
 use crate::node::messages::telemetry_req::TelemetryReq;
 use crate::{Public, Seed, Signature};
-use anyhow::Context;
+use anyhow::{Context, Error};
+use std::convert::TryFrom;
 use tracing::{debug, instrument, trace, warn};
-use crate::blocks::{BlockHolder, Block, BlockHash};
 
 impl Controller {
     #[instrument(skip(self))]
@@ -153,34 +154,8 @@ impl Controller {
             BlockHolder::Change(_) => {
                 todo!("Received a change block")
             }
-            BlockHolder::State(state_block) => {
-                let mut block = Block::from_state_block(&state_block);
-                let block_hash: &BlockHash = {
-                    block.calc_hash().unwrap();
-                    block.hash().unwrap()
-                };
-                // dbg!(state_block);
-
-                // # deduplication
-                let already_exists = self.state.lock().await
-                    .get_block_by_hash(block_hash).await?.is_some();
-
-                // # signature validation
-                let invalid_signature = || {
-                    let valid_signature = block.verify_self_signature()
-                        .map(|_| true)
-                        .unwrap_or(false);
-                    !valid_signature
-                };
-
-                if already_exists {
-                    tracing::info!("Block {} already exists!", block_hash);
-                } else if invalid_signature() {
-                    tracing::info!("Block {} has invalid signature!", block);
-                } else {
-                    tracing::info!("Block {} will be added", block_hash);
-                    self.state.lock().await.add_block(&block).await?;
-                }
+            BlockHolder::State(mut state_block) => {
+                Controller::state_block_handler(self, state_block)
             }
         };
         //self.state.lock().await.add_block()
@@ -229,19 +204,136 @@ impl Controller {
 
         Ok(())
     }
+
+    async fn state_block_handler(&self, state_block: StateBlock) -> anyhow::Result<()> {
+        let mut block = Block::from_state_block(&state_block);
+        let block_hash: &BlockHash = {
+            block.calc_hash().unwrap();
+            block.hash().unwrap()
+        };
+        // dbg!(state_block);
+        let block = block; // give up mutability for safety
+
+        if Controller::block_existed(self, block_hash).await? {
+            tracing::info!("Block {} already exists!", block_hash);
+        } else if block.verify_self_signature().is_err() {
+            tracing::info!("Block {} has invalid signature!", block_hash);
+        } else {
+            let previous_block = Controller::block_by_hash(self, previous_hash).await?;
+
+            match previous_block {
+                None => {}
+                Some(previous_block) => {
+                    if previous_block.account() != block.account() {
+                        tracing::info!(
+                            "Block {} has previous belonging to another chain!",
+                            block_hash
+                        )
+                    } else {
+                        // Account already exists
+                        match previous_block.previous() {
+                            Previous::Block(prev_block_hash) => {
+                                if Controller::block_exists(self, prev_block_hash).await? {
+                                    let is_send = block.balance() < previous_block.balance();
+                                    let mut decided_state_block = state_block;
+                                    decided_state_block.decide_link_type(is_send);
+                                    // let cannot_be_change_block = state_block.link
+                                    // let is_receive = !is_send && !state_block.link
+                                }
+                            }
+                            Previous::Open => {
+                                tracing::info!("Block {} is opening an opened account!", block_hash)
+                            }
+                        }
+                    }
+                }
+            }
+
+            tracing::info!("Block {} will be added", block_hash);
+            self.state.lock().await.add_block(&block).await?;
+        }
+
+        Ok(())
+    }
+
+    async fn process_valid_existing_state_block(
+        &self,
+        state_block: StateBlock,
+        block: Block,
+    ) -> anyhow::Result<()> {
+        let previous_block = Controller::previous_as_account_info(self, state_block)
+            .await
+            .with_context(format!(
+                "Block {} has previous which is not a frontier state block of the same account",
+                block.hash()?
+            ))?;
+    }
+
+    /// Returns the previous block if is a state block, belongs to the same account,
+    /// and crucially, is a head block
+    async fn previous_as_account_info(
+        &self,
+        state_block: StateBlock,
+    ) -> anyhow::Result<StateBlock> {
+        let previous_block = Controller::block_by_hash(self, previous_hash).await?;
+        if let Some(previous_block) = previous_block {
+            if previous_block.account() == state_block
+                && *previous_block.is_head()
+                && previous_block.block_type() == BlockType::State
+            {
+                return Ok(StateBlock::try_from(previous_block)?);
+            }
+        }
+        Err(anyhow!("Cannot find previous block holding account info."))
+    }
+
+    /// Write block in the ledger
+    async fn add_new_head_block(
+        &self,
+        block: &Block,
+        previous_block: &Option<Block>,
+    ) -> anyhow::Result<()> {
+        // *start transaction*
+        // 1 unmark previous as head block
+        // 2 mark current as head block
+        // 3 update previous block
+        // 4 insert current block
+        // *end transaction*
+    }
+
+    /// Shorthand for waiting a lock on the state and getting a block by hash
+    async fn block_by_hash(&self, block_hash: &BlockHash) -> anyhow::Result<Option<Block>> {
+        self.state.lock().await.get_block_by_hash(block_hash).await
+    }
+
+    /// Checks if the block exists in the database _or_ if it existed but was pruned
+    async fn block_existed(&self, block_hash: &BlockHash) -> anyhow::Result<bool> {
+        Ok(self
+            .state
+            .lock()
+            .await
+            .get_block_by_hash(block_hash)
+            .await?
+            .is_some())
+    }
+
+    /// For history nodes this has the same semantics as `Controller::block_existed`
+    async fn block_exists(&self, block_hash: &BlockHash) -> anyhow::Result<bool> {
+        Controller::block_existed(self, block_hash).await
+    }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::blocks::{Link, StateBlock};
     use crate::network::Network;
-    use std::sync::Arc;
-    use tokio::sync::{Mutex};
-    use std::net::{SocketAddr};
-    use std::str::FromStr;
-    use crate::node::{MemoryState};
-    use crate::blocks::{StateBlock, Link};
+    use crate::node::MemoryState;
     use crate::Rai;
+    use std::net::SocketAddr;
+    use std::str::FromStr;
+    use std::sync::Arc;
+    use tokio::sync::Mutex;
 
     #[tokio::test]
     async fn should_not_add_block_if_signature_is_invalid() {
@@ -250,10 +342,17 @@ mod tests {
         let state = Arc::new(Mutex::new(state));
         let test_header = Header::new(network, MessageType::Handshake, Extensions::new());
         let test_socket_addr = SocketAddr::from_str("[::1]:1").unwrap();
-        let (mut controller, _, _) = Controller::new_with_channels(network, state, test_socket_addr);
-        let account = Public::from_str("570EDFC56651FBBC9AEFE5B0769DBD210614A0C0E6962F5CA0EA2FFF4C08A4B0").unwrap();
-        let previous = BlockHash::from_str("C5C475D699CEED546FEC2E3A6C32B1544AB2C604D58D732B7D9BAB2D6A1E43E9").unwrap();
-        let representative = Public::from_str("7194452B7997A9F5ABB2F434DB010CA18B5A2715D141F9CFA64A296B3EB4DCCD").unwrap();
+        let (mut controller, _, _) =
+            Controller::new_with_channels(network, state, test_socket_addr);
+        let account =
+            Public::from_str("570EDFC56651FBBC9AEFE5B0769DBD210614A0C0E6962F5CA0EA2FFF4C08A4B0")
+                .unwrap();
+        let previous =
+            BlockHash::from_str("C5C475D699CEED546FEC2E3A6C32B1544AB2C604D58D732B7D9BAB2D6A1E43E9")
+                .unwrap();
+        let representative =
+            Public::from_str("7194452B7997A9F5ABB2F434DB010CA18B5A2715D141F9CFA64A296B3EB4DCCD")
+                .unwrap();
         let signature = Some(Signature::zero());
         let state_block = StateBlock {
             account,
@@ -267,7 +366,17 @@ mod tests {
         let mut block = Block::from_state_block(&state_block);
         block.calc_hash().unwrap();
         let block_holder = BlockHolder::State(state_block);
-        controller.handle_publish(&test_header, Publish { block_holder }).await.unwrap();
-        assert!(controller.state.lock().await.get_block_by_hash(block.hash().unwrap()).await.unwrap().is_none())
+        controller
+            .handle_publish(&test_header, Publish { block_holder })
+            .await
+            .unwrap();
+        assert!(controller
+            .state
+            .lock()
+            .await
+            .get_block_by_hash(block.hash().unwrap())
+            .await
+            .unwrap()
+            .is_none())
     }
 }

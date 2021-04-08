@@ -93,8 +93,8 @@ impl Wire for BlockHolder {
     }
 
     fn deserialize(header: Option<&Header>, data: &[u8]) -> anyhow::Result<Self>
-        where
-            Self: Sized,
+    where
+        Self: Sized,
     {
         debug_assert!(header.is_some());
         let context = "Deserialize BlockHolder";
@@ -116,8 +116,8 @@ impl Wire for BlockHolder {
     }
 
     fn len(header: Option<&Header>) -> anyhow::Result<usize>
-        where
-            Self: Sized,
+    where
+        Self: Sized,
     {
         debug_assert!(header.is_some());
         match header.as_ref().unwrap().ext().block_type()? {
@@ -182,6 +182,9 @@ pub struct Block {
 
     /// What level of trust do we have with this block?
     state: ValidationState,
+
+    /// Is this a head block (aka frontier)
+    is_head: bool,
 }
 
 #[derive(Debug, Clone, Serialize, PartialEq, Eq)]
@@ -202,6 +205,7 @@ impl Block {
         balance: Rai,
         link: Link,
         state: ValidationState,
+        is_head: bool,
     ) -> Self {
         Self {
             hash: None,
@@ -214,6 +218,7 @@ impl Block {
             work: None,
             signature: None,
             state,
+            is_head,
         }
     }
 
@@ -226,6 +231,7 @@ impl Block {
             balance.to_owned(),
             Link::Source(open_block.source.to_owned()),
             ValidationState::Valid,
+            false,
         );
         b.signature = open_block.signature.to_owned();
         b.work = open_block.work.to_owned();
@@ -245,6 +251,7 @@ impl Block {
             send_block.balance.to_owned(),
             Link::DestinationAccount(send_block.destination.to_owned()),
             ValidationState::Valid,
+            false,
         );
         b.signature = send_block.signature.to_owned();
         b.work = send_block.work.to_owned();
@@ -260,6 +267,7 @@ impl Block {
             state_block.balance.to_owned(),
             state_block.link.to_owned(),
             ValidationState::Valid,
+            false,
         );
         b.signature = state_block.signature.to_owned();
         b.work = state_block.work.to_owned();
@@ -369,6 +377,10 @@ impl Block {
         &self.previous
     }
 
+    pub fn is_head(&self) -> &bool {
+        &self.is_head
+    }
+
     /// For an open or recv block, get the sender's block hash, otherwise Err.
     pub fn source(&self) -> anyhow::Result<&BlockHash> {
         if self.block_type != BlockType::Open {
@@ -411,18 +423,19 @@ impl Block {
 
 impl Display for Block {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        let work_render = if self.work.is_none() {
-            "No Work".to_string()
-        } else {
-            self.work.as_ref().unwrap().to_string()
+        let work_render = match &self.work {
+            Some(work) => work.to_string(),
+            None => "No work".to_string(),
         };
-        let signature_render = if self.signature.is_none() {
-            "No Signature".to_string()
-        } else {
-            self.signature.as_ref().unwrap().to_string()
+        let signature_render = match &self.signature {
+            Some(signature) => signature.to_string(),
+            None => "No signature".to_string(),
         };
-        write!(f, "Block(Account: {}, Previous: {:?}, Balance: {}, Link: {:?}, Work: {}, Signature: {})",
-               self.account, self.previous, self.balance, self.link, work_render, signature_render)
+        write!(
+            f,
+            "Block(Account: {}, Previous: {:?}, Balance: {}, Link: {:?}, Work: {}, Signature: {})",
+            self.account, self.previous, self.balance, self.link, work_render, signature_render
+        )
     }
 }
 

@@ -4,7 +4,7 @@ use crate::node::Header;
 #[cfg(feature = "node")]
 use crate::node::Wire;
 
-use crate::blocks::{BlockHash, BlockType};
+use crate::blocks::{Block, BlockHash, BlockType};
 use crate::bytes::Bytes;
 use crate::encoding::deserialize_from_str;
 use crate::keys::public::{from_address, to_address};
@@ -74,6 +74,49 @@ impl StateBlock {
             work: None,
             signature: None,
         }
+    }
+
+    pub fn decide_link_type(&mut self, is_send: bool) -> anyhow::Result<()> {
+        match &self.link {
+            Link::Nothing => Ok(()),
+            Link::Source(_) => Ok(()),
+            Link::DestinationAccount(_) => Ok(()),
+            Link::Unsure(unsure_link) => {
+                if is_send {
+                    // in send block link represents destination address
+                    self.link = Link::DestinationAccount(Public::try_from(unsure_link.as_bytes())?)
+                } else {
+                    let is_all_zeros = unsure_link.0.iter().all(|&b| b == 0);
+
+                    // if not send AND cannot be not change => receive block
+                    let is_receive = !is_send && !is_all_zeros;
+
+                    if is_receive {
+                        // in receive block link represents source (aka pairing) block's hash (block sending funds)
+                        self.link = Link::Source(BlockHash::try_from(unsure_link.as_bytes())?)
+                    } else {
+                        // only possibility left is to be a change block
+                        // in a change block the link represents nothing
+                        self.link = Link::Nothing
+                    }
+                }
+            }
+        }
+    }
+}
+
+impl TryFrom<Block> for StateBlock {
+    type Error = Error;
+
+    fn try_from(block: Block) -> Result<Self, Self::Error> {
+        let block_hash = BlockHash::try_from(&block.previous.to_bytes()[..])?;
+        Ok(StateBlock::new(
+            block.account,
+            block_hash,
+            block.representative,
+            block.balance,
+            block.link,
+        ))
     }
 }
 
