@@ -1,3 +1,4 @@
+use crate::rpc::calls::{as_str, from_str};
 use crate::rpc::client::{RPCClient, RPCRequest};
 use crate::Result;
 use async_trait::async_trait;
@@ -28,7 +29,10 @@ impl BlockCountRequest {
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct BlockCountResponse {
+    #[serde(deserialize_with = "from_str", serialize_with = "as_str")]
     count: u64,
+    #[serde(deserialize_with = "from_str", serialize_with = "as_str")]
     unchecked: u64,
+    #[serde(deserialize_with = "from_str", serialize_with = "as_str")]
     cemented: u64,
 }

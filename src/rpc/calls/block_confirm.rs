@@ -1,4 +1,5 @@
 use crate::blocks::BlockHash;
+use crate::rpc::calls::{as_str, from_str};
 use crate::rpc::client::{RPCClient, RPCRequest};
 use crate::Result;
 use async_trait::async_trait;
@@ -31,5 +32,6 @@ impl BlockConfirmRequest {
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct BlockConfirmResponse {
+    #[serde(deserialize_with = "from_str", serialize_with = "as_str")]
     started: u8,
 }
