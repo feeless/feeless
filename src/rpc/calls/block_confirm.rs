@@ -15,7 +15,7 @@ impl RPCRequest for &BlockConfirmRequest {
     type Response = BlockConfirmResponse;
 
     fn action(&self) -> &str {
-        "block_account"
+        "block_confirm"
     }
 
     async fn call(&self, client: &RPCClient) -> Result<BlockConfirmResponse> {

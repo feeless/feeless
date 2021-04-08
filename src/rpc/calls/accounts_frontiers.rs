@@ -16,7 +16,7 @@ impl RPCRequest for &AccountsFrontiersRequest {
     type Response = AccountsFrontiersResponse;
 
     fn action(&self) -> &str {
-        "account_block_count"
+        "accounts_frontiers"
     }
 
     async fn call(&self, client: &RPCClient) -> Result<AccountsFrontiersResponse> {
