@@ -2,6 +2,7 @@ use crate::Error;
 use bitvec::prelude::*;
 use blake2::digest::{Update, VariableOutput};
 use blake2::VarBlake2b;
+use once_cell::sync::Lazy;
 use serde::{Deserialize, Deserializer};
 use std::str::FromStr;
 
@@ -58,6 +59,7 @@ pub fn blake2b_callback(size: usize, data: &[u8], f: impl FnOnce(&[u8])) {
 }
 
 pub(crate) const ALPHABET: &str = "13456789abcdefghijkmnopqrstuwxyz";
+static ALPHABET_VEC: Lazy<Vec<char>> = Lazy::new(|| ALPHABET.chars().collect());
 const ENCODING_BITS: usize = 5;
 
 pub fn encode_nano_base_32(bits: &BitSlice<Msb0, u8>) -> String {
@@ -67,11 +69,10 @@ pub fn encode_nano_base_32(bits: &BitSlice<Msb0, u8>) -> String {
         "BitSlice must be divisible by 5"
     );
     let mut s = String::new(); // TODO: with_capacity
-    let alphabet: Vec<char> = ALPHABET.chars().collect(); // TODO: lazy
     for idx in (0..bits.len()).step_by(ENCODING_BITS) {
         let chunk: &BitSlice<Msb0, u8> = &bits[idx..idx + ENCODING_BITS];
         let value: u8 = chunk.load_be();
-        let char = alphabet[value as usize];
+        let char = ALPHABET_VEC[value as usize];
         s.push(char);
     }
     s
