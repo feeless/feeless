@@ -2,6 +2,7 @@ use crate::encoding;
 use crate::keys::public::Public;
 use crate::Error;
 use bitvec::prelude::*;
+use once_cell::sync::Lazy;
 use regex::Regex;
 use serde::{Deserialize, Serialize};
 use std::convert::TryFrom;
@@ -79,21 +80,22 @@ impl Address {
     }
 }
 
+static ADDRESS_REGEX: Lazy<Regex> = Lazy::new(|| {
+    Regex::new("^nano_[13][13456789abcdefghijkmnopqrstuwxyz]{59}$")
+        .expect("Could not build regexp for nano address.")
+});
+
 impl FromStr for Address {
     type Err = Error;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        // TODO: Lazy
-        let re = Regex::new("^nano_[13][13456789abcdefghijkmnopqrstuwxyz]{59}$")
-            .expect("Could not build regexp for nano address.");
-        if !re.is_match(s) {
+        if !ADDRESS_REGEX.is_match(s) {
             return Err(Error::InvalidAddress);
         }
 
         let address = Address(s.into());
         let public = address.extract_public_key()?;
         address.validate_checksum(&public)?;
-
         Ok(address)
     }
 }
