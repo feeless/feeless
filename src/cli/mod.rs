@@ -41,7 +41,7 @@ struct Opts {
     #[clap(subcommand)]
     command: Command,
 
-    /// Don't use ANSI colour codes when logging.
+    /// Don't use ANSI color codes when logging.
     #[clap(long)]
     no_color: bool,
 
