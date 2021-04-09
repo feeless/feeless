@@ -161,7 +161,6 @@ mod tests {
 
         block.set_signature(signature);
         block.set_work(work);
-        block.calc_hash().unwrap();
 
         assert_eq!(
             block.hash().unwrap(),
