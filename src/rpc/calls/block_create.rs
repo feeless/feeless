@@ -9,7 +9,6 @@ use async_trait::async_trait;
 use clap::Clap;
 use serde::{Deserialize, Serialize};
 
-
 #[derive(Debug, Serialize, Deserialize, Clap)]
 pub struct BlockCreateRequest {
     // We only support json_block being true.
