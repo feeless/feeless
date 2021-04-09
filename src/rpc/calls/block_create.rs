@@ -1,4 +1,4 @@
-use crate::blocks::{BlockHash, BlockHolder, Link, StateBlock, Subtype};
+use crate::blocks::{BlockHash, Link, StateBlock, Subtype};
 use crate::rpc::calls::{as_str, from_str};
 use crate::rpc::client::{RPCClient, RPCRequest};
 use crate::rpc::AlwaysTrue;

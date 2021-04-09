@@ -298,7 +298,7 @@ impl Block {
                 self.previous.to_bytes().as_slice(),
                 self.source().with_context(context)?.as_bytes(),
             ]),
-            BlockType::State | BlockType::Epoch => {
+            BlockType::State => {
                 // TODO: check if epoch is *always* a state block
                 let mut preamble = [0u8; 32];
                 preamble[31] = BlockType::State as u8;
