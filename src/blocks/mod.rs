@@ -19,14 +19,14 @@ use crate::{Private, Public, Rai, Signature, Work};
 use anyhow::{anyhow, Context};
 pub use block_hash::BlockHash;
 pub use change_block::ChangeBlock;
+use clap::Clap;
 use core::convert::TryFrom;
 pub use open_block::OpenBlock;
 pub use receive_block::ReceiveBlock;
 pub use send_block::SendBlock;
 use serde;
 use serde::{Deserialize, Serialize};
-pub use state_block::Link;
-pub use state_block::StateBlock;
+pub use state_block::{Link, StateBlock, Subtype};
 use tracing::trace;
 
 #[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
@@ -39,7 +39,6 @@ pub enum BlockType {
     Open,
     Change,
     State,
-    Epoch,
 }
 
 impl BlockType {
@@ -52,7 +51,6 @@ impl BlockType {
             BlockType::Open => 4,
             BlockType::Change => 5,
             BlockType::State => 6,
-            BlockType::Epoch => todo!(),
         }
     }
 }
@@ -76,7 +74,7 @@ impl TryFrom<u8> for BlockType {
 }
 
 /// For "holding" deserialized blocks that we can't convert to `Block` yet.
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, Clap)]
 #[serde(tag = "type", rename_all = "snake_case")]
 pub enum BlockHolder {
     Send(SendBlock),
@@ -300,7 +298,7 @@ impl Block {
                 self.previous.to_bytes().as_slice(),
                 self.source().with_context(context)?.as_bytes(),
             ]),
-            BlockType::State | BlockType::Epoch => {
+            BlockType::State => {
                 // TODO: check if epoch is *always* a state block
                 let mut preamble = [0u8; 32];
                 preamble[31] = BlockType::State as u8;

@@ -13,7 +13,9 @@ mod available_supply;
 mod block_account;
 mod block_confirm;
 mod block_count;
+mod block_create;
 mod block_info;
+mod process;
 mod work_validate;
 
 pub use account_balance::{AccountBalanceRequest, AccountBalanceResponse};
@@ -31,8 +33,10 @@ pub use available_supply::{AvailableSupplyRequest, AvailableSupplyResponse};
 pub use block_account::{BlockAccountRequest, BlockAccountResponse};
 pub use block_confirm::{BlockConfirmRequest, BlockConfirmResponse};
 pub use block_count::{BlockCountRequest, BlockCountResponse};
+pub use block_create::{BlockCreateRequest, BlockCreateResponse};
 pub use block_info::{BlockInfoRequest, BlockInfoResponse};
 use clap::Clap;
+pub use process::{ProcessRequest, ProcessResponse};
 use serde::{de, Deserialize, Deserializer, Serialize, Serializer};
 use std::fmt::Display;
 use std::ops::Deref;
@@ -46,19 +50,21 @@ pub enum Command {
     AccountHistory(AccountHistoryRequest),
     AccountInfo(AccountInfoRequest),
     ActiveDifficulty(ActiveDifficultyRequest),
-    BlockInfo(BlockInfoRequest),
-    WorkValidate(WorkValidateRequest),
+    Process(ProcessRequest),
     AccountBlockCount(AccountBlockCountRequest),
     AccountGet(AccountGetRequest),
     AccountKey(AccountKeyRequest),
     AccountRepresentative(AccountRepresentativeRequest),
-    AccountWeight(AccountWeightRequest),
     AccountsBalances(AccountsBalancesRequest),
+    AccountWeight(AccountWeightRequest),
     AccountsFrontiers(AccountsFrontiersRequest),
     AvailableSupply(AvailableSupplyRequest),
     BlockAccount(BlockAccountRequest),
     BlockConfirm(BlockConfirmRequest),
     BlockCount(BlockCountRequest),
+    BlockCreate(BlockCreateRequest),
+    BlockInfo(BlockInfoRequest),
+    WorkValidate(WorkValidateRequest),
 }
 
 pub(crate) fn from_str<'de, T, D>(deserializer: D) -> std::result::Result<T, D::Error>

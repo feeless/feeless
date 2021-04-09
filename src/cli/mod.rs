@@ -85,7 +85,7 @@ enum Command {
     /// Find a secret that can generate a custom vanity address.
     Vanity(VanityOpts),
 
-    /// RPC client.
+    /// RPC client that can call a function against a Nano RPC server.
     Call(RPCClientOpts),
 
     /// Tool to analyse network capture dumps for Nano packets.
