@@ -1,4 +1,4 @@
-use crate::blocks::{BlockHolder, StateBlock, Subtype};
+use crate::blocks::{StateBlock, Subtype};
 use crate::rpc::client::{RPCClient, RPCRequest};
 use crate::rpc::AlwaysTrue;
 use crate::Result;
