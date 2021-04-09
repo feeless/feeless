@@ -1,11 +1,9 @@
 use crate::blocks::{BlockHash, Link, StateBlock};
-
 use crate::rpc::client::{RPCClient, RPCRequest};
 use crate::rpc::AlwaysTrue;
 use crate::wallet::WalletId;
 use crate::{Address, Difficulty, Private, Rai, Result, Work};
 use async_trait::async_trait;
-
 use clap::Clap;
 use serde::{Deserialize, Serialize};
 
