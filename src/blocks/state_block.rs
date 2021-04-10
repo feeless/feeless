@@ -4,7 +4,7 @@ use crate::node::Header;
 #[cfg(feature = "node")]
 use crate::node::Wire;
 
-use crate::blocks::{Block, BlockHash, BlockType};
+use crate::blocks::{Block, BlockHash, BlockType, Previous};
 use crate::bytes::Bytes;
 use crate::encoding::deserialize_from_str;
 use crate::keys::public::{from_address, to_address};
@@ -45,7 +45,7 @@ pub struct StateBlock {
     pub account: Public,
 
     #[clap(short, long)]
-    pub previous: BlockHash,
+    pub previous: Previous,
 
     #[serde(serialize_with = "to_address", deserialize_with = "from_address")]
     #[clap(short, long)]
@@ -70,7 +70,7 @@ impl StateBlock {
 
     pub fn new(
         account: Public,
-        previous: BlockHash,
+        previous: Previous,
         representative: Public,
         balance: Rai,
         link: Link,
@@ -98,15 +98,15 @@ impl StateBlock {
                 } else {
                     let is_all_zeros = unsure_link.0.iter().all(|&b| b == 0);
 
-                    // if not send AND cannot be not change => receive block
+                    // if not send AND cannot be not change => receive block subtype
                     let is_receive = !is_send && !is_all_zeros;
 
                     if is_receive {
-                        // in receive block link represents source (aka pairing) block's hash (block sending funds)
+                        // in receive block subtype link represents source (aka pairing) block's hash (block sending funds)
                         self.link = Link::Source(BlockHash::try_from(unsure_link.as_bytes())?)
                     } else {
-                        // only possibility left is to be a change block
-                        // in a change block the link represents nothing
+                        // only possibility left is to be a change block subtype
+                        // in a change block subtype the link represents nothing
                         self.link = Link::Nothing
                     }
                 }
@@ -118,11 +118,10 @@ impl StateBlock {
 impl TryFrom<Block> for StateBlock {
     type Error = Error;
 
-    fn try_from(block: Block) -> Result<Self, Self::Error> {
-        let block_hash = BlockHash::try_from(&block.previous.to_bytes()[..])?;
+    fn try_from(block: Block) -> Result<Self> {
         Ok(StateBlock::new(
             block.account,
-            block_hash,
+            block.previous,
             block.representative,
             block.balance,
             block.link,
@@ -143,7 +142,7 @@ impl Wire for StateBlock {
         let mut data = Bytes::new(data);
 
         let account = Public::try_from(data.slice(Public::LEN)?)?;
-        let previous = BlockHash::try_from(data.slice(BlockHash::LEN)?)?;
+        let previous = Previous::try_from(data.slice(BlockHash::LEN)?)?;
         let representative = Public::try_from(data.slice(Public::LEN)?)?;
         let balance = Rai::try_from(data.slice(Rai::LEN)?)?;
 
@@ -177,7 +176,7 @@ mod tests {
 
     use super::Rai;
     use super::StateBlock;
-    use crate::blocks::{Block, BlockHash};
+    use crate::blocks::{Block, BlockHash, Previous};
     use std::str::FromStr;
 
     #[test]
@@ -186,8 +185,8 @@ mod tests {
             Address::from_str("nano_34prihdxwz3u4ps8qjnn14p7ujyewkoxkwyxm3u665it8rg5rdqw84qrypzk")
                 .unwrap()
                 .to_public();
-        let parent =
-            BlockHash::from_str("7837C80964CAD551DEABE162C7FC4BB58688A0C6EB6D9907C0D2A7C74A33C7EB")
+        let parent: Previous =
+            Previous::from_str("7837C80964CAD551DEABE162C7FC4BB58688A0C6EB6D9907C0D2A7C74A33C7EB")
                 .unwrap();
         let representative = account.clone();
         let balance = Rai::new(2711469892748129430069222848295u128);

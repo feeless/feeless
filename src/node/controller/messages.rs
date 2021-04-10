@@ -1,5 +1,5 @@
 use super::Controller;
-use crate::blocks::{Block, BlockHash, BlockHolder, BlockType, Previous, StateBlock};
+use crate::blocks::{Block, BlockHash, BlockHolder, BlockType, Link, Previous, StateBlock};
 use crate::node::cookie::Cookie;
 use crate::node::header::{Extensions, Header, MessageType};
 use crate::node::messages::confirm_ack::ConfirmAck;
@@ -215,35 +215,7 @@ impl Controller {
         } else if block.verify_self_signature().is_err() {
             tracing::info!("Block {} has invalid signature!", block_hash);
         } else {
-            let previous_block = Controller::block_by_hash(self, previous_hash).await?;
-
-            match previous_block {
-                None => {}
-                Some(previous_block) => {
-                    if previous_block.account() != block.account() {
-                        tracing::info!(
-                            "Block {} has previous belonging to another chain!",
-                            block_hash
-                        )
-                    } else {
-                        // Account already exists
-                        match previous_block.previous() {
-                            Previous::Block(prev_block_hash) => {
-                                if Controller::block_exists(self, prev_block_hash).await? {
-                                    let is_send = block.balance() < previous_block.balance();
-                                    let mut decided_state_block = state_block;
-                                    decided_state_block.decide_link_type(is_send);
-                                    // let cannot_be_change_block = state_block.link
-                                    // let is_receive = !is_send && !state_block.link
-                                }
-                            }
-                            Previous::Open => {
-                                tracing::info!("Block {} is opening an opened account!", block_hash)
-                            }
-                        }
-                    }
-                }
-            }
+            Controller::process_valid_existing_state_block(&self, state_block, block).await?;
 
             tracing::info!("Block {} will be added", block_hash);
             self.state.lock().await.add_block(&block).await?;
@@ -254,33 +226,83 @@ impl Controller {
 
     async fn process_valid_existing_state_block(
         &self,
-        state_block: StateBlock,
-        block: Block,
+        mut state_block: StateBlock,
+        block: Block, // TODO: is this really necessary?
     ) -> anyhow::Result<()> {
-        let previous_block = Controller::previous_as_account_info(self, state_block)
-            .await
-            .with_context(format!(
-                "Block {} has previous which is not a frontier state block of the same account",
-                block.hash()?
-            ))?;
-    }
-
-    /// Returns the previous block if is a state block, belongs to the same account,
-    /// and crucially, is a head block
-    async fn previous_as_account_info(
-        &self,
-        state_block: StateBlock,
-    ) -> anyhow::Result<StateBlock> {
-        let previous_block = Controller::block_by_hash(self, previous_hash).await?;
-        if let Some(previous_block) = previous_block {
-            if previous_block.account() == state_block
-                && *previous_block.is_head()
-                && previous_block.block_type() == BlockType::State
-            {
-                return Ok(StateBlock::try_from(previous_block)?);
+        let is_open;
+        let amount;
+        match state_block.previous {
+            Previous::Block(previous_hash) => {
+                // wants to send, receive or change
+                is_open = false;
+            }
+            Previous::Open => {
+                // wants to open an account
+                is_open = true;
             }
         }
-        Err(anyhow!("Cannot find previous block holding account info."))
+        let maybe_previous_block =
+            Controller::previous_as_account_info(self, state_block.previous())
+                .await
+                .with_context(format!(
+                    "Block {} has previous which is not a frontier state block of the same account",
+                    block.hash()?
+                ))?;
+        match maybe_previous_block {
+            None => {
+                // account does not yet exists
+            }
+            Some(previous_block) => {
+                // account already exists
+                if is_open {
+                    return Err(anyhow!(
+                        "Block {} is opening an opened account!",
+                        block_hash
+                    ));
+                } else {
+                    let is_send = state_block.balance < previous_block.balance;
+                    state_block.decide_link_type(is_send);
+                    match state_block.link {
+                        Link::Unsure(_) => {
+                            // impossible
+                            panic!("The link should never be unsure at this point!")
+                        }
+                        Link::Nothing => {
+                            // change block subtype
+                            amount = 0;
+                        }
+                        Link::Source(_) => {
+                            // receive block subtype
+                            amount = state_block.balance - previous_block.balance
+                        }
+                        Link::DestinationAccount(_) => {
+                            // send block subtype
+                            debug_assert_eq!(previous_block.account, state_block.account);
+                            amount = previous_block.balance - state_block.balance
+                        }
+                    }
+                }
+            }
+        }
+        Ok(())
+    }
+
+    /// Returns the previous block if is a state block AND is a head block
+    async fn previous_as_account_info(
+        &self,
+        &previous: BlockHash,
+    ) -> anyhow::Result<Option<StateBlock>> {
+        let previous_block = Controller::block_by_hash(self, previous).await?;
+        if let Some(previous_block) = previous_block {
+            return if *previous_block.is_head() && previous_block.block_type() == BlockType::State {
+                Ok(Some(StateBlock::try_from(previous_block)?))
+            } else {
+                Err(anyhow!(
+                    "Previous block existed but is not currently supported!"
+                ))
+            };
+        }
+        Ok(None)
     }
 
     /// Write block in the ledger
