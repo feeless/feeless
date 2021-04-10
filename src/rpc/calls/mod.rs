@@ -15,6 +15,7 @@ mod block_confirm;
 mod block_count;
 mod block_info;
 mod work_validate;
+mod accounts_pending;
 
 pub use account_balance::{AccountBalanceRequest, AccountBalanceResponse};
 pub use account_block_count::{AccountBlockCountRequest, AccountBlockCountResponse};
@@ -32,6 +33,7 @@ pub use block_account::{BlockAccountRequest, BlockAccountResponse};
 pub use block_confirm::{BlockConfirmRequest, BlockConfirmResponse};
 pub use block_count::{BlockCountRequest, BlockCountResponse};
 pub use block_info::{BlockInfoRequest, BlockInfoResponse};
+pub use accounts_pending::{AccountsPendingRequest, AccountsPendingResponse};
 use clap::Clap;
 use serde::{de, Deserialize, Deserializer, Serialize, Serializer};
 use std::fmt::Display;
@@ -59,6 +61,7 @@ pub enum Command {
     BlockAccount(BlockAccountRequest),
     BlockConfirm(BlockConfirmRequest),
     BlockCount(BlockCountRequest),
+    AccountsPending(AccountsPendingRequest),
 }
 
 pub(crate) fn from_str<'de, T, D>(deserializer: D) -> std::result::Result<T, D::Error>
@@ -71,12 +74,33 @@ where
     T::from_str(&s).map_err(de::Error::custom)
 }
 
+pub(crate) fn from_str_option<'de, T, D>(deserializer: D) -> std::result::Result<Option<T>, D::Error>
+where
+    T: FromStr,
+    T::Err: Display,
+    D: Deserializer<'de>,
+{
+    let s = String::deserialize(deserializer)?;
+    T::from_str(&s).map_err(de::Error::custom).map(|res| Some(res))
+}
+
 pub fn as_str<V, S>(v: &V, serializer: S) -> Result<S::Ok, S::Error>
 where
     S: Serializer,
     V: Display,
 {
     serializer.serialize_str(v.to_string().as_str())
+}
+
+pub fn as_str_option<V, S>(v: &Option<V>, serializer: S) -> Result<S::Ok, S::Error>
+where
+    S: Serializer,
+    V: Display,
+{   
+    match v {
+        Some(a) => serializer.serialize_str(a.to_string().as_str()),
+        None => serializer.serialize_str("".to_string().as_str()),
+    }
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
