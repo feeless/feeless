@@ -206,11 +206,7 @@ impl Controller {
     }
 
     async fn state_block_handler(&self, state_block: StateBlock) -> anyhow::Result<()> {
-        let mut block = Block::from_state_block(&state_block);
-        let block_hash: &BlockHash = {
-            block.calc_hash().unwrap();
-            block.hash().unwrap()
-        };
+        let block = Block::from_state_block(&state_block);
         // dbg!(state_block);
         let block = block; // give up mutability for safety
 
@@ -364,7 +360,6 @@ mod tests {
             signature,
         };
         let mut block = Block::from_state_block(&state_block);
-        block.calc_hash().unwrap();
         let block_holder = BlockHolder::State(state_block);
         controller
             .handle_publish(&test_header, Publish { block_holder })
