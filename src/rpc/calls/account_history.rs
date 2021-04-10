@@ -1,4 +1,4 @@
-use crate::blocks::{BlockHash, BlockType};
+use crate::blocks::{BlockHash, BlockType, Subtype};
 use crate::rpc::calls::{as_str, from_str};
 use crate::rpc::client::{RPCClient, RPCRequest};
 use crate::{Address, Rai, Result, Signature, Work};
@@ -101,7 +101,7 @@ pub struct AccountHistoryEntry {
     // Raw specific fields under here.
     //
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub subtype: Option<BlockType>,
+    pub subtype: Option<Subtype>,
 
     #[serde(skip_serializing_if = "Option::is_none")]
     pub previous: Option<BlockHash>,
