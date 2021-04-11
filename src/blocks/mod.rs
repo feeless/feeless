@@ -19,18 +19,20 @@ use crate::{Private, Public, Rai, Signature, Work};
 use anyhow::{anyhow, Context};
 pub use block_hash::BlockHash;
 pub use change_block::ChangeBlock;
-use clap::Clap;
 use core::convert::TryFrom;
 pub use open_block::OpenBlock;
 pub use receive_block::ReceiveBlock;
 pub use send_block::SendBlock;
 use serde;
 use serde::{Deserialize, Serialize};
+pub(crate) use state_block::deserialize_to_unsure_link;
 pub use state_block::{Link, StateBlock, Subtype};
+use strum_macros::EnumString;
 use tracing::trace;
 
-#[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize, EnumString)]
 #[serde(rename_all = "snake_case")]
+#[strum(serialize_all = "snake_case")]
 pub enum BlockType {
     Invalid,
     NotABlock,
@@ -74,7 +76,7 @@ impl TryFrom<u8> for BlockType {
 }
 
 /// For "holding" deserialized blocks that we can't convert to `Block` yet.
-#[derive(Debug, Clone, Serialize, Deserialize, Clap)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(tag = "type", rename_all = "snake_case")]
 pub enum BlockHolder {
     Send(SendBlock),

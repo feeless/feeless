@@ -10,7 +10,6 @@ use crate::encoding::deserialize_from_str;
 use crate::keys::public::{from_address, to_address};
 use crate::Result;
 use crate::{expect_len, to_hex, Error, Public, Rai, Signature, Work};
-use clap::Clap;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use std::convert::TryFrom;
 use std::fmt::Debug;
@@ -29,6 +28,7 @@ where
 
 /// Not used within StateBlock yet.
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, EnumString)]
+#[serde(rename_all = "snake_case")]
 #[strum(serialize_all = "snake_case")]
 pub enum Subtype {
     Send,
@@ -38,30 +38,23 @@ pub enum Subtype {
     Epoch,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, Clap)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct StateBlock {
     #[serde(serialize_with = "to_address", deserialize_with = "from_address")]
-    #[clap(short, long)]
     pub account: Public,
 
-    #[clap(short, long)]
     pub previous: BlockHash,
 
     #[serde(serialize_with = "to_address", deserialize_with = "from_address")]
-    #[clap(short, long)]
     pub representative: Public,
 
-    #[clap(short, long)]
     pub balance: Rai,
 
     #[serde(deserialize_with = "deserialize_to_unsure_link")]
-    #[clap(short, long)]
     pub link: Link,
 
-    #[clap(short, long)]
     pub work: Option<Work>,
 
-    #[clap(short = 'g', long)]
     pub signature: Option<Signature>,
 }
 
