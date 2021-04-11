@@ -1,6 +1,4 @@
 use crate::hexify;
-use std::convert::TryFrom;
-use std::str::FromStr;
 
 #[derive(Clone, PartialEq, Eq, Hash)]
 pub struct BlockHash([u8; BlockHash::LEN]);

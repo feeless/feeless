@@ -4,7 +4,6 @@ use crate::Private;
 use bytes::{BufMut, BytesMut};
 use rand::RngCore;
 use std::convert::TryFrom;
-use std::str::FromStr;
 
 /// 256 bit seed used to derive multiple addresses.
 ///

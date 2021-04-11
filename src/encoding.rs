@@ -140,6 +140,8 @@ macro_rules! hexify {
             type Err = crate::Error;
 
             fn from_str(s: &str) -> crate::Result<Self> {
+                use ::std::convert::TryFrom;
+
                 crate::expect_len(s.len(), Self::LEN * 2, $description)?;
                 let vec = hex::decode(s.as_bytes()).map_err(|e| crate::Error::FromHexError {
                     msg: String::from($description),
@@ -207,6 +209,7 @@ macro_rules! hexify {
             where
                 D: serde::Deserializer<'de>,
             {
+                use ::std::str::FromStr;
                 let s: String = serde::Deserialize::deserialize(deserializer)?;
                 Ok(Self::from_str(&s).map_err(serde::de::Error::custom)?)
             }

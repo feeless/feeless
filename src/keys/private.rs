@@ -3,7 +3,6 @@ use ed25519_dalek::ed25519::signature::Signature as InternalSignature;
 use ed25519_dalek::ExpandedSecretKey;
 use rand::RngCore;
 use std::convert::TryFrom;
-use std::str::FromStr;
 
 /// 256 bit private key which can generate a public key.
 #[derive(Clone)]

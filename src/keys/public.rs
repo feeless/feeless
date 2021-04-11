@@ -10,7 +10,6 @@ use crate::{encoding, Address, Signature};
 use bitvec::prelude::*;
 use ed25519_dalek::Verifier;
 use serde::{Deserialize, Deserializer, Serializer};
-use std::convert::TryFrom;
 use std::iter::FromIterator;
 use std::str::FromStr;
 
