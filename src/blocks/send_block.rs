@@ -9,7 +9,6 @@ use crate::bytes::Bytes;
 use crate::keys::public::{from_address, to_address};
 use crate::units::rai::{deserialize_from_hex, serialize_to_hex};
 use crate::{Public, Rai, Signature, Work};
-
 use serde::{Deserialize, Serialize};
 use std::convert::TryFrom;
 

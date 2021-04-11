@@ -41,7 +41,7 @@ struct Opts {
     #[clap(subcommand)]
     command: Command,
 
-    /// Don't use ANSI colour codes when logging.
+    /// Don't use ANSI color codes when logging.
     #[clap(long)]
     no_color: bool,
 
@@ -79,13 +79,13 @@ enum Command {
     /// Address conversion.
     Address(AddressOpts),
 
-    /// Find a secret that can generate a custom vanity address.
+    /// Generate proof of work.
     Work(WorkOpts),
 
     /// Find a secret that can generate a custom vanity address.
     Vanity(VanityOpts),
 
-    /// Find a secret that can generate a custom vanity address.
+    /// RPC client that can call a function against a Nano RPC server.
     Call(RPCClientOpts),
 
     /// Tool to analyse network capture dumps for Nano packets.

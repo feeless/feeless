@@ -5,7 +5,6 @@ use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct OpenBlock {
-    /// BlockHash of the Open block sending the funds to this account.
     pub source: BlockHash,
 
     #[serde(serialize_with = "to_address", deserialize_with = "from_address")]

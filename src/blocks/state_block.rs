@@ -6,34 +6,34 @@ use crate::node::Wire;
 
 use crate::blocks::{BlockHash, BlockType};
 use crate::bytes::Bytes;
-use crate::encoding::deserialize_from_str;
 use crate::keys::public::{from_address, to_address};
-use crate::{expect_len, to_hex, Error, Public, Rai, Signature, Work};
-use serde::{Deserialize, Deserializer, Serialize, Serializer};
+use crate::{expect_len, hexify, Error, Public, Rai, Result, Signature, Work};
+use serde::{Deserialize, Deserializer, Serialize};
 use std::convert::TryFrom;
 use std::fmt::Debug;
 use std::str::FromStr;
+use strum_macros::EnumString;
 
 pub fn deserialize_to_unsure_link<'de, D>(
     deserializer: D,
-) -> Result<Link, <D as Deserializer<'de>>::Error>
+) -> std::result::Result<Link, <D as Deserializer<'de>>::Error>
 where
     D: Deserializer<'de>,
 {
     let unsure = UnsureLink::deserialize(deserializer).map_err(serde::de::Error::custom)?;
     Ok(Link::Unsure(unsure))
+}
 
-    // let s: &str = Deserialize::deserialize(deserializer)?;
-    // expect_len(s.len(), Link::LEN * 2, "hex link").map_err(serde::de::Error::custom)?;
-    // let vec = hex::decode(s.as_bytes())
-    //     .map_err(|source| Error::FromHexError {
-    //         msg: "Decoding hex public key".into(),
-    //         source,
-    //     })
-    //     .map_err(serde::de::Error::custom)?;
-    // let bytes = vec.as_slice();
-    // let x = <[u8; Link::LEN]>::try_from(bytes).map_err(serde::de::Error::custom)?;
-    // Ok(Link::Unsure(UnsureLink(x)))
+/// Not used within StateBlock yet.
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, EnumString)]
+#[serde(rename_all = "snake_case")]
+#[strum(serialize_all = "snake_case")]
+pub enum Subtype {
+    Send,
+    Receive,
+    Open,
+    Change,
+    Epoch,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
@@ -52,6 +52,7 @@ pub struct StateBlock {
     pub link: Link,
 
     pub work: Option<Work>,
+
     pub signature: Option<Signature>,
 }
 
@@ -108,7 +109,7 @@ impl Wire for StateBlock {
         Ok(block)
     }
 
-    fn len(header: Option<&Header>) -> Result<usize, anyhow::Error> {
+    fn len(header: Option<&Header>) -> anyhow::Result<usize> {
         debug_assert!(header.is_some());
         let header = header.unwrap();
         debug_assert_eq!(header.ext().block_type()?, BlockType::State);
@@ -162,60 +163,16 @@ mod tests {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub struct UnsureLink([u8; Link::LEN]);
+#[derive(Clone, PartialEq, Eq, Hash)]
+pub struct UnsureLink([u8; Self::LEN]);
+
+hexify!(UnsureLink, "link");
 
 impl UnsureLink {
-    pub fn as_bytes(&self) -> &[u8] {
-        &self.0
-    }
+    pub(crate) const LEN: usize = Link::LEN;
 }
 
-impl TryFrom<&[u8]> for UnsureLink {
-    type Error = Error;
-
-    fn try_from(value: &[u8]) -> Result<Self, Self::Error> {
-        expect_len(value.len(), Link::LEN, "UnsureLink")?;
-
-        let mut v = UnsureLink([0u8; Link::LEN]);
-        v.0.copy_from_slice(&value);
-        Ok(v)
-    }
-}
-
-impl Serialize for UnsureLink {
-    fn serialize<S>(&self, serializer: S) -> Result<<S as Serializer>::Ok, <S as Serializer>::Error>
-    where
-        S: Serializer,
-    {
-        serializer.serialize_str(to_hex(&self.0).as_str())
-    }
-}
-
-impl<'de> Deserialize<'de> for UnsureLink {
-    fn deserialize<D>(deserializer: D) -> Result<Self, <D as Deserializer<'de>>::Error>
-    where
-        D: Deserializer<'de>,
-    {
-        deserialize_from_str(deserializer)
-    }
-}
-
-impl FromStr for UnsureLink {
-    type Err = Error;
-
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        UnsureLink::try_from(
-            hex::decode(s.as_bytes())
-                .map_err(|source| Error::FromHexError {
-                    msg: "UnsureLink".to_string(),
-                    source,
-                })?
-                .as_slice(),
-        )
-    }
-}
-
+/// Used in state block as a reference to either the previous block or a destination address.
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "snake_case", untagged)]
 pub enum Link {
@@ -239,10 +196,13 @@ impl Link {
         Self::Nothing
     }
 
-    pub fn unsure_from_str(s: &str) -> anyhow::Result<Self> {
+    pub fn unsure_from_str(s: &str) -> Result<Self> {
         expect_len(s.len(), Self::LEN * 2, "Link")?;
         let mut slice = [0u8; Self::LEN];
-        hex::decode_to_slice(s, &mut slice)?;
+        hex::decode_to_slice(s, &mut slice).map_err(|source| Error::FromHexError {
+            source,
+            msg: "Decoding link hex".into(),
+        })?;
         Ok(Link::Unsure(UnsureLink(slice)))
     }
 
@@ -253,5 +213,13 @@ impl Link {
             Link::DestinationAccount(key) => key.as_bytes(),
             Link::Unsure(b) => b.as_bytes(),
         }
+    }
+}
+
+impl FromStr for Link {
+    type Err = Error;
+
+    fn from_str(s: &str) -> Result<Self> {
+        Self::unsure_from_str(s)
     }
 }

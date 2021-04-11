@@ -32,16 +32,13 @@
 //! # }
 //! ```
 use crate::phrase::{Language, MnemonicType};
-use crate::Error;
-use crate::{to_hex, Address, Phrase, Private, Public, Seed};
+use crate::{hexify, Address, Error, Phrase, Private, Public, Seed};
 use anyhow::{anyhow, Context};
 use rand::RngCore;
-use serde::{Deserialize, Deserializer, Serialize, Serializer};
+use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
-use std::convert::TryFrom;
-use std::fmt::{Debug, Formatter};
+use std::fmt::Debug;
 use std::path::PathBuf;
-use std::str::FromStr;
 use tokio::fs::File;
 
 /// Manages multiple [Wallet]s of different types of [Wallet]s. **Warning**: Wallet files are not
@@ -213,6 +210,8 @@ impl WalletStorage {
 #[derive(Hash, Eq, PartialEq, Clone)]
 pub struct WalletId([u8; WalletId::LEN]);
 
+hexify!(WalletId, "wallet id");
+
 impl WalletId {
     pub(crate) const LEN: usize = 32;
 
@@ -224,43 +223,6 @@ impl WalletId {
         let mut id = Self::zero();
         rand::thread_rng().fill_bytes(&mut id.0);
         id
-    }
-}
-
-impl FromStr for WalletId {
-    type Err = anyhow::Error;
-
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        let vec = hex::decode(s.as_bytes())?;
-        let decoded = vec.as_slice();
-        let d = <[u8; WalletId::LEN]>::try_from(decoded)?;
-        Ok(Self(d))
-    }
-}
-
-impl Serialize for WalletId {
-    fn serialize<S>(&self, serializer: S) -> Result<<S as Serializer>::Ok, <S as Serializer>::Error>
-    where
-        S: Serializer,
-    {
-        serializer.serialize_str(to_hex(&self.0).as_str())
-    }
-}
-
-impl<'de> Deserialize<'de> for WalletId {
-    /// Convert from a string of hex into a `WalletId` [u8; ..]
-    fn deserialize<D>(deserializer: D) -> Result<Self, <D as Deserializer<'de>>::Error>
-    where
-        D: Deserializer<'de>,
-    {
-        let s: String = Deserialize::deserialize(deserializer)?;
-        Self::from_str(s.as_str()).map_err(serde::de::Error::custom)
-    }
-}
-
-impl Debug for WalletId {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        crate::encoding::hex_formatter(f, &self.0)
     }
 }
 
