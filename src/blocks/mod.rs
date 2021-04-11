@@ -144,7 +144,7 @@ impl Previous {
 }
 
 impl FromStr for Previous {
-    type Err = feeless::Error;
+    type Err = anyhow::Error;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         Previous::try_from(hex::decode(s.as_bytes())?.as_slice())
@@ -272,7 +272,7 @@ impl Block {
         let mut b = Self::new(
             BlockType::State,
             state_block.account.to_owned(),
-            Previous::Block(state_block.previous.0.to_owned()),
+            state_block.previous.to_owned(),
             state_block.representative.to_owned(),
             state_block.balance.to_owned(),
             state_block.link.to_owned(),
