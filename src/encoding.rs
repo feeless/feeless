@@ -116,6 +116,7 @@ pub fn decode_nano_base_32(s: &str) -> Result<BitVec<Msb0, u8>, Error> {
 /// * `TryFrom<&[u8]>` implementation.
 /// * [FromStr] implementation, which parses hex into its type.
 /// * [Debug] implementation, which displays as StructName(H3XSTR1NG), e.g. Work(A1B2C3).
+/// * [Display] implementation, which displays the hex string.
 /// * [UpperHex] and [LowerHex] implementations.
 ///
 /// Display implementation is not implemented for any user customization.
