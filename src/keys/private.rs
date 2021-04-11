@@ -67,6 +67,10 @@ impl Private {
             })?,
         )
     }
+
+    pub fn as_hex(&self) -> String {
+        to_hex(self.0.as_ref())
+    }
 }
 
 impl std::fmt::Display for Private {
