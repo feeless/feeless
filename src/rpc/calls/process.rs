@@ -1,4 +1,4 @@
-use crate::blocks::{deserialize_to_unsure_link, BlockType};
+use crate::blocks::{deserialize_to_unsure_link, BlockType, StateBlock};
 use crate::blocks::{BlockHash, Link, Subtype};
 use crate::rpc::client::{RPCClient, RPCRequest};
 use crate::rpc::AlwaysTrue;
@@ -64,12 +64,8 @@ impl RPCRequest for &ProcessRequest {
 }
 
 impl ProcessRequest {
-    pub fn new(subtype: Subtype, block: StateBlock) -> Self {
-        Self {
-            json_block: Default::default(),
-            subtype,
-            block,
-        }
+    pub fn new(_subtype: Subtype, _block: StateBlock) -> Self {
+        todo!()
     }
 }
 

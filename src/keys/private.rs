@@ -1,4 +1,4 @@
-use crate::{expect_len, hexify, Address, Error, Public, Signature};
+use crate::{hexify, Address, Error, Public, Signature};
 use ed25519_dalek::ed25519::signature::Signature as InternalSignature;
 use ed25519_dalek::ExpandedSecretKey;
 use rand::RngCore;
@@ -66,16 +66,6 @@ impl Private {
                 source: e,
             })?,
         )
-    }
-
-    pub fn as_hex(&self) -> String {
-        to_hex(self.0.as_ref())
-    }
-}
-
-impl std::fmt::Display for Private {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{:X}", &self)
     }
 }
 

@@ -140,8 +140,8 @@ macro_rules! hexify {
             type Err = crate::Error;
 
             fn from_str(s: &str) -> crate::Result<Self> {
-                expect_len(s.len(), Self::LEN * 2, $description)?;
-                let vec = hex::decode(s.as_bytes()).map_err(|e| Error::FromHexError {
+                crate::expect_len(s.len(), Self::LEN * 2, $description)?;
+                let vec = hex::decode(s.as_bytes()).map_err(|e| crate::Error::FromHexError {
                     msg: String::from($description),
                     source: e,
                 })?;
@@ -151,8 +151,14 @@ macro_rules! hexify {
             }
         }
 
-        impl std::fmt::Debug for $struct {
-            fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        impl ::std::fmt::Display for $struct {
+            fn fmt(&self, f: &mut ::std::fmt::Formatter<'_>) -> ::std::fmt::Result {
+                write!(f, "{}", self.as_hex())
+            }
+        }
+
+        impl ::std::fmt::Debug for $struct {
+            fn fmt(&self, f: &mut ::std::fmt::Formatter<'_>) -> ::std::fmt::Result {
                 write!(
                     f,
                     "{}({})",
@@ -171,7 +177,7 @@ macro_rules! hexify {
         }
 
         impl ::std::fmt::UpperHex for $struct {
-            fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> ::std::fmt::Result {
+            fn fmt(&self, f: &mut ::std::fmt::Formatter<'_>) -> ::std::fmt::Result {
                 write!(f, "{}", self.as_hex())
             }
         }
@@ -201,8 +207,8 @@ macro_rules! hexify {
             where
                 D: serde::Deserializer<'de>,
             {
-                let s: &str = serde::Deserialize::deserialize(deserializer)?;
-                Ok(Self::from_str(s).map_err(serde::de::Error::custom)?)
+                let s: String = serde::Deserialize::deserialize(deserializer)?;
+                Ok(Self::from_str(&s).map_err(serde::de::Error::custom)?)
             }
         }
     };

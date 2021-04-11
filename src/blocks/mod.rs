@@ -28,7 +28,6 @@ use serde::{Deserialize, Serialize};
 pub(crate) use state_block::deserialize_to_unsure_link;
 pub use state_block::{Link, StateBlock, Subtype};
 use strum_macros::EnumString;
-use tracing::trace;
 
 #[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize, EnumString)]
 #[serde(rename_all = "snake_case")]
@@ -314,17 +313,10 @@ impl Block {
                     self.link.as_bytes(),
                 ])
             }
-            _ => Err(anyhow!("Block not hashable")),
+            _ => return Err(anyhow!("Block not hashable")),
         };
 
-        match hash_result {
-            Ok(block_hash) => self.hash = Some(block_hash),
-            Err(error) => {
-                trace!("Ignoring hash for block {:?}. Cause: {}", &self, error);
-                self.hash = None
-            }
-        }
-
+        self.hash = Some(hash_result);
         Ok(())
     }
 
@@ -423,12 +415,13 @@ impl Block {
     }
 }
 
-pub fn hash_block(parts: &[&[u8]]) -> anyhow::Result<BlockHash> {
+pub fn hash_block(parts: &[&[u8]]) -> BlockHash {
     let mut v = Vec::new(); // TODO: with_capacity
     for b in parts {
         v.extend_from_slice(b);
     }
-    BlockHash::try_from(blake2b(BlockHash::LEN, &v).as_ref())
+    // This unwrap should never fail because blake2b always returns a valid hash.
+    BlockHash::try_from(blake2b(BlockHash::LEN, &v).as_ref()).unwrap()
 }
 
 #[cfg(test)]

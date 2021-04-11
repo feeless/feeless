@@ -6,7 +6,7 @@ use crate::node::Header;
 
 use crate::hexify;
 use crate::Error;
-use crate::{encoding, expect_len, Address, Signature};
+use crate::{encoding, Address, Signature};
 use bitvec::prelude::*;
 use ed25519_dalek::Verifier;
 use serde::{Deserialize, Deserializer, Serializer};
@@ -69,12 +69,6 @@ impl Public {
 impl From<ed25519_dalek::PublicKey> for Public {
     fn from(v: ed25519_dalek::PublicKey) -> Self {
         Self(*v.as_bytes())
-    }
-}
-
-impl std::fmt::Display for Public {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{:X}", &self)
     }
 }
 
