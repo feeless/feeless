@@ -32,8 +32,12 @@ impl RPCRequest for &ProcessRequest {
 }
 
 impl ProcessRequest {
-    pub fn new() -> Self {
-        todo!()
+    pub fn new(subtype: Subtype, block: StateBlock) -> Self {
+        Self {
+            json_block: Default::default(),
+            subtype,
+            block,
+        }
     }
 }
 

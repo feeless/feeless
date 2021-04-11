@@ -3,7 +3,7 @@ use crate::{Public, Signature, Work};
 use clap::Clap;
 use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, Clap)]
+#[derive(Debug, Clone, PartialEq, Eq, Clap)]
 pub struct ChangeBlock {
     #[clap(short, long)]
     previous: BlockHash,

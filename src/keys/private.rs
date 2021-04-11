@@ -1,15 +1,15 @@
-use crate::Error;
-use crate::{expect_len, Address, Public, Signature};
+use crate::{expect_len, hexify, Address, Error, Public, Signature};
 use ed25519_dalek::ed25519::signature::Signature as InternalSignature;
 use ed25519_dalek::ExpandedSecretKey;
 use rand::RngCore;
-use serde::{Deserialize, Serialize};
 use std::convert::TryFrom;
 use std::str::FromStr;
 
 /// 256 bit private key which can generate a public key.
-#[derive(Clone, Serialize, Deserialize, Debug)]
+#[derive(Clone)]
 pub struct Private([u8; Private::LEN]);
+
+hexify!(Private, "private key");
 
 impl Private {
     pub(crate) const LEN: usize = 32;
@@ -69,39 +69,9 @@ impl Private {
     }
 }
 
-impl TryFrom<&[u8]> for Private {
-    type Error = Error;
-
-    fn try_from(bytes: &[u8]) -> Result<Self, Self::Error> {
-        expect_len(bytes.len(), Private::LEN, "Private key")?;
-        let x = <[u8; Self::LEN]>::try_from(bytes)?;
-        Ok(Self(x))
-    }
-}
-
-impl std::fmt::UpperHex for Private {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        crate::encoding::hex_formatter(f, &self.0)
-    }
-}
-
 impl std::fmt::Display for Private {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{:X}", &self)
-    }
-}
-
-impl FromStr for Private {
-    type Err = Error;
-
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        expect_len(s.len(), Self::LEN * 2, "hex private key")?;
-        let vec = hex::decode(s.as_bytes()).map_err(|e| Error::FromHexError {
-            msg: String::from("Decoding hex public key"),
-            source: e,
-        })?;
-        let bytes = vec.as_slice();
-        Self::try_from(bytes)
     }
 }
 
