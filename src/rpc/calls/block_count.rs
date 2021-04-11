@@ -1,4 +1,4 @@
-use crate::rpc::calls::{as_str, from_str, as_str_option, from_str_option};
+use crate::rpc::calls::{as_str, as_str_option, from_str, from_str_option};
 use crate::rpc::client::{RPCClient, RPCRequest};
 use crate::Result;
 use async_trait::async_trait;
@@ -8,7 +8,7 @@ use serde::{Deserialize, Serialize};
 #[derive(Debug, Serialize, Deserialize, Clap)]
 pub struct BlockCountRequest {
     #[clap(long)]
-    include_cemented: bool
+    include_cemented: bool,
 }
 
 #[async_trait]
@@ -42,7 +42,6 @@ pub struct BlockCountResponse {
 
     #[serde(default)]
     #[serde(serialize_with = "as_str_option", deserialize_with = "from_str_option")]
-    //#[serde(skip_serializing_if = "Option::is_none")]
     cemented: Option<u64>,
 }
 

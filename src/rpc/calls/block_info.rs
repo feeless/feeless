@@ -1,4 +1,4 @@
-use crate::blocks::{BlockHash, BlockHolder, BlockType};
+use crate::blocks::{BlockHash, BlockHolder, Subtype};
 use crate::rpc::calls::{as_str, from_str};
 use crate::rpc::client::{RPCClient, RPCRequest};
 use crate::rpc::AlwaysTrue;
@@ -57,10 +57,9 @@ pub struct BlockInfoResponse {
     pub confirmed: bool,
 
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub subtype: Option<BlockType>,
+    pub subtype: Option<Subtype>,
 
     pub contents: BlockHolder,
-
     // TODO: json_block
 }
 

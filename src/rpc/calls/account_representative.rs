@@ -50,7 +50,10 @@ mod tests {
         assert_eq!(
             r,
             AccountRepresentativeResponse {
-                representative: Address::from_str("nano_16u1uufyoig8777y6r8iqjtrw8sg8maqrm36zzcm95jmbd9i9aj5i8abr8u5").unwrap(),
+                representative: Address::from_str(
+                    "nano_16u1uufyoig8777y6r8iqjtrw8sg8maqrm36zzcm95jmbd9i9aj5i8abr8u5"
+                )
+                .unwrap(),
             }
         )
     }

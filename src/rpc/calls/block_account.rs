@@ -51,7 +51,10 @@ mod tests {
         assert_eq!(
             r,
             BlockAccountResponse {
-                account: Address::from_str("nano_1111111111111111111111111111111111111111111111111117353trpda").unwrap(),
+                account: Address::from_str(
+                    "nano_1111111111111111111111111111111111111111111111111117353trpda"
+                )
+                .unwrap(),
             }
         )
     }

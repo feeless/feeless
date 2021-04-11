@@ -50,7 +50,10 @@ mod tests {
         assert_eq!(
             r,
             AccountGetResponse {
-                account: Address::from_str("nano_1e5aqegc1jb7qe964u4adzmcezyo6o146zb8hm6dft8tkp79za3sxwjym5rx").unwrap(),
+                account: Address::from_str(
+                    "nano_1e5aqegc1jb7qe964u4adzmcezyo6o146zb8hm6dft8tkp79za3sxwjym5rx"
+                )
+                .unwrap(),
             }
         )
     }

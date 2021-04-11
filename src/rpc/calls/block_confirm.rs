@@ -49,11 +49,6 @@ mod tests {
 
         let r = serde_json::from_str::<BlockConfirmResponse>(s).unwrap();
 
-        assert_eq!(
-            r,
-            BlockConfirmResponse {
-                started: 1,
-            }
-        )
+        assert_eq!(r, BlockConfirmResponse { started: 1 })
     }
 }

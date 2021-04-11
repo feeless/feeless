@@ -50,7 +50,10 @@ mod tests {
         assert_eq!(
             r,
             AccountKeyResponse {
-                key: Public::from_str("3068BB1CA04525BB0E416C485FE6A67FD52540227D267CC8B6E8DA958A7FA039").unwrap(),
+                key: Public::from_str(
+                    "3068BB1CA04525BB0E416C485FE6A67FD52540227D267CC8B6E8DA958A7FA039"
+                )
+                .unwrap(),
             }
         )
     }

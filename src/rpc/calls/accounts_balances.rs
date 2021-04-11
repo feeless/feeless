@@ -67,23 +67,24 @@ mod tests {
 
         let mut balances: HashMap<Address, AccountsBalancesEntry> = HashMap::new();
 
-        balances.insert(Address::from_str("nano_3i1aq1cchnmbn9x5rsbap8b15akfh7wj7pwskuzi7ahz8oq6cobd99d4r3b7").unwrap(),
-        AccountsBalancesEntry {
-            balance: Rai::from(10000),
-            pending: Rai::from(10000),
-        });
+        balances.insert(
+            Address::from_str("nano_3i1aq1cchnmbn9x5rsbap8b15akfh7wj7pwskuzi7ahz8oq6cobd99d4r3b7")
+                .unwrap(),
+            AccountsBalancesEntry {
+                balance: Rai::from(10000),
+                pending: Rai::from(10000),
+            },
+        );
 
-        balances.insert(Address::from_str("nano_3i1aq1cchnmbn9x5rsbap8b15akfh7wj7pwskuzi7ahz8oq6cobd99d4r3b7").unwrap(),
-        AccountsBalancesEntry {
-            balance: Rai::from(10000000),
-            pending: Rai::from(0),
-        });
+        balances.insert(
+            Address::from_str("nano_3i1aq1cchnmbn9x5rsbap8b15akfh7wj7pwskuzi7ahz8oq6cobd99d4r3b7")
+                .unwrap(),
+            AccountsBalancesEntry {
+                balance: Rai::from(10000000),
+                pending: Rai::from(0),
+            },
+        );
 
-        assert_eq!(
-            r,
-            AccountsBalancesResponse {
-                balances,
-            }
-        )
+        assert_eq!(r, AccountsBalancesResponse { balances })
     }
 }
