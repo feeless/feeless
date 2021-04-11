@@ -1,14 +1,15 @@
-use crate::Error;
+use crate::encoding::deserialize_from_str;
 use crate::{expect_len, Address, Public, Signature};
+use crate::{to_hex, Error};
 use ed25519_dalek::ed25519::signature::Signature as InternalSignature;
 use ed25519_dalek::ExpandedSecretKey;
 use rand::RngCore;
-use serde::{Deserialize, Serialize};
+use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use std::convert::TryFrom;
 use std::str::FromStr;
 
 /// 256 bit private key which can generate a public key.
-#[derive(Clone, Serialize, Deserialize, Debug)]
+#[derive(Clone, Debug)]
 pub struct Private([u8; Private::LEN]);
 
 impl Private {
@@ -67,6 +68,10 @@ impl Private {
             })?,
         )
     }
+
+    pub fn as_hex(&self) -> String {
+        to_hex(self.0.as_ref())
+    }
 }
 
 impl TryFrom<&[u8]> for Private {
@@ -102,6 +107,24 @@ impl FromStr for Private {
         })?;
         let bytes = vec.as_slice();
         Self::try_from(bytes)
+    }
+}
+
+impl Serialize for Private {
+    fn serialize<S>(&self, serializer: S) -> Result<<S as Serializer>::Ok, <S as Serializer>::Error>
+    where
+        S: Serializer,
+    {
+        serializer.serialize_str(to_hex(&self.0).as_str())
+    }
+}
+
+impl<'de> Deserialize<'de> for Private {
+    fn deserialize<D>(deserializer: D) -> Result<Self, <D as Deserializer<'de>>::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        deserialize_from_str(deserializer)
     }
 }
 
