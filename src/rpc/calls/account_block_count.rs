@@ -35,3 +35,20 @@ pub struct AccountBlockCountResponse {
     #[serde(deserialize_with = "from_str", serialize_with = "as_str")]
     block_count: u64,
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn decode() {
+        let s = r#" {
+            "block_count" : "19"
+        }
+        "#;
+
+        let r = serde_json::from_str::<AccountBlockCountResponse>(s).unwrap();
+
+        assert_eq!(r, AccountBlockCountResponse { block_count: 19 })
+    }
+}

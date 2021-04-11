@@ -28,7 +28,29 @@ impl AvailableSupplyRequest {
     }
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, PartialEq)]
 pub struct AvailableSupplyResponse {
     available: Rai,
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn decode() {
+        let s = r#" {
+            "available": "133248061996216572282917317807824970865"
+        }
+        "#;
+
+        let r = serde_json::from_str::<AvailableSupplyResponse>(s).unwrap();
+
+        assert_eq!(
+            r,
+            AvailableSupplyResponse {
+                available: Rai::from(133248061996216572282917317807824970865),
+            }
+        )
+    }
 }

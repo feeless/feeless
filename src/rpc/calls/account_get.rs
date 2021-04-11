@@ -28,7 +28,33 @@ impl AccountGetRequest {
     }
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, PartialEq)]
 pub struct AccountGetResponse {
     account: Address,
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::str::FromStr;
+
+    #[test]
+    fn decode() {
+        let s = r#" {
+            "account" : "nano_1e5aqegc1jb7qe964u4adzmcezyo6o146zb8hm6dft8tkp79za3sxwjym5rx"
+        }
+        "#;
+
+        let r = serde_json::from_str::<AccountGetResponse>(s).unwrap();
+
+        assert_eq!(
+            r,
+            AccountGetResponse {
+                account: Address::from_str(
+                    "nano_1e5aqegc1jb7qe964u4adzmcezyo6o146zb8hm6dft8tkp79za3sxwjym5rx"
+                )
+                .unwrap(),
+            }
+        )
+    }
 }

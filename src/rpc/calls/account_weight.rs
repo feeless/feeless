@@ -28,7 +28,29 @@ impl AccountWeightRequest {
     }
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, PartialEq)]
 pub struct AccountWeightResponse {
     weight: Rai,
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn decode() {
+        let s = r#" {
+            "weight": "10000"
+        }
+        "#;
+
+        let r = serde_json::from_str::<AccountWeightResponse>(s).unwrap();
+
+        assert_eq!(
+            r,
+            AccountWeightResponse {
+                weight: Rai::from(10000),
+            }
+        )
+    }
 }
