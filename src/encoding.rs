@@ -194,7 +194,7 @@ macro_rules! hexify {
             fn serialize<S>(
                 &self,
                 serializer: S,
-            ) -> Result<<S as serde::Serializer>::Ok, <S as serde::Serializer>::Error>
+            ) -> ::std::result::Result<<S as serde::Serializer>::Ok, <S as serde::Serializer>::Error>
             where
                 S: serde::Serializer,
             {
@@ -205,7 +205,7 @@ macro_rules! hexify {
         impl<'de> serde::Deserialize<'de> for $struct {
             fn deserialize<D>(
                 deserializer: D,
-            ) -> Result<Self, <D as serde::Deserializer<'de>>::Error>
+            ) -> ::std::result::Result<Self, <D as serde::Deserializer<'de>>::Error>
             where
                 D: serde::Deserializer<'de>,
             {

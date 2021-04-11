@@ -64,8 +64,8 @@ pub mod rpc;
 pub mod units;
 pub mod vanity;
 
-// TODO: Remove to_hex and hex_formatter from root
-pub(crate) use encoding::{hex_formatter, to_hex};
+// TODO: Remove to_hex from root
+pub(crate) use encoding::to_hex;
 pub use errors::{Error, Result};
 pub use keys::address::Address;
 pub use keys::phrase;

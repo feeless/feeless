@@ -1,13 +1,11 @@
 use crate::blocks::BlockHash;
-use crate::encoding::{blake2b, blake2b_callback, deserialize_from_str};
+use crate::encoding::{blake2b, blake2b_callback};
 use crate::pow::difficulty::Difficulty;
-use crate::{expect_len, hex_formatter, to_hex, Public};
+use crate::{hexify, Public};
 use bytes::Buf;
 use rand::RngCore;
-use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use std::convert::TryFrom;
 use std::fmt::Debug;
-use std::str::FromStr;
 
 #[derive(Debug)]
 pub enum Subject {
@@ -27,6 +25,8 @@ impl Subject {
 /// The result of some proof of work (PoW). Can verify and inefficiently generate PoW using the CPU.
 #[derive(Clone, PartialEq, Eq)]
 pub struct Work([u8; Work::LEN]);
+
+hexify!(Work, "work");
 
 impl Work {
     pub const LEN: usize = 8;
@@ -104,65 +104,13 @@ impl Work {
         let hash = Self::hash(&work_and_subject);
         Difficulty::from_le_slice(hash.as_ref())
     }
-
-    pub fn as_bytes(&self) -> &[u8] {
-        &self.0
-    }
-}
-
-impl std::fmt::Debug for Work {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "Work(")?;
-        hex_formatter(f, &self.0)?;
-        write!(f, ")")?;
-        Ok(())
-    }
-}
-
-impl FromStr for Work {
-    type Err = anyhow::Error;
-
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        let vec = hex::decode(s)?;
-        let value = vec.as_slice();
-        Work::try_from(value)
-    }
-}
-
-impl TryFrom<&[u8]> for Work {
-    type Error = anyhow::Error;
-
-    fn try_from(value: &[u8]) -> Result<Self, Self::Error> {
-        expect_len(value.len(), Self::LEN, "Work")?;
-
-        let mut s = Work::zero();
-        s.0.copy_from_slice(value);
-        Ok(s)
-    }
-}
-
-impl Serialize for Work {
-    fn serialize<S>(&self, serializer: S) -> Result<<S as Serializer>::Ok, <S as Serializer>::Error>
-    where
-        S: Serializer,
-    {
-        serializer.serialize_str(to_hex(&self.0).as_str())
-    }
-}
-
-impl<'de> Deserialize<'de> for Work {
-    fn deserialize<D>(deserializer: D) -> Result<Self, <D as Deserializer<'de>>::Error>
-    where
-        D: Deserializer<'de>,
-    {
-        deserialize_from_str(deserializer)
-    }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
     use crate::Seed;
+    use std::str::FromStr;
 
     #[test]
     fn verify() {
