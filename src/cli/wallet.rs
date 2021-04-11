@@ -24,17 +24,17 @@ impl WalletOpts {
                             o.phrase_opts.language.language.to_owned(),
                         )
                         .await?;
-                    println!("{:?}", wallet_id);
+                    println!("{}", wallet_id);
                 }
                 CreateType::Seed(o) => {
                     let (manager, wallet_id) = WalletOpts::create(&o.opts).await?;
                     manager.add_random_seed(wallet_id.to_owned()).await?;
-                    println!("{:?}", wallet_id);
+                    println!("{}", wallet_id);
                 }
                 CreateType::Private(o) => {
                     let (manager, wallet_id) = WalletOpts::create(&o.opts).await?;
                     manager.add_random_private(wallet_id.to_owned()).await?;
-                    println!("{:?}", wallet_id);
+                    println!("{}", wallet_id);
                 }
             },
             Command::Import(o) => match &o.create_type {
@@ -46,19 +46,19 @@ impl WalletOpts {
                     )?;
                     let wallet = Wallet::Phrase(phrase);
                     manager.add(wallet_id.to_owned(), wallet).await?;
-                    println!("{:?}", wallet_id);
+                    println!("{}", wallet_id);
                 }
                 ImportType::Seed(o) => {
                     let (manager, wallet_id) = WalletOpts::create(&o.opts).await?;
                     let wallet = Wallet::Seed(o.seed.to_owned().resolve()?);
                     manager.add(wallet_id.to_owned(), wallet).await?;
-                    println!("{:?}", wallet_id);
+                    println!("{}", wallet_id);
                 }
                 ImportType::Private(o) => {
                     let (manager, wallet_id) = WalletOpts::create(&o.opts).await?;
                     let wallet = Wallet::Private(o.private.to_owned().resolve()?);
                     manager.add(wallet_id.to_owned(), wallet).await?;
-                    println!("{:?}", wallet_id);
+                    println!("{}", wallet_id);
                 }
             },
             Command::Delete(o) => {
@@ -86,7 +86,7 @@ impl WalletOpts {
                 if o.armor {
                     println!("{}", Armor::new(string, wallet.address(o.address)?, signed));
                 } else {
-                    println!("{:X}", signed);
+                    println!("{}", signed);
                 }
             }
         };

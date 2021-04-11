@@ -1,12 +1,15 @@
+use crate::hexify;
 use crate::node::header::Header;
 use crate::node::wire::Wire;
-use crate::{expect_len, hex_formatter};
+use anyhow::anyhow;
 use rand::RngCore;
 use std::convert::TryFrom;
 
 #[derive(Clone)]
 #[repr(C)]
 pub struct Cookie([u8; Cookie::LEN]);
+
+hexify!(Cookie, "cookie");
 
 impl Cookie {
     pub const LEN: usize = 32;
@@ -15,19 +18,6 @@ impl Cookie {
         let mut cookie = Cookie([0u8; Self::LEN]);
         rand::thread_rng().fill_bytes(&mut cookie.0);
         cookie
-    }
-
-    pub fn as_bytes(&self) -> &[u8] {
-        self.0.as_ref()
-    }
-}
-
-impl std::fmt::Debug for Cookie {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "Cookie(")?;
-        hex_formatter(f, self.0.as_ref())?;
-        write!(f, ")")?;
-        Ok(())
     }
 }
 
@@ -40,24 +30,12 @@ impl Wire for Cookie {
     where
         Self: Sized,
     {
-        Cookie::try_from(data)
+        // TODO: thiserror
+        Cookie::try_from(data).map_err(|e| anyhow!("Deserializing cookie {:?}", e))
     }
 
     fn len(_header: Option<&Header>) -> anyhow::Result<usize> {
         Ok(Cookie::LEN)
-    }
-}
-
-impl TryFrom<&[u8]> for Cookie {
-    type Error = anyhow::Error;
-
-    fn try_from(value: &[u8]) -> Result<Self, Self::Error> {
-        expect_len(value.len(), Self::LEN, "Cookie")?;
-
-        // TODO: Self::zero()
-        let mut cookie = Self::random();
-        cookie.0.copy_from_slice(value);
-        Ok(cookie)
     }
 }
 
