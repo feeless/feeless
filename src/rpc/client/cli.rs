@@ -41,6 +41,7 @@ impl RPCClientOpts {
             Command::BlockAccount(c) => self.show(c).await?,
             Command::BlockConfirm(c) => self.show(c).await?,
             Command::BlockCount(c) => self.show(c).await?,
+            Command::AccountsPending(c) => self.show(c).await?,
         };
         Ok(())
     }

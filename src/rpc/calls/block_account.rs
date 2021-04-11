@@ -29,7 +29,30 @@ impl BlockAccountRequest {
     }
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, PartialEq)]
 pub struct BlockAccountResponse {
     account: Address,
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::str::FromStr;
+
+    #[test]
+    fn decode() {
+        let s = r#" {
+            "account": "nano_1111111111111111111111111111111111111111111111111117353trpda"
+        }
+        "#;
+
+        let r = serde_json::from_str::<BlockAccountResponse>(s).unwrap();
+
+        assert_eq!(
+            r,
+            BlockAccountResponse {
+                account: Address::from_str("nano_1111111111111111111111111111111111111111111111111117353trpda").unwrap(),
+            }
+        )
+    }
 }

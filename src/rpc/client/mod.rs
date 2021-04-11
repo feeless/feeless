@@ -79,7 +79,7 @@ impl RPCClient {
         let text = res.text().await?;
         debug!("RECV: {}", text);
 
-        // This used to decode into an untagged enum, i.e.
+        // This is used to decode into an untagged enum, i.e.
         // `enum Response<T> { Success(T), Error(RPCError) }`
         // When there's an expected field from the RPC response, serde gives a non useful error:
         // `data did not match any variant of untagged enum Response`

@@ -14,7 +14,7 @@ impl RPCRequest for &AccountRepresentativeRequest {
     type Response = AccountRepresentativeResponse;
 
     fn action(&self) -> &str {
-        "account_block_count"
+        "account_representative"
     }
 
     async fn call(&self, client: &RPCClient) -> Result<AccountRepresentativeResponse> {
@@ -28,7 +28,30 @@ impl AccountRepresentativeRequest {
     }
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, PartialEq)]
 pub struct AccountRepresentativeResponse {
     representative: Address,
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::str::FromStr;
+
+    #[test]
+    fn decode() {
+        let s = r#" {
+            "representative" : "nano_16u1uufyoig8777y6r8iqjtrw8sg8maqrm36zzcm95jmbd9i9aj5i8abr8u5"
+        }
+        "#;
+
+        let r = serde_json::from_str::<AccountRepresentativeResponse>(s).unwrap();
+
+        assert_eq!(
+            r,
+            AccountRepresentativeResponse {
+                representative: Address::from_str("nano_16u1uufyoig8777y6r8iqjtrw8sg8maqrm36zzcm95jmbd9i9aj5i8abr8u5").unwrap(),
+            }
+        )
+    }
 }

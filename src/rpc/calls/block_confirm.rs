@@ -30,8 +30,30 @@ impl BlockConfirmRequest {
     }
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, PartialEq)]
 pub struct BlockConfirmResponse {
     #[serde(deserialize_with = "from_str", serialize_with = "as_str")]
     started: u8,
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn decode() {
+        let s = r#" {
+            "started": "1"
+        }
+        "#;
+
+        let r = serde_json::from_str::<BlockConfirmResponse>(s).unwrap();
+
+        assert_eq!(
+            r,
+            BlockConfirmResponse {
+                started: 1,
+            }
+        )
+    }
 }

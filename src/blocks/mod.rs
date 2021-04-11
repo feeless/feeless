@@ -76,7 +76,7 @@ impl TryFrom<u8> for BlockType {
 }
 
 /// For "holding" deserialized blocks that we can't convert to `Block` yet.
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 #[serde(tag = "type", rename_all = "snake_case")]
 pub enum BlockHolder {
     Send(SendBlock),

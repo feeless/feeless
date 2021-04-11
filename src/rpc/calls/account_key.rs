@@ -28,7 +28,30 @@ impl AccountKeyRequest {
     }
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, PartialEq)]
 pub struct AccountKeyResponse {
     key: Public,
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::str::FromStr;
+
+    #[test]
+    fn decode() {
+        let s = r#" {
+            "key": "3068BB1CA04525BB0E416C485FE6A67FD52540227D267CC8B6E8DA958A7FA039"
+        }
+        "#;
+
+        let r = serde_json::from_str::<AccountKeyResponse>(s).unwrap();
+
+        assert_eq!(
+            r,
+            AccountKeyResponse {
+                key: Public::from_str("3068BB1CA04525BB0E416C485FE6A67FD52540227D267CC8B6E8DA958A7FA039").unwrap(),
+            }
+        )
+    }
 }

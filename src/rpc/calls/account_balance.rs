@@ -28,8 +28,32 @@ impl AccountBalanceRequest {
     }
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, PartialEq)]
 pub struct AccountBalanceResponse {
     pub balance: Rai,
     pub pending: Rai,
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn decode() {
+        let s = r#" {
+            "balance": "10000",
+            "pending": "10000"
+        }
+        "#;
+
+        let r = serde_json::from_str::<AccountBalanceResponse>(s).unwrap();
+
+        assert_eq!(
+            r,
+            AccountBalanceResponse {
+                balance: Rai::from(10000),
+                pending: Rai::from(10000),
+            }
+        )
+    }
 }
