@@ -1,4 +1,4 @@
-use crate::len_err_msg;
+use crate::encoding::len_err_msg;
 use anyhow::Context;
 use std::convert::TryFrom;
 use std::time::{SystemTime, UNIX_EPOCH};

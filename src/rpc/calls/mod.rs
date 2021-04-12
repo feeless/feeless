@@ -16,6 +16,7 @@ mod block_confirm;
 mod block_count;
 mod block_create;
 mod block_info;
+mod peers;
 mod process;
 mod work_validate;
 
@@ -38,6 +39,7 @@ pub use block_count::{BlockCountRequest, BlockCountResponse};
 pub use block_create::{BlockCreateRequest, BlockCreateResponse};
 pub use block_info::{BlockInfoRequest, BlockInfoResponse};
 use clap::Clap;
+pub use peers::{PeersRequest, PeersResponse};
 pub use process::{ProcessRequest, ProcessResponse};
 use serde::{de, Deserialize, Deserializer, Serialize, Serializer};
 use std::fmt::Display;
@@ -51,8 +53,8 @@ pub enum Command {
     AccountBalance(AccountBalanceRequest),
     AccountHistory(AccountHistoryRequest),
     AccountInfo(AccountInfoRequest),
+    AccountsPending(AccountsPendingRequest),
     ActiveDifficulty(ActiveDifficultyRequest),
-    Process(ProcessRequest),
     AccountBlockCount(AccountBlockCountRequest),
     AccountGet(AccountGetRequest),
     AccountKey(AccountKeyRequest),
@@ -65,9 +67,20 @@ pub enum Command {
     BlockCount(BlockCountRequest),
     BlockCreate(BlockCreateRequest),
     BlockInfo(BlockInfoRequest),
-    WorkValidate(WorkValidateRequest),
     BlockConfirm(BlockConfirmRequest),
-    AccountsPending(AccountsPendingRequest),
+    Peers(PeersRequest),
+    Process(ProcessRequest),
+    WorkValidate(WorkValidateRequest),
+}
+
+#[derive(Debug)]
+pub enum CommandResponse {
+    // Just example situations to handle...
+// State query
+// AccountBalance(AccountBalanceResponse),
+// Wallet only
+// WalletCreate(WalletCreateResponse),
+// Node/Peer query
 }
 
 pub(crate) fn from_str<'de, T, D>(deserializer: D) -> std::result::Result<T, D::Error>

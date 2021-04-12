@@ -3,7 +3,7 @@ mod handlers;
 use crate::node::ArcState;
 use crate::rpc::client::RPCError;
 use crate::rpc::server::handlers::handle_process;
-use crate::rpc::Command;
+use crate::rpc::{Command, CommandResponse};
 use crate::Result;
 use serde::Serialize;
 use tokio::sync::{mpsc, oneshot};
@@ -12,23 +12,19 @@ use warp::http::StatusCode;
 use warp::Filter;
 
 type RpcMessageSender = mpsc::Sender<RPCMessage>;
-type RpcMessageResponseSender = oneshot::Sender<Box<dyn Serialize>>;
-type RpcMessageResponseReceiver = oneshot::Receiver<Box<dyn Serialize>>;
+type RpcMessageResponseSender = oneshot::Sender<CommandResponse>;
+type RpcMessageResponseReceiver = oneshot::Receiver<CommandResponse>;
 
-pub enum Target {
-    BroadcastAllPeers,
-    BroadcastRepresentatives,
-}
-
+#[derive(Debug)]
 pub struct RPCMessage {
-    target: Target,
+    command: Command,
     tx: RpcMessageResponseSender,
 }
 
 impl RPCMessage {
-    fn new_with_channel(target: Target) -> (Self, RpcMessageResponseReceiver) {
+    fn new_with_channel(command: Command) -> (Self, RpcMessageResponseReceiver) {
         let (tx, rx) = oneshot::channel();
-        (Self { target, tx }, rx)
+        (Self { command, tx }, rx)
     }
 }
 

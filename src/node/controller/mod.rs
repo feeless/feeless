@@ -3,12 +3,13 @@ mod genesis;
 mod messages;
 
 use crate::blocks::Block;
+use crate::encoding::to_hex;
 use crate::network::Network;
 use crate::node::header::{Extensions, Header, MessageType};
 use crate::node::messages::frontier_resp::FrontierResp;
 use crate::node::state::ArcState;
 use crate::node::wire::Wire;
-use crate::{to_hex, Public, Rai};
+use crate::{Public, Rai};
 use anyhow::{anyhow, Context};
 use std::fmt::Debug;
 use std::net::SocketAddr;
@@ -64,6 +65,8 @@ pub struct Controller {
 
     /// Data to be sent to the other peer.
     outgoing: Sender<Packet>,
+
+    /// Incoming commands from [Node].
 
     /// A reusable header to reduce allocations.
     pub(crate) header: Header,
@@ -250,14 +253,18 @@ impl Controller {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
-    use crate::blocks::{Block, BlockHash, OpenBlock, Previous, SendBlock};
-    use crate::node::state::MemoryState;
-    use crate::{Address, DEFAULT_PORT};
     use std::net::{Ipv4Addr, SocketAddrV4};
     use std::str::FromStr;
     use std::sync::Arc;
+
     use tokio::sync::Mutex;
+
+    use crate::blocks::{Block, BlockHash, OpenBlock, Previous, SendBlock};
+    use crate::network::DEFAULT_PORT;
+    use crate::node::state::MemoryState;
+    use crate::Address;
+
+    use super::*;
 
     async fn empty_lattice(network: Network) -> Controller {
         let state = Arc::new(Mutex::new(MemoryState::new(network)));

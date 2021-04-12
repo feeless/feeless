@@ -63,9 +63,8 @@ mod pow;
 pub mod rpc;
 pub mod units;
 pub mod vanity;
+mod version;
 
-// TODO: Remove to_hex from root
-pub(crate) use encoding::to_hex;
 pub use errors::{Error, Result};
 pub use keys::address::Address;
 pub use keys::phrase;
@@ -74,26 +73,7 @@ pub use keys::private::Private;
 pub use keys::public::Public;
 pub use keys::seed::Seed;
 pub use keys::signature::Signature;
+pub use network::{Network, DEFAULT_PORT};
 pub use pow::{Difficulty, Subject, Work};
 pub use units::rai::Rai;
-
-/// The default TCP port that Nano nodes use.
-pub const DEFAULT_PORT: u16 = 7075;
-
-fn expect_len(got_len: usize, expected_len: usize, msg: &str) -> Result<()> {
-    if got_len != expected_len {
-        return Err(errors::Error::WrongLength {
-            msg: msg.to_string(),
-            expected: expected_len,
-            found: got_len,
-        });
-    }
-    Ok(())
-}
-
-fn len_err_msg(got_len: usize, expected_len: usize, msg: &str) -> String {
-    format!(
-        "{} is the wrong length: got: {} expected: {}",
-        msg, got_len, expected_len,
-    )
-}
+pub use version::Version;

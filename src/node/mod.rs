@@ -8,8 +8,9 @@ mod state;
 mod timestamp;
 mod wire;
 
-use crate::network::Network;
 use crate::rpc::server::{RPCMessage, RPCServer};
+use crate::Network;
+pub use crate::Version;
 use anyhow::Context;
 use channel::network_channel;
 pub use controller::{Controller, Packet};

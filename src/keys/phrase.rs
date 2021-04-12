@@ -1,6 +1,7 @@
 //! BIP39 and BIP44 mnemonic seed phrase.
+use crate::encoding::to_hex;
 use crate::Error;
-use crate::{to_hex, Private};
+use crate::Private;
 use bip39::Mnemonic;
 pub use bip39::MnemonicType;
 use ed25519_dalek_bip32::{DerivationPath, ExtendedSecretKey};

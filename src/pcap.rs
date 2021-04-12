@@ -1,6 +1,6 @@
 use crate::network::Network;
+use crate::network::DEFAULT_PORT;
 use crate::node::{Controller, MemoryState, Packet};
-use crate::DEFAULT_PORT;
 use anyhow::Context;
 use chrono::{DateTime, Utc};
 use etherparse::{InternetSlice, SlicedPacket};

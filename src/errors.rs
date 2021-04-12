@@ -4,11 +4,15 @@ pub type Result<T> = std::result::Result<T, Error>;
 
 #[derive(Debug, Error)]
 pub enum Error {
+    #[error("Invalid version: {0}")]
+    InvalidVersion(String),
+
     #[error("From hex error: {msg} {source}")]
     FromHexError {
         msg: String,
         source: hex::FromHexError,
     },
+
     #[error("Signature error")]
     SignatureError {
         msg: String,

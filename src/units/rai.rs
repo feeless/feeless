@@ -1,7 +1,7 @@
 use super::{MicroNano, Nano};
+use crate::encoding::{expect_len, to_hex};
 use crate::units::{Cents, UnboundedRai};
 use crate::Error;
-use crate::{expect_len, to_hex};
 use bigdecimal::BigDecimal;
 use serde::{de, Deserialize, Deserializer, Serialize, Serializer};
 use std::cmp::Ordering;
@@ -236,8 +236,9 @@ impl PartialEq<u128> for Rai {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
     use std::convert::TryFrom;
+
+    use super::*;
 
     #[test]
     fn display() {

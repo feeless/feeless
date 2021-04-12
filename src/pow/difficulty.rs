@@ -1,6 +1,5 @@
-use crate::encoding::deserialize_from_str;
-use crate::Result;
-use crate::{expect_len, to_hex, Error};
+use crate::encoding::{deserialize_from_str, expect_len, to_hex};
+use crate::{Error, Result};
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use std::cmp::Ordering;
 use std::convert::TryFrom;
