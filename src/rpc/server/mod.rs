@@ -1,19 +1,40 @@
+mod handlers;
+
 use crate::node::ArcState;
 use crate::rpc::client::RPCError;
+use crate::rpc::server::handlers::handle_process;
 use crate::rpc::Command;
+use crate::Result;
 use serde::Serialize;
-use tokio::sync::mpsc;
+use tokio::sync::{mpsc, oneshot};
 use tracing::{info, trace};
 use warp::http::StatusCode;
 use warp::Filter;
 
+type RpcMessageSender = mpsc::Sender<RPCMessage>;
+type RpcMessageResponseSender = oneshot::Sender<Box<dyn Serialize>>;
+type RpcMessageResponseReceiver = oneshot::Receiver<Box<dyn Serialize>>;
+
+pub enum Target {
+    BroadcastAllPeers,
+    BroadcastRepresentatives,
+}
+
 pub struct RPCMessage {
-    response_rx: (),
+    target: Target,
+    tx: RpcMessageResponseSender,
+}
+
+impl RPCMessage {
+    fn new_with_channel(target: Target) -> (Self, RpcMessageResponseReceiver) {
+        let (tx, rx) = oneshot::channel();
+        (Self { target, tx }, rx)
+    }
 }
 
 pub struct RPCServer {
     state: ArcState,
-    tx: mpsc::Sender<RPCMessage>,
+    tx: RpcMessageSender,
 }
 
 impl RPCServer {
@@ -27,6 +48,8 @@ impl RPCServer {
         info!("Starting RPC server");
         let rpc = warp::post()
             .and(warp::body::content_length_limit(1024 * 16))
+            .and(with_state(self.state.clone()))
+            .and(with_tx(self.tx.clone()))
             .and(warp::body::json())
             .and_then(Self::handle);
 
@@ -35,7 +58,11 @@ impl RPCServer {
         Ok(())
     }
 
-    async fn handle(cmd: Command) -> Result<Box<dyn warp::Reply>, warp::Rejection> {
+    async fn handle(
+        state: ArcState,
+        tx: RpcMessageSender,
+        cmd: Command,
+    ) -> std::result::Result<Box<dyn warp::Reply>, warp::Rejection> {
         trace!("Handling command: {:?}", cmd);
         match cmd {
             // TODO: Example usage
@@ -46,14 +73,37 @@ impl RPCServer {
             //     network_receive_current: Difficulty::new(3),
             //     network_receive_minimum: Difficulty::new(4),
             // }),
-            action => json(&RPCError {
+            Command::Process(c) => json_result(handle_process(state, tx, c).await),
+            action => json_result(Ok(RPCError {
                 error: format!("The action: {:?} is unhandled", action),
-            }),
+            })),
         }
     }
 }
 
-fn json<T>(o: &T) -> Result<Box<dyn warp::Reply>, warp::Rejection>
+fn with_tx(
+    tx: RpcMessageSender,
+) -> impl Filter<Extract = (RpcMessageSender,), Error = std::convert::Infallible> + Clone {
+    warp::any().map(move || tx.clone())
+}
+
+fn with_state(
+    state: ArcState,
+) -> impl Filter<Extract = (ArcState,), Error = std::convert::Infallible> + Clone {
+    warp::any().map(move || state.clone())
+}
+
+fn json_result<T>(result: Result<T>) -> std::result::Result<Box<dyn warp::Reply>, warp::Rejection>
+where
+    T: Sized + Serialize,
+{
+    match &result {
+        Ok(o) => json(o),
+        Err(err) => todo!("{:?}", err),
+    }
+}
+
+fn json<T>(o: &T) -> std::result::Result<Box<dyn warp::Reply>, warp::Rejection>
 where
     T: ?Sized + Serialize,
 {
