@@ -79,7 +79,7 @@ pcarp = { version = "1.2.0", optional = true }
 etherparse = { version = "0.9.0", optional = true }
 
 # rpc_client only
-reqwest = { version = "0.11.2", optional = true, default-features = false, features = ["rustls-tls"] }
+reqwest = { version = "0.11.3", optional = true, default-features = false, features = ["rustls-tls"] }
 colored_json = { version = "2.1.0", optional = true }
 serde_with = { version = "1.8.0", optional = true, features = ["chrono"] }
 
