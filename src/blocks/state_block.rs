@@ -4,7 +4,7 @@ use crate::node::Header;
 #[cfg(feature = "node")]
 use crate::node::Wire;
 
-use crate::blocks::{BlockHash, BlockType};
+use crate::blocks::{Block, BlockHash, BlockType, Previous};
 use crate::bytes::Bytes;
 use crate::keys::public::{from_address, to_address};
 use crate::{expect_len, hexify, Error, Public, Rai, Result, Signature, Work};
@@ -26,7 +26,6 @@ where
 
 /// Not used within StateBlock yet.
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, EnumString)]
-#[serde(rename_all = "snake_case")]
 #[strum(serialize_all = "snake_case")]
 pub enum Subtype {
     Send,
@@ -41,7 +40,7 @@ pub struct StateBlock {
     #[serde(serialize_with = "to_address", deserialize_with = "from_address")]
     pub account: Public,
 
-    pub previous: BlockHash,
+    pub previous: Previous,
 
     #[serde(serialize_with = "to_address", deserialize_with = "from_address")]
     pub representative: Public,
@@ -61,7 +60,7 @@ impl StateBlock {
 
     pub fn new(
         account: Public,
-        previous: BlockHash,
+        previous: Previous,
         representative: Public,
         balance: Rai,
         link: Link,
@@ -75,6 +74,54 @@ impl StateBlock {
             work: None,
             signature: None,
         }
+    }
+
+    pub fn decide_link_type(&mut self, is_send: bool, amount: Rai) -> anyhow::Result<()> {
+        match &self.link {
+            Link::Nothing => Ok(()),
+            Link::Source(_, _) => Ok(()),
+            Link::DestinationAccount(_, _) => Ok(()),
+            Link::Unsure(unsure_link) => {
+                if is_send {
+                    // in send block link represents destination address
+                    self.link = Link::DestinationAccount(
+                        Public::try_from(unsure_link.as_bytes())?,
+                        Amount(amount),
+                    )
+                } else {
+                    let is_all_zeros = unsure_link.0.iter().all(|&b| b == 0);
+
+                    // if not send AND cannot be not change => receive block subtype
+                    let is_receive = !is_send && !is_all_zeros;
+
+                    if is_receive {
+                        // in receive block subtype link represents source (aka pairing) block's hash (block sending funds)
+                        self.link = Link::Source(
+                            BlockHash::try_from(unsure_link.as_bytes())?,
+                            Amount(amount),
+                        )
+                    } else {
+                        // only possibility left is to be a change block subtype
+                        // in a change block subtype the link represents nothing
+                        self.link = Link::Nothing
+                    }
+                }
+            }
+        }
+    }
+}
+
+impl TryFrom<Block> for StateBlock {
+    type Error = Error;
+
+    fn try_from(block: Block) -> Result<Self> {
+        Ok(StateBlock::new(
+            block.account,
+            block.previous,
+            block.representative,
+            block.balance,
+            block.link,
+        ))
     }
 }
 
@@ -91,7 +138,7 @@ impl Wire for StateBlock {
         let mut data = Bytes::new(data);
 
         let account = Public::try_from(data.slice(Public::LEN)?)?;
-        let previous = BlockHash::try_from(data.slice(BlockHash::LEN)?)?;
+        let previous = Previous::try_from(data.slice(BlockHash::LEN)?)?;
         let representative = Public::try_from(data.slice(Public::LEN)?)?;
         let balance = Rai::try_from(data.slice(Rai::LEN)?)?;
 
@@ -120,12 +167,12 @@ impl Wire for StateBlock {
 
 #[cfg(test)]
 mod tests {
-    use crate::blocks::state_block::Link;
+    use crate::blocks::state_block::{Amount, Link};
     use crate::{Address, Signature, Work};
 
     use super::Rai;
     use super::StateBlock;
-    use crate::blocks::{Block, BlockHash};
+    use crate::blocks::{Block, BlockHash, Previous};
     use std::str::FromStr;
 
     #[test]
@@ -134,14 +181,15 @@ mod tests {
             Address::from_str("nano_34prihdxwz3u4ps8qjnn14p7ujyewkoxkwyxm3u665it8rg5rdqw84qrypzk")
                 .unwrap()
                 .to_public();
-        let parent =
-            BlockHash::from_str("7837C80964CAD551DEABE162C7FC4BB58688A0C6EB6D9907C0D2A7C74A33C7EB")
+        let parent: Previous =
+            Previous::from_str("7837C80964CAD551DEABE162C7FC4BB58688A0C6EB6D9907C0D2A7C74A33C7EB")
                 .unwrap();
         let representative = account.clone();
         let balance = Rai::new(2711469892748129430069222848295u128);
         let link = Link::Source(
             BlockHash::from_str("0399B19B022D260F3DDFBA26D0306D423F1890D3AE06136FAB16802D1F2B87A7")
                 .unwrap(),
+            Amount(Rai(0)), // TODO: maybe put a significant amount?
         );
         // Signature and work aren't hashed, but left them as the real data anyway.
         let signature = Signature::from_str("BCF9F123138355AE9E741912D319FF48E5FCCA39D9E5DD74411D32C69B1C7501A0BF001C45D4F68CB561B902A42711E6166B9018E76C50CC868EF2E32B78F200").unwrap();
@@ -172,6 +220,8 @@ impl UnsureLink {
     pub(crate) const LEN: usize = Link::LEN;
 }
 
+pub struct Amount(Rai);
+
 /// Used in state block as a reference to either the previous block or a destination address.
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "snake_case", untagged)]
@@ -183,10 +233,10 @@ pub enum Link {
     Unsure(UnsureLink),
 
     /// Reference the previous block, for receiving.
-    Source(BlockHash),
+    Source(BlockHash, Amount),
 
     /// Send to a destination account.
-    DestinationAccount(Public),
+    DestinationAccount(Public, Amount),
 }
 
 impl Link {
@@ -209,8 +259,8 @@ impl Link {
     pub fn as_bytes(&self) -> &[u8] {
         match self {
             Link::Nothing => &[0u8; Self::LEN],
-            Link::Source(hash) => hash.as_bytes(),
-            Link::DestinationAccount(key) => key.as_bytes(),
+            Link::Source(hash, _) => hash.as_bytes(),
+            Link::DestinationAccount(key, _) => key.as_bytes(),
             Link::Unsure(b) => b.as_bytes(),
         }
     }

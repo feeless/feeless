@@ -13,6 +13,7 @@ use crate::node::Wire;
 use crate::node::Header;
 
 use crate::encoding::blake2b;
+use crate::errors;
 use crate::keys::public::to_address;
 use crate::network::Network;
 use crate::{Private, Public, Rai, Signature, Work};
@@ -27,6 +28,8 @@ use serde;
 use serde::{Deserialize, Serialize};
 pub(crate) use state_block::deserialize_to_unsure_link;
 pub use state_block::{Link, StateBlock, Subtype};
+use std::fmt::{Display, Formatter};
+use std::str::FromStr;
 use strum_macros::EnumString;
 
 #[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize, EnumString)]
@@ -142,6 +145,15 @@ impl Previous {
     }
 }
 
+impl FromStr for Previous {
+    type Err = errors::Error;
+
+    fn from_str(s: &str) -> errors::Result<Self> {
+        let previous = Previous::try_from(hex::decode(s.as_bytes())?.as_slice())?;
+        Ok(previous)
+    }
+}
+
 /// A `Block` contains all block information needed for network and storage.
 ///
 /// It has the fields of a state block, but can handle all block types.
@@ -181,6 +193,9 @@ pub struct Block {
 
     /// What level of trust do we have with this block?
     state: ValidationState,
+
+    /// Is this a head block (aka frontier)
+    is_head: bool,
 }
 
 #[derive(Debug, Clone, Serialize, PartialEq, Eq)]
@@ -201,6 +216,7 @@ impl Block {
         balance: Rai,
         link: Link,
         state: ValidationState,
+        is_head: bool,
     ) -> Self {
         let mut new_block = Self {
             hash: None,
@@ -213,6 +229,7 @@ impl Block {
             work: None,
             signature: None,
             state,
+            is_head,
         };
         new_block.calc_hash().unwrap();
         new_block
@@ -227,6 +244,7 @@ impl Block {
             balance.to_owned(),
             Link::Source(open_block.source.to_owned()),
             ValidationState::Valid,
+            false,
         );
         b.signature = open_block.signature.to_owned();
         b.work = open_block.work.to_owned();
@@ -246,6 +264,7 @@ impl Block {
             send_block.balance.to_owned(),
             Link::DestinationAccount(send_block.destination.to_owned()),
             ValidationState::Valid,
+            false,
         );
         b.signature = send_block.signature.to_owned();
         b.work = send_block.work.to_owned();
@@ -256,11 +275,12 @@ impl Block {
         let mut b = Self::new(
             BlockType::State,
             state_block.account.to_owned(),
-            Previous::Block(state_block.previous.to_owned()),
+            state_block.previous.to_owned(),
             state_block.representative.to_owned(),
             state_block.balance.to_owned(),
             state_block.link.to_owned(),
             ValidationState::Valid,
+            false,
         );
         b.signature = state_block.signature.to_owned();
         b.work = state_block.work.to_owned();
@@ -360,6 +380,10 @@ impl Block {
             .context("Verify block")?)
     }
 
+    pub fn verify_self_signature(&self) -> anyhow::Result<()> {
+        self.verify_signature(self.account())
+    }
+
     pub fn sign(&mut self, private: Private) -> anyhow::Result<()> {
         let hash = self.hash()?;
         let signature = private.sign(hash.as_bytes())?;
@@ -373,6 +397,10 @@ impl Block {
 
     pub fn previous(&self) -> &Previous {
         &self.previous
+    }
+
+    pub fn is_head(&self) -> &bool {
+        &self.is_head
     }
 
     /// For an open or recv block, get the sender's block hash, otherwise Err.
@@ -412,6 +440,24 @@ impl Block {
                 self
             ))
         }
+    }
+}
+
+impl Display for Block {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        let work_render = match &self.work {
+            Some(work) => work.to_string(),
+            None => "No work".to_string(),
+        };
+        let signature_render = match &self.signature {
+            Some(signature) => signature.to_string(),
+            None => "No signature".to_string(),
+        };
+        write!(
+            f,
+            "Block(Account: {}, Previous: {:?}, Balance: {}, Link: {:?}, Work: {}, Signature: {})",
+            self.account, self.previous, self.balance, self.link, work_render, signature_render
+        )
     }
 }
 
