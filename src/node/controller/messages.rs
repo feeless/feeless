@@ -264,6 +264,37 @@ impl Controller {
                     "Block {} has previous which is not a frontier state block of the same account",
                     block_hash
                 ))?;
+        match maybe_previous_block {
+            None => {
+                // this block refers to a non-existent previous block
+                // hence we cannot receive this block currently
+                tracing::info!("Block before {} is not found!", block_hash);
+                return Ok(());
+            }
+            Some(previous_block) => {
+                let is_send = state_block.balance < previous_block.balance;
+                let amount = if is_send {
+                    previous_block.balance - &state_block.balance
+                } else {
+                    &state_block.balance - previous_block.balance
+                };
+                state_block.decide_link_type(is_send, amount);
+                match state_block.link {
+                    Link::Nothing => { // change
+                         // TODO: check sanity of change block
+                    }
+                    Link::Source(_, _) => { // receive
+                         // TODO: check sanity of receive block
+                    }
+                    Link::DestinationAccount(_, _) => { // send
+                         // TODO: check sanity of send block
+                    }
+                    Link::Unsure(_) => {
+                        panic!("Unexpected error! Was `decide_link_type` called?");
+                    }
+                }
+            }
+        }
         // match maybe_previous_block {
         //     None => {
         //         // account does not yet exists

@@ -86,15 +86,18 @@ impl StateBlock {
         }
     }
 
-    pub fn decide_link_type(&mut self, is_send: bool) -> anyhow::Result<()> {
+    pub fn decide_link_type(&mut self, is_send: bool, amount: Rai) -> anyhow::Result<()> {
         match &self.link {
             Link::Nothing => Ok(()),
-            Link::Source(_) => Ok(()),
-            Link::DestinationAccount(_) => Ok(()),
+            Link::Source(_, _) => Ok(()),
+            Link::DestinationAccount(_, _) => Ok(()),
             Link::Unsure(unsure_link) => {
                 if is_send {
                     // in send block link represents destination address
-                    self.link = Link::DestinationAccount(Public::try_from(unsure_link.as_bytes())?)
+                    self.link = Link::DestinationAccount(
+                        Public::try_from(unsure_link.as_bytes())?,
+                        Amount(amount),
+                    )
                 } else {
                     let is_all_zeros = unsure_link.0.iter().all(|&b| b == 0);
 
@@ -103,7 +106,10 @@ impl StateBlock {
 
                     if is_receive {
                         // in receive block subtype link represents source (aka pairing) block's hash (block sending funds)
-                        self.link = Link::Source(BlockHash::try_from(unsure_link.as_bytes())?)
+                        self.link = Link::Source(
+                            BlockHash::try_from(unsure_link.as_bytes())?,
+                            Amount(amount),
+                        )
                     } else {
                         // only possibility left is to be a change block subtype
                         // in a change block subtype the link represents nothing
@@ -171,7 +177,7 @@ impl Wire for StateBlock {
 
 #[cfg(test)]
 mod tests {
-    use crate::blocks::state_block::Link;
+    use crate::blocks::state_block::{Amount, Link};
     use crate::{Address, Signature, Work};
 
     use super::Rai;
@@ -193,6 +199,7 @@ mod tests {
         let link = Link::Source(
             BlockHash::from_str("0399B19B022D260F3DDFBA26D0306D423F1890D3AE06136FAB16802D1F2B87A7")
                 .unwrap(),
+            Amount(Rai(0)), // TODO: maybe put a significant amount?
         );
         // Signature and work aren't hashed, but left them as the real data anyway.
         let signature = Signature::from_str("BCF9F123138355AE9E741912D319FF48E5FCCA39D9E5DD74411D32C69B1C7501A0BF001C45D4F68CB561B902A42711E6166B9018E76C50CC868EF2E32B78F200").unwrap();
@@ -271,6 +278,8 @@ impl FromStr for UnsureLink {
     }
 }
 
+pub struct Amount(Rai);
+
 /// Used in state block as a reference to either the previous block or a destination address.
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "snake_case", untagged)]
@@ -282,10 +291,10 @@ pub enum Link {
     Unsure(UnsureLink),
 
     /// Reference the previous block, for receiving.
-    Source(BlockHash),
+    Source(BlockHash, Amount),
 
     /// Send to a destination account.
-    DestinationAccount(Public),
+    DestinationAccount(Public, Amount),
 }
 
 impl Link {
@@ -308,8 +317,8 @@ impl Link {
     pub fn as_bytes(&self) -> &[u8] {
         match self {
             Link::Nothing => &[0u8; Self::LEN],
-            Link::Source(hash) => hash.as_bytes(),
-            Link::DestinationAccount(key) => key.as_bytes(),
+            Link::Source(hash, _) => hash.as_bytes(),
+            Link::DestinationAccount(key, _) => key.as_bytes(),
             Link::Unsure(b) => b.as_bytes(),
         }
     }
