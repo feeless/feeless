@@ -6,12 +6,9 @@ use crate::node::Wire;
 
 use crate::blocks::{Block, BlockHash, BlockType, Previous};
 use crate::bytes::Bytes;
-use crate::encoding::deserialize_from_str;
 use crate::keys::public::{from_address, to_address};
-use crate::Result;
-use crate::{expect_len, to_hex, Error, Public, Rai, Signature, Work};
-use clap::Clap;
-use serde::{Deserialize, Deserializer, Serialize, Serializer};
+use crate::{expect_len, hexify, Error, Public, Rai, Result, Signature, Work};
+use serde::{Deserialize, Deserializer, Serialize};
 use std::convert::TryFrom;
 use std::fmt::Debug;
 use std::str::FromStr;
@@ -38,30 +35,23 @@ pub enum Subtype {
     Epoch,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, Clap)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct StateBlock {
     #[serde(serialize_with = "to_address", deserialize_with = "from_address")]
-    #[clap(short, long)]
     pub account: Public,
 
-    #[clap(short, long)]
     pub previous: Previous,
 
     #[serde(serialize_with = "to_address", deserialize_with = "from_address")]
-    #[clap(short, long)]
     pub representative: Public,
 
-    #[clap(short, long)]
     pub balance: Rai,
 
     #[serde(deserialize_with = "deserialize_to_unsure_link")]
-    #[clap(short, long)]
     pub link: Link,
 
-    #[clap(short, long)]
     pub work: Option<Work>,
 
-    #[clap(short = 'g', long)]
     pub signature: Option<Signature>,
 }
 
@@ -221,61 +211,13 @@ mod tests {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub struct UnsureLink([u8; Link::LEN]);
+#[derive(Clone, PartialEq, Eq, Hash)]
+pub struct UnsureLink([u8; Self::LEN]);
+
+hexify!(UnsureLink, "link");
 
 impl UnsureLink {
-    pub fn as_bytes(&self) -> &[u8] {
-        &self.0
-    }
-}
-
-impl TryFrom<&[u8]> for UnsureLink {
-    type Error = Error;
-
-    fn try_from(value: &[u8]) -> Result<Self> {
-        expect_len(value.len(), Link::LEN, "UnsureLink")?;
-
-        let mut v = UnsureLink([0u8; Link::LEN]);
-        v.0.copy_from_slice(&value);
-        Ok(v)
-    }
-}
-
-impl Serialize for UnsureLink {
-    fn serialize<S>(
-        &self,
-        serializer: S,
-    ) -> std::result::Result<<S as Serializer>::Ok, <S as Serializer>::Error>
-    where
-        S: Serializer,
-    {
-        serializer.serialize_str(to_hex(&self.0).as_str())
-    }
-}
-
-impl<'de> Deserialize<'de> for UnsureLink {
-    fn deserialize<D>(deserializer: D) -> std::result::Result<Self, <D as Deserializer<'de>>::Error>
-    where
-        D: Deserializer<'de>,
-    {
-        deserialize_from_str(deserializer)
-    }
-}
-
-impl FromStr for UnsureLink {
-    type Err = Error;
-
-    fn from_str(s: &str) -> Result<Self> {
-        UnsureLink::try_from(
-            hex::decode(s.as_bytes())
-                .map_err(|source| Error::FromHexError {
-                    msg: "UnsureLink".to_string(),
-                    source,
-                })?
-                .as_slice(),
-        )
-    }
+    pub(crate) const LEN: usize = Link::LEN;
 }
 
 pub struct Amount(Rai);

@@ -9,31 +9,24 @@ use crate::bytes::Bytes;
 use crate::keys::public::{from_address, to_address};
 use crate::units::rai::{deserialize_from_hex, serialize_to_hex};
 use crate::{Public, Rai, Signature, Work};
-use clap::Clap;
 use serde::{Deserialize, Serialize};
 use std::convert::TryFrom;
 
-#[derive(Debug, Clone, Serialize, Deserialize, Eq, PartialEq, Clap)]
+#[derive(Debug, Clone, Serialize, Deserialize, Eq, PartialEq)]
 pub struct SendBlock {
     /// The hash of the previous block in this account.
-    #[clap(short, long)]
     pub previous: BlockHash,
 
     #[serde(serialize_with = "to_address", deserialize_with = "from_address")]
-    #[clap(short, long)]
     pub destination: Public,
 
     #[serde(
         serialize_with = "serialize_to_hex",
         deserialize_with = "deserialize_from_hex"
     )]
-    #[clap(short, long)]
     pub balance: Rai,
 
-    #[clap(short, long)]
     pub work: Option<Work>,
-
-    #[clap(short = 'g', long)]
     pub signature: Option<Signature>,
 }
 

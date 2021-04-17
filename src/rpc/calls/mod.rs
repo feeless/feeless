@@ -8,6 +8,7 @@ mod account_representative;
 mod account_weight;
 mod accounts_balances;
 mod accounts_frontiers;
+mod accounts_pending;
 mod active_difficulty;
 mod available_supply;
 mod block_account;
@@ -28,6 +29,7 @@ pub use account_representative::{AccountRepresentativeRequest, AccountRepresenta
 pub use account_weight::{AccountWeightRequest, AccountWeightResponse};
 pub use accounts_balances::{AccountsBalancesRequest, AccountsBalancesResponse};
 pub use accounts_frontiers::{AccountsFrontiersRequest, AccountsFrontiersResponse};
+pub use accounts_pending::{AccountsPendingRequest, AccountsPendingResponse};
 pub use active_difficulty::{ActiveDifficultyRequest, ActiveDifficultyResponse};
 pub use available_supply::{AvailableSupplyRequest, AvailableSupplyResponse};
 pub use block_account::{BlockAccountRequest, BlockAccountResponse};
@@ -60,11 +62,12 @@ pub enum Command {
     AccountsFrontiers(AccountsFrontiersRequest),
     AvailableSupply(AvailableSupplyRequest),
     BlockAccount(BlockAccountRequest),
-    BlockConfirm(BlockConfirmRequest),
     BlockCount(BlockCountRequest),
     BlockCreate(BlockCreateRequest),
     BlockInfo(BlockInfoRequest),
     WorkValidate(WorkValidateRequest),
+    BlockConfirm(BlockConfirmRequest),
+    AccountsPending(AccountsPendingRequest),
 }
 
 pub(crate) fn from_str<'de, T, D>(deserializer: D) -> std::result::Result<T, D::Error>
@@ -77,12 +80,37 @@ where
     T::from_str(&s).map_err(de::Error::custom)
 }
 
+pub(crate) fn from_str_option<'de, T, D>(
+    deserializer: D,
+) -> std::result::Result<Option<T>, D::Error>
+where
+    T: FromStr,
+    T::Err: Display,
+    D: Deserializer<'de>,
+{
+    let s = String::deserialize(deserializer)?;
+    T::from_str(&s)
+        .map_err(de::Error::custom)
+        .map(|res| Some(res))
+}
+
 pub fn as_str<V, S>(v: &V, serializer: S) -> Result<S::Ok, S::Error>
 where
     S: Serializer,
     V: Display,
 {
     serializer.serialize_str(v.to_string().as_str())
+}
+
+pub fn as_str_option<V, S>(v: &Option<V>, serializer: S) -> Result<S::Ok, S::Error>
+where
+    S: Serializer,
+    V: Display,
+{
+    match v {
+        Some(a) => serializer.serialize_str(a.to_string().as_str()),
+        None => serializer.serialize_str("".to_string().as_str()),
+    }
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]

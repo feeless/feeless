@@ -31,7 +31,7 @@ impl WorkValidateRequest {
     }
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, PartialEq)]
 pub struct WorkValidateResponse {
     // TODO: This is meant to be a bool as a number in a string?
     valid_all: String,
@@ -41,4 +41,33 @@ pub struct WorkValidateResponse {
     // TODO: Make multiplier a type? It's used in multiple areas.
     #[serde(deserialize_with = "from_str", serialize_with = "as_str")]
     multiplier: f64,
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::str::FromStr;
+
+    #[test]
+    fn decode() {
+        let s = r#"
+        {
+            "valid_all": "1",
+            "valid_receive": "1",
+            "difficulty": "fffffff93c41ec94",
+            "multiplier": "1.182623871097636"
+        }
+        "#;
+
+        let r = serde_json::from_str::<WorkValidateResponse>(s).unwrap();
+        assert_eq!(
+            r,
+            WorkValidateResponse {
+                valid_all: String::from("1"),
+                valid_receive: String::from("1"),
+                difficulty: Difficulty::from_str("fffffff93c41ec94").unwrap(),
+                multiplier: 1.182623871097636,
+            }
+        );
+    }
 }

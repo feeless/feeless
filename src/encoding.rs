@@ -14,9 +14,24 @@ pub fn to_hex(bytes: &[u8]) -> String {
     s
 }
 
+pub fn to_hex_lower(bytes: &[u8]) -> String {
+    let mut s = String::with_capacity(bytes.len() * 2);
+    for byte in bytes {
+        s.push_str(&format!("{:02x}", byte));
+    }
+    s
+}
+
 pub fn hex_formatter(f: &mut std::fmt::Formatter<'_>, bytes: &[u8]) -> std::fmt::Result {
     for byte in bytes {
         write!(f, "{:02X}", byte)?;
+    }
+    Ok(())
+}
+
+pub fn hex_formatter_lower(f: &mut std::fmt::Formatter<'_>, bytes: &[u8]) -> std::fmt::Result {
+    for byte in bytes {
+        write!(f, "{:02x}", byte)?;
     }
     Ok(())
 }
@@ -90,6 +105,117 @@ pub fn decode_nano_base_32(s: &str) -> Result<BitVec<Msb0, u8>, Error> {
     }
 
     Ok(bits)
+}
+
+/// This macro relies on the `struct` to be a newtype containing a slice of `[u8; $struct::LEN]`.
+///
+/// It adds:
+/// * serde implementations to (de)serialize hex strings.
+/// * `pub fn as_bytes(&self) -> &[u8]`
+/// * `pub fn as_hex(&self) -> String`
+/// * `TryFrom<&[u8]>` implementation.
+/// * [FromStr] implementation, which parses hex into its type.
+/// * [Debug] implementation, which displays as StructName(H3XSTR1NG), e.g. Work(A1B2C3).
+/// * [Display] implementation, which displays the hex string.
+/// * [UpperHex] and [LowerHex] implementations.
+///
+/// Display implementation is not implemented for any user customization.
+#[macro_export]
+macro_rules! hexify {
+    ($struct:ident, $description:expr) => {
+        impl $struct {
+            pub fn as_bytes(&self) -> &[u8] {
+                &self.0
+            }
+
+            pub fn as_hex(&self) -> String {
+                crate::encoding::to_hex(&self.0)
+            }
+
+            pub fn as_hex_lower(&self) -> String {
+                crate::encoding::to_hex_lower(&self.0)
+            }
+        }
+
+        impl ::std::str::FromStr for $struct {
+            type Err = crate::Error;
+
+            fn from_str(s: &str) -> crate::Result<Self> {
+                use ::std::convert::TryFrom;
+
+                crate::expect_len(s.len(), Self::LEN * 2, $description)?;
+                let vec = hex::decode(s.as_bytes()).map_err(|e| crate::Error::FromHexError {
+                    msg: String::from($description),
+                    source: e,
+                })?;
+                let bytes = vec.as_slice();
+                let x = <[u8; Self::LEN]>::try_from(bytes)?;
+                Ok(Self(x))
+            }
+        }
+
+        impl ::std::fmt::Display for $struct {
+            fn fmt(&self, f: &mut ::std::fmt::Formatter<'_>) -> ::std::fmt::Result {
+                write!(f, "{}", self.as_hex())
+            }
+        }
+
+        impl ::std::fmt::Debug for $struct {
+            fn fmt(&self, f: &mut ::std::fmt::Formatter<'_>) -> ::std::fmt::Result {
+                write!(
+                    f,
+                    "{}({})",
+                    stringify!($struct),
+                    crate::encoding::to_hex(self.0.as_ref()),
+                )
+            }
+        }
+
+        impl ::std::convert::TryFrom<&[u8]> for $struct {
+            type Error = crate::Error;
+
+            fn try_from(v: &[u8]) -> crate::Result<Self> {
+                Ok(Self(<[u8; Self::LEN]>::try_from(v)?))
+            }
+        }
+
+        impl ::std::fmt::UpperHex for $struct {
+            fn fmt(&self, f: &mut ::std::fmt::Formatter<'_>) -> ::std::fmt::Result {
+                write!(f, "{}", self.as_hex())
+            }
+        }
+
+        impl ::std::fmt::LowerHex for $struct {
+            fn fmt(&self, f: &mut ::std::fmt::Formatter<'_>) -> ::std::fmt::Result {
+                write!(f, "{}", self.as_hex_lower())
+            }
+        }
+
+        impl serde::Serialize for $struct {
+            fn serialize<S>(
+                &self,
+                serializer: S,
+            ) -> ::std::result::Result<<S as serde::Serializer>::Ok, <S as serde::Serializer>::Error>
+            where
+                S: serde::Serializer,
+            {
+                serializer.serialize_str(self.as_hex().as_str())
+            }
+        }
+
+        impl<'de> serde::Deserialize<'de> for $struct {
+            fn deserialize<D>(
+                deserializer: D,
+            ) -> ::std::result::Result<Self, <D as serde::Deserializer<'de>>::Error>
+            where
+                D: serde::Deserializer<'de>,
+            {
+                use ::std::str::FromStr;
+                let s: String = serde::Deserialize::deserialize(deserializer)?;
+                Ok(Self::from_str(&s).map_err(serde::de::Error::custom)?)
+            }
+        }
+    };
 }
 
 #[cfg(test)]

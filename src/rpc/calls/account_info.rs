@@ -54,7 +54,7 @@ impl AccountInfoRequest {
 }
 
 #[serde_with::serde_as]
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, PartialEq)]
 pub struct AccountInfoResponse {
     pub frontier: BlockHash,
     pub open_block: BlockHash,
@@ -83,4 +83,116 @@ pub struct AccountInfoResponse {
 
     #[serde(skip_serializing_if = "Option::is_none")]
     pending: Option<Rai>,
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use chrono::DateTime;
+    use std::str::FromStr;
+
+    #[test]
+    fn decode1() {
+        let s = r#" {
+            "frontier": "FF84533A571D953A596EA401FD41743AC85D04F406E76FDE4408EAED50B473C5",
+            "open_block": "991CF190094C00F0B68E2E5F75F6BEE95A2E0BD93CEAA4A6734DB9F19B728948",
+            "representative_block": "991CF190094C00F0B68E2E5F75F6BEE95A2E0BD93CEAA4A6734DB9F19B728948",
+            "balance": "235580100176034320859259343606608761791",
+            "modified_timestamp": "1501793775",
+            "block_count": "33",
+            "confirmation_height" : "28",
+            "confirmation_height_frontier" : "34C70FCA0952E29ADC7BEE6F20381466AE42BD1CFBA4B7DFFE8BD69DF95449EB",
+            "account_version": "1"
+        }
+        "#;
+
+        let r = serde_json::from_str::<AccountInfoResponse>(s).unwrap();
+
+        assert_eq!(
+            r,
+            AccountInfoResponse {
+                frontier: BlockHash::from_str(
+                    "FF84533A571D953A596EA401FD41743AC85D04F406E76FDE4408EAED50B473C5"
+                )
+                .unwrap(),
+                open_block: BlockHash::from_str(
+                    "991CF190094C00F0B68E2E5F75F6BEE95A2E0BD93CEAA4A6734DB9F19B728948"
+                )
+                .unwrap(),
+                representative_block: BlockHash::from_str(
+                    "991CF190094C00F0B68E2E5F75F6BEE95A2E0BD93CEAA4A6734DB9F19B728948"
+                )
+                .unwrap(),
+                balance: Rai::from(235580100176034320859259343606608761791),
+                modified_timestamp: DateTime::<Utc>::from_str("2017-08-03T20:56:15Z").unwrap(),
+                block_count: 33,
+                confirmation_height: 28,
+                confirmation_height_frontier: BlockHash::from_str(
+                    "34C70FCA0952E29ADC7BEE6F20381466AE42BD1CFBA4B7DFFE8BD69DF95449EB"
+                )
+                .unwrap(),
+                account_version: 1,
+                representative: None,
+                weight: None,
+                pending: None,
+            }
+        )
+    }
+
+    #[test]
+    fn decode2() {
+        // TODO: awaiting for clarification about the RPC command
+        let s = r#" {
+            "frontier": "FF84533A571D953A596EA401FD41743AC85D04F406E76FDE4408EAED50B473C5",
+            "open_block": "991CF190094C00F0B68E2E5F75F6BEE95A2E0BD93CEAA4A6734DB9F19B728948",
+            "representative_block": "991CF190094C00F0B68E2E5F75F6BEE95A2E0BD93CEAA4A6734DB9F19B728948",
+            "balance": "235580100176034320859259343606608761791",
+            "modified_timestamp": "1501793775",
+            "block_count": "33",
+            "confirmation_height" : "28",
+            "confirmation_height_frontier" : "34C70FCA0952E29ADC7BEE6F20381466AE42BD1CFBA4B7DFFE8BD69DF95449EB",
+            "account_version": "1",
+            "representative": "nano_3t6k35gi95xu6tergt6p69ck76ogmitsa8mnijtpxm9fkcm736xtoncuohr3",
+            "weight": "1105577030935649664609129644855132177",
+            "pending": "2309370929000000000000000000000000"
+        }
+        "#;
+
+        let r = serde_json::from_str::<AccountInfoResponse>(s).unwrap();
+
+        assert_eq!(
+            r,
+            AccountInfoResponse {
+                frontier: BlockHash::from_str(
+                    "FF84533A571D953A596EA401FD41743AC85D04F406E76FDE4408EAED50B473C5"
+                )
+                .unwrap(),
+                open_block: BlockHash::from_str(
+                    "991CF190094C00F0B68E2E5F75F6BEE95A2E0BD93CEAA4A6734DB9F19B728948"
+                )
+                .unwrap(),
+                representative_block: BlockHash::from_str(
+                    "991CF190094C00F0B68E2E5F75F6BEE95A2E0BD93CEAA4A6734DB9F19B728948"
+                )
+                .unwrap(),
+                balance: Rai::from(235580100176034320859259343606608761791),
+                modified_timestamp: DateTime::<Utc>::from_str("2017-08-03T20:56:15Z").unwrap(),
+                block_count: 33,
+                confirmation_height: 28,
+                confirmation_height_frontier: BlockHash::from_str(
+                    "34C70FCA0952E29ADC7BEE6F20381466AE42BD1CFBA4B7DFFE8BD69DF95449EB"
+                )
+                .unwrap(),
+                account_version: 1,
+                representative: Some(
+                    Address::from_str(
+                        "nano_3t6k35gi95xu6tergt6p69ck76ogmitsa8mnijtpxm9fkcm736xtoncuohr3"
+                    )
+                    .unwrap()
+                ),
+                weight: Some(Rai::from(1105577030935649664609129644855132177)),
+                pending: Some(Rai::from(2309370929000000000000000000000000)),
+            }
+        )
+    }
 }
