@@ -27,6 +27,7 @@ use serde;
 use serde::{Deserialize, Serialize};
 pub(crate) use state_block::deserialize_to_unsure_link;
 pub use state_block::{Link, StateBlock, Subtype};
+use std::str::FromStr;
 use strum_macros::EnumString;
 
 #[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize, EnumString)]
@@ -154,6 +155,18 @@ impl TryFrom<&[u8]> for Previous {
     }
 }
 
+impl FromStr for Previous {
+    type Err = crate::Error;
+
+    fn from_str(hex_string: &str) -> crate::Result<Self> {
+        if hex_string == "0".repeat(64) {
+            Ok(Previous::Open)
+        } else {
+            Ok(Previous::Block(BlockHash::from_str(hex_string)?))
+        }
+    }
+}
+
 /// A `Block` contains all block information needed for network and storage.
 ///
 /// It has the fields of a state block, but can handle all block types.
@@ -193,9 +206,6 @@ pub struct Block {
 
     /// What level of trust do we have with this block?
     state: ValidationState,
-
-    /// Is this a head block (aka frontier)
-    is_head: bool,
 }
 
 #[derive(Debug, Clone, Serialize, PartialEq, Eq)]
@@ -216,7 +226,6 @@ impl Block {
         balance: Rai,
         link: Link,
         state: ValidationState,
-        is_head: bool,
     ) -> Self {
         let mut new_block = Self {
             hash: None,
@@ -229,7 +238,6 @@ impl Block {
             work: None,
             signature: None,
             state,
-            is_head,
         };
         new_block.calc_hash().unwrap();
         new_block
@@ -244,7 +252,6 @@ impl Block {
             balance.to_owned(),
             Link::Source(open_block.source.to_owned()),
             ValidationState::Valid,
-            false,
         );
         b.signature = open_block.signature.to_owned();
         b.work = open_block.work.to_owned();
@@ -264,7 +271,6 @@ impl Block {
             send_block.balance.to_owned(),
             Link::DestinationAccount(send_block.destination.to_owned()),
             ValidationState::Valid,
-            false,
         );
         b.signature = send_block.signature.to_owned();
         b.work = send_block.work.to_owned();
@@ -280,7 +286,6 @@ impl Block {
             state_block.balance.to_owned(),
             state_block.link.to_owned(),
             ValidationState::Valid,
-            false,
         );
         b.signature = state_block.signature.to_owned();
         b.work = state_block.work.to_owned();
@@ -433,10 +438,6 @@ impl Block {
             ))
         }
     }
-
-    pub fn is_head(&self) -> &bool {
-        &self.is_head
-    }
 }
 
 pub fn hash_block(parts: &[&[u8]]) -> BlockHash {
@@ -450,7 +451,11 @@ pub fn hash_block(parts: &[&[u8]]) -> BlockHash {
 
 #[cfg(test)]
 mod tests {
+    use crate::blocks::{Block, BlockHash, Link, Previous, StateBlock};
     use crate::network::Network;
+    use crate::{Public, Rai, Signature, Work};
+    use std::convert::TryFrom;
+    use std::str::FromStr;
 
     #[test]
     fn json() {
@@ -463,5 +468,72 @@ mod tests {
         assert!(a.contains(r#"account": "nano_3t"#));
         assert!(a.contains(r#"work": "62F"#));
         assert!(a.contains(r#"signature": "9F"#));
+    }
+
+    fn new_test_state_block(
+        account: &Public,
+        previous: &Previous,
+        representative: &Public,
+        balance: &Rai,
+        link: &Link,
+        work: &Option<Work>,
+        signature: &Option<Signature>,
+    ) -> StateBlock {
+        let account = account.clone();
+        let previous = previous.clone();
+        let representative = representative.clone();
+        let balance = balance.clone();
+        let link = link.clone();
+        let work = work.clone();
+        let signature = signature.clone();
+        StateBlock {
+            account,
+            previous,
+            representative,
+            balance,
+            link,
+            work,
+            signature,
+        }
+    }
+
+    fn test_state_block() -> StateBlock {
+        let source = Link::Source(
+            BlockHash::from_str("570EDFC56651FBBC9AEFE5B0769DBD210614A0C0E6962F5CA0EA2FFF4C08A4B0")
+                .unwrap(),
+        );
+        let account =
+            Public::from_str("570EDFC56651FBBC9AEFE5B0769DBD210614A0C0E6962F5CA0EA2FFF4C08A4B0")
+                .unwrap();
+        let representative =
+            Public::from_str("7194452B7997A9F5ABB2F434DB010CA18B5A2715D141F9CFA64A296B3EB4DCCD")
+                .unwrap();
+        let signature = Some(Signature::zero());
+        let work: Option<Work> = None;
+
+        new_test_state_block(
+            &account,
+            &Previous::Open,
+            &representative,
+            &Rai(500),
+            &source,
+            &work,
+            &signature,
+        )
+    }
+
+    #[test]
+    fn round_trip_state_block() {
+        let state_block_0 = test_state_block();
+        let state_block_1 = StateBlock::try_from(Block::from_state_block(&state_block_0)).unwrap();
+        assert_eq!(state_block_0, state_block_1)
+    }
+
+    #[test]
+    fn round_trip_state_block2() {
+        let state_block = test_state_block();
+        let block_0 = Block::from_state_block(&state_block);
+        let block_1 = Block::from_state_block(&StateBlock::try_from(block_0.clone()).unwrap());
+        assert_eq!(block_0, block_1)
     }
 }
