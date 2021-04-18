@@ -9,6 +9,7 @@ mod state;
 mod timestamp;
 mod wire;
 
+use crate::node::controller::ControllerCommand;
 use crate::rpc::server::RPCServer;
 use crate::Network;
 pub use crate::Version;
@@ -55,6 +56,13 @@ impl Node {
             controller_cmd_txs.push(controller_cmd_tx);
         }
 
+        // TODO: The node might need to receive commands from the controllers, e.g. found knowledge
+        //       of new peers, to decide if it should connect to these new nodes. <-- goodish
+        //       That or if the controller spawns another controller, the node will need to access
+        //       the controller message channel. <-- probably not a good solution
+        //       Another idea: Just have the node poll every few seconds to see if there are any
+        //       new peers in its state (which is added by the controller), then connect
+        //       to them appropriately. <-- i like this the best!
         while let Some(node_command) = node_rx.recv().await {
             dbg!("todo node command", &node_command);
             match node_command {
@@ -69,6 +77,8 @@ impl Node {
         info!("Quitting...");
         Ok(())
     }
+
+    async fn command_all_controllers(&self, cmd: ControllerCommand) {}
 
     pub async fn add_peers(&mut self, socket_addrs: &[SocketAddr]) -> anyhow::Result<()> {
         debug!("Adding peers to state: {:?}", socket_addrs);
