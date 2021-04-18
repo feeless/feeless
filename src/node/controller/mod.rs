@@ -80,7 +80,7 @@ pub struct Controller {
     peer_tx: mpsc::Sender<Packet>,
 
     /// Incoming RPC commands.
-    rpc_rx: ControllerMessageReceiver,
+    cmd_rx: ControllerMessageReceiver,
 
     /// A reusable header to reduce allocations.
     // pub(crate) header: Header,
@@ -103,7 +103,7 @@ impl Controller {
         // Packets to be sent out to a remote host.
         let (outgoing_tx, outgoing_rx) = mpsc::channel::<Packet>(100);
         // Controller RPC Commands
-        let (rpc_tx, rpc_rx) = mpsc::channel::<ControllerCommand>(100);
+        let (cmd_tx, cmd_rx) = mpsc::channel::<ControllerCommand>(100);
 
         let s = Self {
             validate_handshakes: true,
@@ -115,11 +115,11 @@ impl Controller {
             incoming_buffer: Vec::with_capacity(10_000),
             peer_rx: incoming_rx,
             peer_tx: outgoing_tx,
-            rpc_rx,
+            cmd_rx,
             last_annotation: None,
         };
 
-        (s, incoming_tx, outgoing_rx, rpc_tx)
+        (s, incoming_tx, outgoing_rx, cmd_tx)
     }
 
     /// Run will loop forever and is expected to be spawned and will quit when the incoming channel
@@ -158,7 +158,7 @@ impl Controller {
                         None => todo!("Peer disconnected"),
                     }
                 }
-                message = self.rpc_rx.recv() => {
+                message = self.cmd_rx.recv() => {
                     dbg!(message);
                 }
             }
