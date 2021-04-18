@@ -20,6 +20,8 @@ mod peers;
 mod process;
 mod work_validate;
 
+use crate::node::NodeCommandSender;
+use crate::Result;
 pub use account_balance::{AccountBalanceRequest, AccountBalanceResponse};
 pub use account_block_count::{AccountBlockCountRequest, AccountBlockCountResponse};
 pub use account_get::{AccountGetRequest, AccountGetResponse};
@@ -32,6 +34,7 @@ pub use accounts_balances::{AccountsBalancesRequest, AccountsBalancesResponse};
 pub use accounts_frontiers::{AccountsFrontiersRequest, AccountsFrontiersResponse};
 pub use accounts_pending::{AccountsPendingRequest, AccountsPendingResponse};
 pub use active_difficulty::{ActiveDifficultyRequest, ActiveDifficultyResponse};
+use async_trait::async_trait;
 pub use available_supply::{AvailableSupplyRequest, AvailableSupplyResponse};
 pub use block_account::{BlockAccountRequest, BlockAccountResponse};
 pub use block_confirm::{BlockConfirmRequest, BlockConfirmResponse};
@@ -39,17 +42,25 @@ pub use block_count::{BlockCountRequest, BlockCountResponse};
 pub use block_create::{BlockCreateRequest, BlockCreateResponse};
 pub use block_info::{BlockInfoRequest, BlockInfoResponse};
 use clap::Clap;
-pub use peers::{PeersRequest, PeersResponse};
+pub use peers::{DetailedPeerInfo, Peers, PeersRequest, PeersResponse};
 pub use process::{ProcessRequest, ProcessResponse};
 use serde::{de, Deserialize, Deserializer, Serialize, Serializer};
 use std::fmt::Display;
 use std::ops::Deref;
 use std::str::FromStr;
+use tokio::sync::oneshot;
 pub use work_validate::{WorkValidateRequest, WorkValidateResponse};
+
+#[async_trait]
+pub trait NodeHandler {
+    type Response: Serialize;
+
+    async fn handle(&self, node_tx: NodeCommandSender) -> Result<Self::Response>;
+}
 
 #[derive(Debug, Clap, Deserialize)]
 #[serde(tag = "action", rename_all = "snake_case")]
-pub enum Command {
+pub enum RpcCommand {
     AccountBalance(AccountBalanceRequest),
     AccountHistory(AccountHistoryRequest),
     AccountInfo(AccountInfoRequest),
@@ -71,16 +82,6 @@ pub enum Command {
     Peers(PeersRequest),
     Process(ProcessRequest),
     WorkValidate(WorkValidateRequest),
-}
-
-#[derive(Debug)]
-pub enum CommandResponse {
-    // Just example situations to handle...
-// State query
-// AccountBalance(AccountBalanceResponse),
-// Wallet only
-// WalletCreate(WalletCreateResponse),
-// Node/Peer query
 }
 
 pub(crate) fn from_str<'de, T, D>(deserializer: D) -> std::result::Result<T, D::Error>
@@ -107,7 +108,7 @@ where
         .map(|res| Some(res))
 }
 
-pub fn as_str<V, S>(v: &V, serializer: S) -> Result<S::Ok, S::Error>
+pub fn as_str<V, S>(v: &V, serializer: S) -> std::result::Result<S::Ok, S::Error>
 where
     S: Serializer,
     V: Display,
@@ -115,7 +116,7 @@ where
     serializer.serialize_str(v.to_string().as_str())
 }
 
-pub fn as_str_option<V, S>(v: &Option<V>, serializer: S) -> Result<S::Ok, S::Error>
+pub fn as_str_option<V, S>(v: &Option<V>, serializer: S) -> std::result::Result<S::Ok, S::Error>
 where
     S: Serializer,
     V: Display,

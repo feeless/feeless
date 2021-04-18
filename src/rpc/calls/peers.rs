@@ -1,8 +1,9 @@
 use crate::blocks::{deserialize_to_unsure_link, BlockType, StateBlock};
 use crate::blocks::{BlockHash, Link, Subtype};
+use crate::node::{NodeCommand, NodeCommandSender};
 use crate::rpc::calls::{as_str, from_str};
 use crate::rpc::client::{RPCClient, RPCRequest};
-use crate::rpc::AlwaysTrue;
+use crate::rpc::{AlwaysTrue, NodeHandler};
 use crate::version::Version;
 use crate::{Address, Rai, Result, Signature, Work};
 use async_trait::async_trait;
@@ -10,12 +11,14 @@ use clap::Clap;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::net::SocketAddr;
+use tokio::sync::oneshot;
 
 #[derive(Debug, Serialize, Deserialize, Clap)]
 pub struct PeersRequest {
     /// Returns a list of peers IPv6:port with its node protocol network version and node ID.
     #[clap(short, long)]
-    peer_details: bool,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    peer_details: Option<bool>,
 }
 
 #[async_trait]
@@ -31,6 +34,19 @@ impl RPCRequest for &PeersRequest {
     }
 }
 
+#[async_trait]
+impl NodeHandler for &PeersRequest {
+    type Response = PeersResponse;
+
+    async fn handle(&self, node_tx: NodeCommandSender) -> Result<PeersResponse> {
+        let (tx, rx) = oneshot::channel();
+        node_tx.send(NodeCommand::PeerInfo(tx)).await.expect("TODO");
+        Ok(PeersResponse {
+            peers: rx.await.expect("TODO"),
+        })
+    }
+}
+
 #[derive(Debug, Serialize, Deserialize)]
 pub struct PeersResponse {
     /// The type in peers depends on the value set in [PeersRequest::peer_details].
@@ -41,11 +57,11 @@ pub struct PeersResponse {
 #[serde(untagged)]
 pub enum Peers {
     Simple(Vec<SocketAddr>),
-    Details(HashMap<SocketAddr, Peer>),
+    Details(HashMap<SocketAddr, DetailedPeerInfo>),
 }
 
 #[derive(Debug, Serialize, Deserialize, PartialEq)]
-pub struct Peer {
+pub struct DetailedPeerInfo {
     #[serde(deserialize_with = "from_str", serialize_with = "as_str")]
     protocol_version: Version,
 
@@ -109,7 +125,7 @@ mod tests {
             let peer = peers.get(&socket_addr).unwrap();
             assert_eq!(
                 peer,
-                &Peer {
+                &DetailedPeerInfo {
                     protocol_version: Version::V18,
                     node_id: "node_1y7j5rdqhg99uyab1145gu3yur1ax35a3b6qr417yt8cd6n86uiw3d4whty3"
                         .to_string(),

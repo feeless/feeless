@@ -1,20 +1,25 @@
 mod blocks;
+mod command;
 mod genesis;
 mod messages;
 
 use crate::blocks::Block;
 use crate::encoding::to_hex;
 use crate::network::Network;
+pub(crate) use crate::node::controller::command::{
+    ControllerCommand, ControllerMessageReceiver, ControllerMessageSender,
+};
 use crate::node::header::{Extensions, Header, MessageType};
 use crate::node::messages::frontier_resp::FrontierResp;
 use crate::node::state::ArcState;
 use crate::node::wire::Wire;
 use crate::{Public, Rai};
 use anyhow::{anyhow, Context};
+use futures::future::OptionFuture;
 use std::fmt::Debug;
 use std::net::SocketAddr;
 use tokio::sync::mpsc;
-use tokio::sync::mpsc::{Receiver, Sender};
+use tokio::sync::mpsc::Receiver;
 use tracing::{debug, instrument, trace};
 
 /// A message sent between channels that contains a peer's network data.
@@ -43,6 +48,14 @@ impl Packet {
     }
 }
 
+enum RecvState {
+    /// Waiting for a header.
+    Header,
+
+    /// Waiting for the payload.
+    Payload(Header),
+}
+
 /// The controller handles the logic of one peer. It handles and emits messages, as well as time
 /// based actions, peer management, etc.
 pub struct Controller {
@@ -51,8 +64,8 @@ pub struct Controller {
 
     network: Network,
     state: ArcState,
-
     peer_addr: SocketAddr,
+    recv_state: RecvState,
 
     /// Are we doing a frontier req stream? (Bootstrap?)
     frontier_stream: bool,
@@ -61,16 +74,16 @@ pub struct Controller {
     incoming_buffer: Vec<u8>,
 
     /// Incoming data from the connected peer.
-    incoming: Receiver<Packet>,
+    peer_rx: mpsc::Receiver<Packet>,
 
     /// Data to be sent to the other peer.
-    outgoing: Sender<Packet>,
+    peer_tx: mpsc::Sender<Packet>,
 
-    /// Incoming commands from [Node].
+    /// Incoming RPC commands.
+    rpc_rx: ControllerMessageReceiver,
 
     /// A reusable header to reduce allocations.
-    pub(crate) header: Header,
-
+    // pub(crate) header: Header,
     last_annotation: Option<String>,
 }
 
@@ -79,50 +92,58 @@ impl Controller {
         network: Network,
         state: ArcState,
         peer_addr: SocketAddr,
-    ) -> (Self, Sender<Packet>, Receiver<Packet>) {
+    ) -> (
+        Self,
+        mpsc::Sender<Packet>,
+        mpsc::Receiver<Packet>,
+        ControllerMessageSender,
+    ) {
         // Packets coming in from a remote host.
         let (incoming_tx, incoming_rx) = mpsc::channel::<Packet>(100);
         // Packets to be sent out to a remote host.
         let (outgoing_tx, outgoing_rx) = mpsc::channel::<Packet>(100);
+        // Controller RPC Commands
+        let (rpc_tx, rpc_rx) = mpsc::channel::<ControllerCommand>(100);
 
         let s = Self {
             validate_handshakes: true,
             network,
             state,
             peer_addr,
+            recv_state: RecvState::Header,
             frontier_stream: false,
             incoming_buffer: Vec::with_capacity(10_000),
-            incoming: incoming_rx,
-            outgoing: outgoing_tx,
-            header: Header::new(network, MessageType::Handshake, Extensions::new()),
+            peer_rx: incoming_rx,
+            peer_tx: outgoing_tx,
+            rpc_rx,
             last_annotation: None,
         };
 
-        (s, incoming_tx, outgoing_rx)
+        (s, incoming_tx, outgoing_rx, rpc_tx)
     }
 
     /// Run will loop forever and is expected to be spawned and will quit when the incoming channel
     /// is closed.
     pub async fn run(mut self) -> anyhow::Result<()> {
-        macro_rules! handle {
-            ($self: ident, $fun:ident, $header:expr) => {{
-                let sh = Some(&$header);
-                let payload = self
-                    .recv(sh)
-                    .await
-                    .with_context(|| format!("Receiving payload for {:?}", $header))?;
-
-                match &self.last_annotation {
-                    Some(a) => debug!("{} {:?}", a, &payload),
-                    None => debug!("{:?}", &payload),
-                };
-
-                $self
-                    .$fun(&$header, payload)
-                    .await
-                    .with_context(|| format!("Handling payload for {:?}", $header))?;
-            };};
-        }
+        // macro_rules! handle {
+        //     ($self: ident, $fun:ident, $header:expr) => {{
+        //         let sh = Some(&$header);
+        //         let payload = self
+        //             .recv(sh)
+        //             .await
+        //             .with_context(|| format!("Receiving payload for {:?}", $header))?;
+        //
+        //         match &self.last_annotation {
+        //             Some(a) => debug!("{} {:?}", a, &payload),
+        //             None => debug!("{:?}", &payload),
+        //         };
+        //
+        //         $self
+        //             .$fun(&$header, payload)
+        //             .await
+        //             .with_context(|| format!("Handling payload for {:?}", $header))?;
+        //     };};
+        // }
 
         trace!("Initial handshake");
         self.send_handshake().await?;
@@ -130,66 +151,103 @@ impl Controller {
         // self.send_telemetry_req().await?;
 
         loop {
-            if self.frontier_stream {
-                let payload = self.recv::<FrontierResp>(None).await?;
-                self.handle_frontier_resp(payload).await?;
-            } else {
-                let header = self.recv::<Header>(None).await?;
-                header.validate(&self.network)?;
+            tokio::select! {
+                maybe_packet = self.peer_rx.recv() => {
+                    match maybe_packet {
+                        Some(packet) => self.handle_packet(packet).await?,
+                        None => todo!("Peer disconnected"),
+                    }
+                }
+                message = self.rpc_rx.recv() => {
+                    dbg!(message);
+                }
+            }
 
-                match header.message_type() {
-                    MessageType::Keepalive => handle!(self, handle_keepalive, header),
-                    MessageType::Publish => handle!(self, handle_publish, header),
-                    MessageType::ConfirmReq => handle!(self, handle_confirm_req, header),
-                    MessageType::ConfirmAck => handle!(self, handle_confirm_ack, header),
-                    MessageType::FrontierReq => handle!(self, handle_frontier_req, header),
-                    MessageType::Handshake => handle!(self, handle_handshake, header),
-                    MessageType::TelemetryReq => handle!(self, handle_telemetry_req, header),
-                    MessageType::TelemetryAck => handle!(self, handle_telemetry_ack, header),
-                    // MessageType::BulkPull => {}
-                    // MessageType::BulkPush => {}
-                    // MessageType::BulkPullAccount => {}
-                    _ => panic!("{:?}", header),
-                };
+            // if self.frontier_stream {
+            //     let payload = self.recv::<FrontierResp>(None).await?;
+            //     self.handle_frontier_resp(payload).await?;
+            // } else {
+            //     let header = self.recv::<Header>(None).await?;
+            //     header.validate(&self.network)?;
+            //
+            //     match header.message_type() {
+            //         MessageType::Keepalive => handle!(self, handle_keepalive, header),
+            //         MessageType::Publish => handle!(self, handle_publish, header),
+            //         MessageType::ConfirmReq => handle!(self, handle_confirm_req, header),
+            //         MessageType::ConfirmAck => handle!(self, handle_confirm_ack, header),
+            //         MessageType::FrontierReq => handle!(self, handle_frontier_req, header),
+            //         MessageType::Handshake => handle!(self, handle_handshake, header),
+            //         MessageType::TelemetryReq => handle!(self, handle_telemetry_req, header),
+            //         MessageType::TelemetryAck => handle!(self, handle_telemetry_ack, header),
+            //         // MessageType::BulkPull => {}
+            //         // MessageType::BulkPush => {}
+            //         // MessageType::BulkPullAccount => {}
+            //         _ => panic!("{:?}", header),
+            //     };
+            // }
+        }
+    }
+
+    async fn handle_packet(&mut self, packet: Packet) -> anyhow::Result<()> {
+        if let Some(annotation) = packet.annotation {
+            self.last_annotation = Some(annotation);
+        }
+        self.incoming_buffer.extend(packet.data);
+
+        match self.recv_state {
+            RecvState::Header => {
+                if let Some(header) = self.recv::<Header>(None)? {
+                    self.recv_state = RecvState::Payload(header);
+                }
+            }
+            RecvState::Payload(header) => {
+                todo!()
             }
         }
+        Ok(())
     }
 
     #[instrument(skip(self, header))]
-    async fn recv<T: Wire + Debug>(&mut self, header: Option<&Header>) -> anyhow::Result<T> {
-        let expected_len = T::len(header)?;
-        let buffer = self.recv_buf(expected_len).await?;
+    fn recv<T: Wire + Debug>(&mut self, header: Option<&Header>) -> anyhow::Result<Option<T>> {
+        let bytes = T::len(header)?;
+        if self.incoming_buffer.len() < bytes {
+            // Not enough bytes for T
+            return Ok(None);
+        }
+
+        let buffer = self.incoming_buffer[0..bytes].to_owned();
+        self.incoming_buffer = Vec::from(&self.incoming_buffer[bytes..]);
         trace!("HEX: {}", to_hex(&buffer));
         let result = T::deserialize(header, &buffer)?;
-        Ok(result)
+        Ok(Some(result))
     }
 
-    async fn recv_buf(&mut self, size: usize) -> anyhow::Result<Vec<u8>> {
-        // TODO: Idle timeout so a toxic node can't just leave empty connections running without
-        //       any traffic.
-        loop {
-            if self.incoming_buffer.len() >= size {
-                return self.recv_immediate(size);
-            }
-
-            let packet = match self.incoming.recv().await {
-                Some(data) => data,
-                None => {
-                    return Err(anyhow!(
-                        "Incoming stream disconnected {:?} {:?}",
-                        self.peer_addr,
-                        self.last_annotation
-                    ))
-                }
-            };
-
-            if let Some(annotation) = packet.annotation {
-                self.last_annotation = Some(annotation);
-            }
-            self.incoming_buffer.extend(packet.data);
-        }
-    }
-
+    // async fn recv_buf(&mut self, size: usize) -> anyhow::Result<Vec<u8>> {
+    //     // TODO: Idle timeout so a toxic node can't just leave empty connections running without
+    //     //       any traffic.
+    //     loop {
+    //         if self.incoming_buffer.len() >= size {
+    //             return self.recv_immediate(size);
+    //         }
+    //
+    //         let packet = match self.peer_rx.recv().await {
+    //             Some(data) => data,
+    //             None => {
+    //                 return Err(anyhow!(
+    //                     "Incoming stream disconnected {:?} {:?}",
+    //                     self.peer_addr,
+    //                     self.last_annotation
+    //                 ))
+    //             }
+    //         };
+    //
+    //         if let Some(annotation) = packet.annotation {
+    //             self.last_annotation = Some(annotation);
+    //         }
+    //         self.incoming_buffer.extend(packet.data);
+    //     }
+    // }
+    //
     fn recv_immediate(&mut self, size: usize) -> anyhow::Result<Vec<u8>> {
         debug_assert!(self.incoming_buffer.len() >= size);
 
@@ -207,7 +265,7 @@ impl Controller {
         let data = message.serialize();
         trace!("HEX {}", to_hex(&data));
         debug!("OBJ {:?}", &message);
-        self.outgoing.send(Packet::new(Vec::from(data))).await?;
+        self.peer_tx.send(Packet::new(Vec::from(data))).await?;
         Ok(())
     }
 
@@ -216,8 +274,7 @@ impl Controller {
         message_type: MessageType,
         ext: Extensions,
     ) -> anyhow::Result<()> {
-        let mut header = self.header;
-        header.reset(message_type, ext);
+        let header = Header::new(self.network, message_type, ext);
         Ok(self.send(&header).await?)
     }
 
@@ -271,6 +328,7 @@ mod tests {
         let (mut controller, _rx, _tx) = Controller::new_with_channels(
             network,
             state,
+            None,
             SocketAddr::V4(SocketAddrV4::new(Ipv4Addr::LOCALHOST, DEFAULT_PORT)),
         );
         controller.init().await.unwrap();

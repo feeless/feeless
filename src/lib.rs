@@ -46,15 +46,11 @@ mod node;
 #[cfg(feature = "pcap")]
 mod pcap;
 
-#[cfg(feature = "wallet")]
-pub mod wallet;
-
 #[doc(hidden)]
 pub mod cli;
 
 pub mod blocks;
 mod bytes;
-mod debug;
 mod encoding;
 mod errors;
 mod keys;
@@ -64,6 +60,7 @@ pub mod rpc;
 pub mod units;
 pub mod vanity;
 mod version;
+pub mod wallet;
 
 pub use errors::{Error, Result};
 pub use keys::address::Address;

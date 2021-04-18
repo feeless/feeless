@@ -94,9 +94,8 @@ impl Controller {
         }
 
         if let ShouldRespond::Yes(public, signature) = should_respond {
-            let mut header = self.header;
-            header.reset(MessageType::Handshake, *Extensions::new().response());
-            self.send(&header).await?;
+            self.send_header(MessageType::Handshake, *Extensions::new().response())
+                .await?;
 
             let response = HandshakeResponse::new(public, signature);
             self.send(&response).await?;

@@ -1,46 +1,89 @@
 use crate::network::Network;
-use crate::node::controller::{Controller, Packet};
+use crate::node::controller::{Controller, ControllerMessageSender, Packet};
 use crate::node::state::ArcState;
+use anyhow::Context;
+use std::net::SocketAddr;
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use tokio::net::TcpStream;
+use tokio::sync::mpsc;
 
-pub async fn network_channel(
+pub fn new_peer_channel(
     network: Network,
     state: ArcState,
-    stream: TcpStream,
-) -> anyhow::Result<()> {
-    // TODO: How would this fail?
-    let peer_addr = stream.peer_addr().unwrap();
+    address: SocketAddr,
+) -> anyhow::Result<ControllerMessageSender> {
+    let (controller, tx, mut rx, rpc_tx) =
+        Controller::new_with_channels(network, state.clone(), address);
 
-    let (controller, tx, mut rx) = Controller::new_with_channels(network, state, peer_addr);
-
-    // We don't `await` here since the controller will quit when the incoming channel drops.
     tokio::spawn(controller.run());
-
-    let (mut in_stream, mut out_stream) = stream.into_split();
-
-    // Handle reads in a separate task.
     tokio::spawn(async move {
-        let mut buffer: [u8; 10240] = [0; 10240];
-        loop {
-            let bytes = in_stream
-                .read(&mut buffer)
-                .await
-                .expect("Could not read from peer");
+        let stream = TcpStream::connect(address).await.unwrap();
+        let (mut in_stream, mut out_stream) = stream.into_split();
 
-            tx.send(Packet::new(Vec::from(&buffer[0..bytes])))
+        // Handle reads in a separate task.
+        tokio::spawn(async move {
+            let mut buffer: [u8; 10240] = [0; 10240];
+            loop {
+                let bytes = in_stream
+                    .read(&mut buffer)
+                    .await
+                    .expect("Could not read from peer");
+
+                tx.send(Packet::new(Vec::from(&buffer[0..bytes])))
+                    .await
+                    .expect("Could not send to controller");
+            }
+        });
+
+        // Writing to the socket. Keep it in this task.
+        loop {
+            let to_send = match rx.recv().await {
+                Some(bytes) => bytes,
+                None => todo!(),
+            };
+
+            out_stream
+                .write_all(&to_send.data)
                 .await
-                .expect("Could not send to controller");
+                .expect("Could not send to socket");
         }
     });
 
-    // Writing to the socket. Keep it in this task.
-    loop {
-        let to_send = match rx.recv().await {
-            Some(bytes) => bytes,
-            None => return Ok(()),
-        };
-
-        out_stream.write_all(&to_send.data).await?;
-    }
+    Ok(rpc_tx)
 }
+
+// /// A `channel` communicates with a peer over TCP. This will relay packets in and out of the
+// /// contained [Controller] which does all the work.
+// pub struct Channel {
+//     network: Network,
+//     state: ArcState,
+//     address: SocketAddr,
+//     controller: Controller,
+//     tx: mpsc::Sender<Packet>,
+//     rx: mpsc::Receiver<Packet>,
+// }
+//
+// impl Channel {
+//     pub fn new_with_rpc_tx(
+//         network: Network,
+//         state: ArcState,
+//         address: SocketAddr,
+//     ) -> anyhow::Result<(Self, ControllerSender)> {
+//         let (controller, tx, mut rx, rpc_tx) =
+//             Controller::new_with_channels(network, state.clone(), address);
+//
+//         let channel = Self {
+//             network,
+//             state,
+//             address,
+//             tx,
+//             rx,
+//             controller,
+//         };
+//
+//         Ok((channel, rpc_tx))
+//     }
+//
+//     pub async fn start(mut self) -> anyhow::Result<()> {
+//         // We don't `await` here since the controller will quit when the incoming channel drops.
+// }
