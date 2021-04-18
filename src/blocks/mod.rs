@@ -127,7 +127,7 @@ impl Wire for BlockHolder {
     }
 }
 
-#[derive(Debug, Clone, Serialize, PartialEq, Eq)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub enum Previous {
     Block(BlockHash),
     Open,
@@ -138,6 +138,18 @@ impl Previous {
         match self {
             Previous::Block(b) => b.as_bytes().to_vec(),
             Previous::Open => BlockHash::zero().as_bytes().to_vec(),
+        }
+    }
+}
+
+impl TryFrom<&[u8]> for Previous {
+    type Error = crate::Error;
+
+    fn try_from(slice_of_bytes: &[u8]) -> crate::Result<Self> {
+        if slice_of_bytes.iter().all(|&b| b == 0) {
+            Ok(Previous::Open)
+        } else {
+            Ok(Previous::Block(BlockHash::try_from(slice_of_bytes)?))
         }
     }
 }
@@ -181,6 +193,9 @@ pub struct Block {
 
     /// What level of trust do we have with this block?
     state: ValidationState,
+
+    /// Is this a head block (aka frontier)
+    is_head: bool,
 }
 
 #[derive(Debug, Clone, Serialize, PartialEq, Eq)]
@@ -201,6 +216,7 @@ impl Block {
         balance: Rai,
         link: Link,
         state: ValidationState,
+        is_head: bool,
     ) -> Self {
         let mut new_block = Self {
             hash: None,
@@ -213,6 +229,7 @@ impl Block {
             work: None,
             signature: None,
             state,
+            is_head,
         };
         new_block.calc_hash().unwrap();
         new_block
@@ -227,6 +244,7 @@ impl Block {
             balance.to_owned(),
             Link::Source(open_block.source.to_owned()),
             ValidationState::Valid,
+            false,
         );
         b.signature = open_block.signature.to_owned();
         b.work = open_block.work.to_owned();
@@ -246,6 +264,7 @@ impl Block {
             send_block.balance.to_owned(),
             Link::DestinationAccount(send_block.destination.to_owned()),
             ValidationState::Valid,
+            false,
         );
         b.signature = send_block.signature.to_owned();
         b.work = send_block.work.to_owned();
@@ -256,11 +275,12 @@ impl Block {
         let mut b = Self::new(
             BlockType::State,
             state_block.account.to_owned(),
-            Previous::Block(state_block.previous.to_owned()),
+            state_block.previous.to_owned(),
             state_block.representative.to_owned(),
             state_block.balance.to_owned(),
             state_block.link.to_owned(),
             ValidationState::Valid,
+            false,
         );
         b.signature = state_block.signature.to_owned();
         b.work = state_block.work.to_owned();
@@ -412,6 +432,10 @@ impl Block {
                 self
             ))
         }
+    }
+
+    pub fn is_head(&self) -> &bool {
+        &self.is_head
     }
 }
 

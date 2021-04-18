@@ -1,4 +1,5 @@
 use super::Controller;
+use crate::blocks::{Block, BlockHash, BlockType, StateBlock};
 use crate::node::cookie::Cookie;
 use crate::node::header::{Extensions, Header, MessageType};
 use crate::node::messages::confirm_ack::ConfirmAck;
@@ -11,7 +12,9 @@ use crate::node::messages::publish::Publish;
 use crate::node::messages::telemetry_ack::TelemetryAck;
 use crate::node::messages::telemetry_req::TelemetryReq;
 use crate::{Public, Seed, Signature};
+use anyhow::anyhow;
 use anyhow::Context;
+use std::convert::TryFrom;
 use tracing::{debug, instrument, trace, warn};
 
 impl Controller {
@@ -183,5 +186,33 @@ impl Controller {
         // dbg!("----------------------------------------------------------------------");
 
         Ok(())
+    }
+
+    /// Returns the previous block if is a head block AND is a state_block
+    async fn previous_as_account_info(
+        &self,
+        previous_block_hash: &BlockHash,
+    ) -> anyhow::Result<Option<StateBlock>> {
+        let previous_block = Controller::block_by_hash(self, previous_block_hash).await?;
+        if let Some(previous_block) = previous_block {
+            return if *previous_block.is_head() && *previous_block.block_type() == BlockType::State
+            {
+                Ok(Some(StateBlock::try_from(previous_block)?))
+            } else {
+                Err(anyhow!(
+                    "Previous block existed but is not currently supported!"
+                ))
+                // in future versions this should build the account information by
+                // backtracing. No attack vector is possible here to make it slower
+                // because these blocks are not supported anymore and should be
+                // discarded.
+            };
+        }
+        Ok(None)
+    }
+
+    /// Shorthand for waiting a lock on the state and getting a block by hash
+    async fn block_by_hash(&self, block_hash: &BlockHash) -> anyhow::Result<Option<Block>> {
+        self.state.lock().await.get_block_by_hash(block_hash).await
     }
 }
