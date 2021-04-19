@@ -26,6 +26,7 @@ use serde;
 use serde::{Deserialize, Serialize};
 pub(crate) use state_block::deserialize_to_unsure_link;
 pub use state_block::{Link, StateBlock, Subtype};
+use std::convert::TryFrom;
 use std::str::FromStr;
 use strum_macros::EnumString;
 
@@ -453,7 +454,6 @@ mod tests {
     use crate::blocks::{Block, BlockHash, Link, Previous, StateBlock};
     use crate::network::Network;
     use crate::{Public, Rai};
-    use std::convert::TryFrom;
     use std::str::FromStr;
 
     #[test]
