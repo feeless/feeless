@@ -203,6 +203,7 @@ impl Controller {
                     block_hash == previous_block_hash
                 });
 
+            dbg!(is_head);
             return if is_head && *previous_block.block_type() == BlockType::State {
                 Ok(Some(StateBlock::try_from(previous_block)?))
             } else if !is_head && *previous_block.block_type() == BlockType::State {
@@ -247,6 +248,7 @@ mod tests {
         link: &Link,
         work: &Option<Work>,
         signature: &Option<Signature>,
+        hash: &BlockHash,
     ) -> StateBlock {
         let account = account.clone();
         let previous = previous.clone();
@@ -255,6 +257,7 @@ mod tests {
         let link = link.clone();
         let work = work.clone();
         let signature = signature.clone();
+        let hash = hash.clone();
         StateBlock {
             account,
             previous,
@@ -263,6 +266,7 @@ mod tests {
             link,
             work,
             signature,
+            hash,
         }
     }
 
@@ -277,18 +281,8 @@ mod tests {
         let representative =
             Public::from_str("7194452B7997A9F5ABB2F434DB010CA18B5A2715D141F9CFA64A296B3EB4DCCD")
                 .unwrap();
-        let signature = Some(Signature::zero());
-        let work: Option<Work> = None;
 
-        let root = new_test_state_block(
-            &account,
-            &Previous::Open,
-            &representative,
-            &Rai(500),
-            &source,
-            &work,
-            &signature,
-        );
+        let root = StateBlock::new(account, Previous::Open, representative, Rai(500), source);
         let root_block = Block::from_state_block(&root);
         (root, root_block)
     }
@@ -299,16 +293,12 @@ mod tests {
             Public::from_str("7194452B7997A9F5ABB2F434DB010CA18B5A2715D141F9CFA64A296B3EB4DCCD")
                 .unwrap(),
         );
-        let signature = Some(Signature::zero());
-        let work: Option<Work> = None;
-        let frontier = new_test_state_block(
-            &root_block.account(),
-            &Previous::Block(root_block.hash().unwrap().clone()),
-            &root_block.representative(),
-            &root_block.balance().checked_sub(&Rai(200)).unwrap(),
-            &destination,
-            &work,
-            &signature,
+        let frontier = StateBlock::new(
+            root_block.account().clone(),
+            Previous::Block(root_block.hash().unwrap().clone()),
+            root_block.representative().clone(),
+            root_block.balance().checked_sub(&Rai(200)).unwrap(),
+            destination,
         );
         let frontier_block = Block::from_state_block(&frontier);
         (frontier, frontier_block)
@@ -320,7 +310,9 @@ mod tests {
         let network = Network::Test;
         let mut state_raw = MemoryState::new(network);
         let (_, root_block) = root_block();
+        let (_, frontier_block) = frontier_block();
         state_raw.add_block(&root_block).await.unwrap();
+        state_raw.add_block(&frontier_block).await.unwrap();
         let state = Arc::new(Mutex::new(state_raw));
         let test_socket_addr = SocketAddr::from_str("[::1]:1").unwrap();
         let (controller, _, _) = Controller::new_with_channels(network, state, test_socket_addr);

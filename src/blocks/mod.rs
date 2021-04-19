@@ -19,7 +19,6 @@ use crate::{Private, Public, Rai, Signature, Work};
 use anyhow::{anyhow, Context};
 pub use block_hash::BlockHash;
 pub use change_block::ChangeBlock;
-use core::convert::TryFrom;
 pub use open_block::OpenBlock;
 pub use receive_block::ReceiveBlock;
 pub use send_block::SendBlock;
@@ -453,7 +452,7 @@ pub fn hash_block(parts: &[&[u8]]) -> BlockHash {
 mod tests {
     use crate::blocks::{Block, BlockHash, Link, Previous, StateBlock};
     use crate::network::Network;
-    use crate::{Public, Rai, Signature, Work};
+    use crate::{Public, Rai};
     use std::convert::TryFrom;
     use std::str::FromStr;
 
@@ -470,33 +469,6 @@ mod tests {
         assert!(a.contains(r#"signature": "9F"#));
     }
 
-    fn new_test_state_block(
-        account: &Public,
-        previous: &Previous,
-        representative: &Public,
-        balance: &Rai,
-        link: &Link,
-        work: &Option<Work>,
-        signature: &Option<Signature>,
-    ) -> StateBlock {
-        let account = account.clone();
-        let previous = previous.clone();
-        let representative = representative.clone();
-        let balance = balance.clone();
-        let link = link.clone();
-        let work = work.clone();
-        let signature = signature.clone();
-        StateBlock {
-            account,
-            previous,
-            representative,
-            balance,
-            link,
-            work,
-            signature,
-        }
-    }
-
     fn test_state_block() -> StateBlock {
         let source = Link::Source(
             BlockHash::from_str("570EDFC56651FBBC9AEFE5B0769DBD210614A0C0E6962F5CA0EA2FFF4C08A4B0")
@@ -508,24 +480,14 @@ mod tests {
         let representative =
             Public::from_str("7194452B7997A9F5ABB2F434DB010CA18B5A2715D141F9CFA64A296B3EB4DCCD")
                 .unwrap();
-        let signature = Some(Signature::zero());
-        let work: Option<Work> = None;
 
-        new_test_state_block(
-            &account,
-            &Previous::Open,
-            &representative,
-            &Rai(500),
-            &source,
-            &work,
-            &signature,
-        )
+        StateBlock::new(account, Previous::Open, representative, Rai(500), source)
     }
 
     #[test]
     fn round_trip_state_block() {
         let state_block_0 = test_state_block();
-        let state_block_1 = StateBlock::try_from(Block::from_state_block(&state_block_0)).unwrap();
+        let state_block_1 = StateBlock::from(Block::from_state_block(&state_block_0));
         assert_eq!(state_block_0, state_block_1)
     }
 
@@ -533,7 +495,7 @@ mod tests {
     fn round_trip_state_block2() {
         let state_block = test_state_block();
         let block_0 = Block::from_state_block(&state_block);
-        let block_1 = Block::from_state_block(&StateBlock::try_from(block_0.clone()).unwrap());
+        let block_1 = Block::from_state_block(&StateBlock::from(block_0.clone()));
         assert_eq!(block_0, block_1)
     }
 }

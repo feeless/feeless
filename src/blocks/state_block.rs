@@ -4,7 +4,7 @@ use crate::node::Header;
 #[cfg(feature = "node")]
 use crate::node::Wire;
 
-use crate::blocks::{Block, BlockHash, BlockType, Previous};
+use crate::blocks::{hash_block, Block, BlockHash, BlockType, Previous};
 use crate::bytes::Bytes;
 use crate::keys::public::{from_address, to_address};
 use crate::{expect_len, hexify, Error, Public, Rai, Result, Signature, Work};
@@ -54,6 +54,8 @@ pub struct StateBlock {
     pub work: Option<Work>,
 
     pub signature: Option<Signature>,
+
+    pub hash: BlockHash,
 }
 
 impl StateBlock {
@@ -66,6 +68,17 @@ impl StateBlock {
         balance: Rai,
         link: Link,
     ) -> Self {
+        let mut preamble = [0u8; 32];
+        preamble[31] = BlockType::State as u8;
+
+        let block_hash = hash_block(&[
+            &preamble,
+            account.as_bytes(),
+            previous.to_bytes().as_slice(),
+            representative.as_bytes(),
+            balance.to_vec().as_slice(),
+            link.as_bytes(),
+        ]);
         Self {
             account,
             previous,
@@ -74,6 +87,7 @@ impl StateBlock {
             link,
             work: None,
             signature: None,
+            hash: block_hash,
         }
     }
 }
@@ -118,17 +132,15 @@ impl Wire for StateBlock {
     }
 }
 
-impl TryFrom<Block> for StateBlock {
-    type Error = Error;
-
-    fn try_from(block: Block) -> Result<Self> {
-        Ok(StateBlock::new(
+impl From<Block> for StateBlock {
+    fn from(block: Block) -> Self {
+        StateBlock::new(
             block.account,
             block.previous,
             block.representative,
             block.balance,
             block.link,
-        ))
+        )
     }
 }
 
