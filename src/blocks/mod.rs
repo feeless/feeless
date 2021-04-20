@@ -19,7 +19,6 @@ use crate::{Private, Public, Rai, Signature, Work};
 use anyhow::{anyhow, Context};
 pub use block_hash::BlockHash;
 pub use change_block::ChangeBlock;
-use core::convert::TryFrom;
 pub use open_block::OpenBlock;
 pub use receive_block::ReceiveBlock;
 pub use send_block::SendBlock;
@@ -27,6 +26,8 @@ use serde;
 use serde::{Deserialize, Serialize};
 pub(crate) use state_block::deserialize_to_unsure_link;
 pub use state_block::{Link, StateBlock, Subtype};
+use std::convert::TryFrom;
+use std::str::FromStr;
 use strum_macros::EnumString;
 
 #[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize, EnumString)]
@@ -127,7 +128,7 @@ impl Wire for BlockHolder {
     }
 }
 
-#[derive(Debug, Clone, Serialize, PartialEq, Eq)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub enum Previous {
     Block(BlockHash),
     Open,
@@ -138,6 +139,30 @@ impl Previous {
         match self {
             Previous::Block(b) => b.as_bytes().to_vec(),
             Previous::Open => BlockHash::zero().as_bytes().to_vec(),
+        }
+    }
+}
+
+impl TryFrom<&[u8]> for Previous {
+    type Error = crate::Error;
+
+    fn try_from(slice_of_bytes: &[u8]) -> crate::Result<Self> {
+        if slice_of_bytes.iter().all(|&b| b == 0) {
+            Ok(Previous::Open)
+        } else {
+            Ok(Previous::Block(BlockHash::try_from(slice_of_bytes)?))
+        }
+    }
+}
+
+impl FromStr for Previous {
+    type Err = crate::Error;
+
+    fn from_str(hex_string: &str) -> crate::Result<Self> {
+        if hex_string == "0".repeat(64) {
+            Ok(Previous::Open)
+        } else {
+            Ok(Previous::Block(BlockHash::from_str(hex_string)?))
         }
     }
 }
@@ -256,7 +281,7 @@ impl Block {
         let mut b = Self::new(
             BlockType::State,
             state_block.account.to_owned(),
-            Previous::Block(state_block.previous.to_owned()),
+            state_block.previous.to_owned(),
             state_block.representative.to_owned(),
             state_block.balance.to_owned(),
             state_block.link.to_owned(),
@@ -426,7 +451,10 @@ pub fn hash_block(parts: &[&[u8]]) -> BlockHash {
 
 #[cfg(test)]
 mod tests {
+    use crate::blocks::{Block, BlockHash, Link, Previous, StateBlock};
     use crate::network::Network;
+    use crate::{Public, Rai};
+    use std::str::FromStr;
 
     #[test]
     fn json() {
@@ -439,5 +467,35 @@ mod tests {
         assert!(a.contains(r#"account": "nano_3t"#));
         assert!(a.contains(r#"work": "62F"#));
         assert!(a.contains(r#"signature": "9F"#));
+    }
+
+    fn test_state_block() -> StateBlock {
+        let source = Link::Source(
+            BlockHash::from_str("570EDFC56651FBBC9AEFE5B0769DBD210614A0C0E6962F5CA0EA2FFF4C08A4B0")
+                .unwrap(),
+        );
+        let account =
+            Public::from_str("570EDFC56651FBBC9AEFE5B0769DBD210614A0C0E6962F5CA0EA2FFF4C08A4B0")
+                .unwrap();
+        let representative =
+            Public::from_str("7194452B7997A9F5ABB2F434DB010CA18B5A2715D141F9CFA64A296B3EB4DCCD")
+                .unwrap();
+
+        StateBlock::new(account, Previous::Open, representative, Rai(500), source)
+    }
+
+    #[test]
+    fn round_trip_state_block() {
+        let state_block_0 = test_state_block();
+        let state_block_1 = StateBlock::from(Block::from_state_block(&state_block_0));
+        assert_eq!(state_block_0, state_block_1)
+    }
+
+    #[test]
+    fn round_trip_state_block2() {
+        let state_block = test_state_block();
+        let block_0 = Block::from_state_block(&state_block);
+        let block_1 = Block::from_state_block(&StateBlock::from(block_0.clone()));
+        assert_eq!(block_0, block_1)
     }
 }
