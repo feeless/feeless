@@ -82,7 +82,7 @@ impl Node {
 
     async fn request_peer_info(&self, response: PeerInfoResponseSender) {
         let (tx, rx) = mpsc::channel(100);
-        for controller_tx in self.controller_cmd_txs {
+        for controller_tx in &self.controller_cmd_txs {
             tokio::spawn(async move {
                 let (controller_tx, controller_rx) = oneshot::channel();
                 tx.send(ControllerCommand::PeerInfo(controller_tx))

@@ -6,25 +6,14 @@ use crate::node::Wire;
 
 use crate::blocks::{hash_block, Block, BlockHash, BlockType, Previous};
 use crate::bytes::Bytes;
+use crate::encoding::expect_len;
 use crate::keys::public::{from_address, to_address};
-use crate::{expect_len, hexify, Error, Public, Rai, Result, Signature, Work};
+use crate::{hexify, Error, Public, Rai, Result, Signature, Work};
 use serde::{Deserialize, Deserializer, Serialize};
 use std::convert::TryFrom;
 use std::fmt::Debug;
 use std::str::FromStr;
-
-use serde::{Deserialize, Deserializer, Serialize};
 use strum_macros::EnumString;
-
-use crate::blocks::{BlockHash, BlockType};
-use crate::bytes::Bytes;
-use crate::encoding::expect_len;
-use crate::keys::public::{from_address, to_address};
-#[cfg(feature = "node")]
-use crate::node::Header;
-#[cfg(feature = "node")]
-use crate::node::Wire;
-use crate::{hexify, Error, Public, Rai, Result, Signature, Work};
 
 pub fn deserialize_to_unsure_link<'de, D>(
     deserializer: D,
@@ -158,15 +147,11 @@ impl From<Block> for StateBlock {
 
 #[cfg(test)]
 mod tests {
-    use std::str::FromStr;
-
-    use crate::blocks::state_block::Link;
-    use crate::blocks::{Block, BlockHash};
-    use crate::{Address, Signature, Work};
-
     use super::Rai;
     use super::StateBlock;
+    use crate::blocks::state_block::Link;
     use crate::blocks::{Block, BlockHash, Previous};
+    use crate::{Address, Signature, Work};
     use std::str::FromStr;
 
     #[test]
