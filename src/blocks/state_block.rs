@@ -1,3 +1,14 @@
+#[cfg(feature = "node")]
+use crate::node::Header;
+
+#[cfg(feature = "node")]
+use crate::node::Wire;
+
+use crate::blocks::{hash_block, Block, BlockHash, BlockType, Previous};
+use crate::bytes::Bytes;
+use crate::keys::public::{from_address, to_address};
+use crate::{expect_len, hexify, Error, Public, Rai, Result, Signature, Work};
+use serde::{Deserialize, Deserializer, Serialize};
 use std::convert::TryFrom;
 use std::fmt::Debug;
 use std::str::FromStr;
@@ -42,7 +53,7 @@ pub struct StateBlock {
     #[serde(serialize_with = "to_address", deserialize_with = "from_address")]
     pub account: Public,
 
-    pub previous: BlockHash,
+    pub previous: Previous,
 
     #[serde(serialize_with = "to_address", deserialize_with = "from_address")]
     pub representative: Public,
@@ -55,6 +66,8 @@ pub struct StateBlock {
     pub work: Option<Work>,
 
     pub signature: Option<Signature>,
+
+    pub hash: BlockHash,
 }
 
 impl StateBlock {
@@ -62,11 +75,22 @@ impl StateBlock {
 
     pub fn new(
         account: Public,
-        previous: BlockHash,
+        previous: Previous,
         representative: Public,
         balance: Rai,
         link: Link,
     ) -> Self {
+        let mut preamble = [0u8; 32];
+        preamble[31] = BlockType::State as u8;
+
+        let block_hash = hash_block(&[
+            &preamble,
+            account.as_bytes(),
+            previous.to_bytes().as_slice(),
+            representative.as_bytes(),
+            balance.to_vec().as_slice(),
+            link.as_bytes(),
+        ]);
         Self {
             account,
             previous,
@@ -75,6 +99,7 @@ impl StateBlock {
             link,
             work: None,
             signature: None,
+            hash: block_hash,
         }
     }
 }
@@ -92,7 +117,7 @@ impl Wire for StateBlock {
         let mut data = Bytes::new(data);
 
         let account = Public::try_from(data.slice(Public::LEN)?)?;
-        let previous = BlockHash::try_from(data.slice(BlockHash::LEN)?)?;
+        let previous = Previous::try_from(data.slice(BlockHash::LEN)?)?;
         let representative = Public::try_from(data.slice(Public::LEN)?)?;
         let balance = Rai::try_from(data.slice(Rai::LEN)?)?;
 
@@ -119,6 +144,18 @@ impl Wire for StateBlock {
     }
 }
 
+impl From<Block> for StateBlock {
+    fn from(block: Block) -> Self {
+        StateBlock::new(
+            block.account,
+            block.previous,
+            block.representative,
+            block.balance,
+            block.link,
+        )
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use std::str::FromStr;
@@ -129,6 +166,8 @@ mod tests {
 
     use super::Rai;
     use super::StateBlock;
+    use crate::blocks::{Block, BlockHash, Previous};
+    use std::str::FromStr;
 
     #[test]
     fn hash_a_real_state_block() {
@@ -136,8 +175,8 @@ mod tests {
             Address::from_str("nano_34prihdxwz3u4ps8qjnn14p7ujyewkoxkwyxm3u665it8rg5rdqw84qrypzk")
                 .unwrap()
                 .to_public();
-        let parent =
-            BlockHash::from_str("7837C80964CAD551DEABE162C7FC4BB58688A0C6EB6D9907C0D2A7C74A33C7EB")
+        let parent: Previous =
+            Previous::from_str("7837C80964CAD551DEABE162C7FC4BB58688A0C6EB6D9907C0D2A7C74A33C7EB")
                 .unwrap();
         let representative = account.clone();
         let balance = Rai::new(2711469892748129430069222848295u128);

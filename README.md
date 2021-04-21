@@ -54,7 +54,7 @@ Nano is also known as: Nano cryptocurrency, Nano coin, RaiBlocks.
 
 ## Credits
 
-Please see https://feeless.dev/overview/credits/
+Please see https://feeless.dev/docs/overview/credits
 
 ## License
 
