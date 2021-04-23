@@ -56,6 +56,9 @@ pub struct StateBlock {
     pub signature: Option<Signature>,
 
     pub hash: BlockHash,
+
+    #[serde(skip_serializing, skip_deserializing)] // only exists during processing
+    amount: Option<Amount>,
 }
 
 impl StateBlock {
@@ -88,6 +91,43 @@ impl StateBlock {
             work: None,
             signature: None,
             hash: block_hash,
+            amount: None,
+        }
+    }
+
+    pub fn set_link_type(&mut self, is_send: bool, amount: Rai) -> anyhow::Result<()> {
+        match &self.link {
+            Link::Nothing => {
+                tracing::trace!("set_link_type likely called twice by mistake.");
+                Ok(())
+            }
+            Link::Source(_) => {
+                tracing::trace!("set_link_type likely called twice by mistake.");
+                Ok(())
+            }
+            Link::DestinationAccount(_) => {
+                tracing::trace!("set_link_type likely called twice by mistake.");
+                Ok(())
+            }
+            Link::Unsure(unsure_link) => {
+                if is_send {
+                    self.link = Link::DestinationAccount(Public::try_from(unsure_link.as_bytes())?);
+                    self.amount = Some(Amount(amount))
+                } else {
+                    let is_all_zeros = unsure_link.0.iter().all(|&b| b == 0);
+
+                    let is_receive = !is_send && !is_all_zeros;
+                    let is_change = !is_send && is_all_zeros;
+
+                    if is_receive {
+                        self.link = Link::Source(BlockHash::try_from(unsure_link.as_bytes())?);
+                        self.amount = Some(Amount(amount))
+                    } else if is_change {
+                        self.link = Link::Nothing
+                    }
+                }
+                Ok(())
+            }
         }
     }
 }
@@ -197,6 +237,10 @@ hexify!(UnsureLink, "link");
 impl UnsureLink {
     pub(crate) const LEN: usize = Link::LEN;
 }
+
+/// Represent nanos transferred between account in send and receive sub-blocks
+#[derive(Debug, Clone, Eq, PartialEq)]
+pub struct Amount(Rai);
 
 /// Used in state block as a reference to either the previous block or a destination address.
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
