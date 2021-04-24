@@ -1,5 +1,5 @@
 use super::Controller;
-use crate::blocks::{Block, BlockHash, BlockType, StateBlock};
+use crate::blocks::{Block, BlockHash, BlockHolder, BlockType, StateBlock};
 use crate::node::cookie::Cookie;
 use crate::node::header::{Extensions, Header, MessageType};
 use crate::node::messages::confirm_ack::ConfirmAck;
@@ -139,12 +139,25 @@ impl Controller {
     pub async fn handle_publish(
         &mut self,
         _header: &Header,
-        _publish: Publish,
+        publish: Publish,
     ) -> anyhow::Result<()> {
-        // dbg!(publish);
-
-        // self.state.lock().await.add_block(&publish.0).await?;
-        // todo!();
+        let _block = match publish.0 {
+            BlockHolder::Send(_) => {
+                todo!("Received a send block")
+            }
+            BlockHolder::Receive(_) => {
+                todo!("Received a receive block")
+            }
+            BlockHolder::Open(_) => {
+                todo!("Received an open block")
+            }
+            BlockHolder::Change(_) => {
+                todo!("Received a change block")
+            }
+            BlockHolder::State(mut state_block) => {
+                self.state_block_handler(state_block).await?;
+            }
+        };
 
         Ok(())
     }
@@ -224,6 +237,36 @@ impl Controller {
     /// Shorthand for waiting a lock on the state and getting a block by hash
     async fn block_by_hash(&self, block_hash: &BlockHash) -> anyhow::Result<Option<Block>> {
         self.state.lock().await.get_block_by_hash(block_hash).await
+    }
+
+    /// Actions to be performed to validate and store a state block
+    async fn state_block_handler(&self, state_block: StateBlock) -> anyhow::Result<()> {
+        if self.block_existed(&state_block.hash).await? {
+            tracing::info!("Block {} already exists!", state_block)
+        } else if state_block.verify_self_signature().is_err() {
+            tracing::info!("Block {} has invalid signature!", state_block)
+        } else {
+            todo!("Process valid and existing block")
+        }
+        Ok(())
+    }
+
+    /// Checks if the block exists in the database _or_ if it existed but was pruned
+    async fn block_existed(&self, block_hash: &BlockHash) -> anyhow::Result<bool> {
+        Ok(self
+            .state
+            .lock()
+            .await
+            .get_block_by_hash(block_hash)
+            .await?
+            .is_some())
+    }
+
+    /// For history nodes this has the same semantics as `Controller::block_existed`
+    /// Right now history nodes are not implemented so effectively there is no
+    /// difference.
+    async fn block_exists(&self, block_hash: &BlockHash) -> anyhow::Result<bool> {
+        Controller::block_existed(self, block_hash).await
     }
 }
 
