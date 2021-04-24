@@ -114,15 +114,14 @@ impl StateBlock {
                     self.link = Link::DestinationAccount(Public::try_from(unsure_link.as_bytes())?);
                     self.amount = Some(Amount(amount))
                 } else {
-                    let is_all_zeros = unsure_link.0.iter().all(|&b| b == 0);
-
-                    let is_receive = !is_send && !is_all_zeros;
-                    let is_change = !is_send && is_all_zeros;
+                    let is_receive = !is_send && !unsure_link.is_all_zeros();
+                    let is_change = !is_send && unsure_link.is_all_zeros();
 
                     if is_receive {
                         self.link = Link::Source(BlockHash::try_from(unsure_link.as_bytes())?);
                         self.amount = Some(Amount(amount))
                     } else if is_change {
+                        debug_assert_eq!(amount, Rai(0));
                         self.link = Link::Nothing
                     }
                 }
@@ -186,25 +185,32 @@ impl From<Block> for StateBlock {
 
 #[cfg(test)]
 mod tests {
-    use crate::blocks::state_block::Link;
-    use crate::{Address, Signature, Work};
+    use crate::blocks::state_block::{Amount, Link, UnsureLink};
+    use crate::{Address, Public, Signature, Work};
 
     use super::Rai;
     use super::StateBlock;
     use crate::blocks::{Block, BlockHash, Previous};
     use std::str::FromStr;
 
+    fn account_0() -> Public {
+        Address::from_str("nano_34prihdxwz3u4ps8qjnn14p7ujyewkoxkwyxm3u665it8rg5rdqw84qrypzk")
+            .unwrap()
+            .to_public()
+    }
+    fn parent_0() -> Previous {
+        Previous::from_str("7837C80964CAD551DEABE162C7FC4BB58688A0C6EB6D9907C0D2A7C74A33C7EB")
+            .unwrap()
+    }
+    fn representative_0() -> Public {
+        account_0()
+    }
+    fn balance_0() -> Rai {
+        Rai::new(2711469892748129430069222848295u128)
+    }
+
     #[test]
     fn hash_a_real_state_block() {
-        let account =
-            Address::from_str("nano_34prihdxwz3u4ps8qjnn14p7ujyewkoxkwyxm3u665it8rg5rdqw84qrypzk")
-                .unwrap()
-                .to_public();
-        let parent: Previous =
-            Previous::from_str("7837C80964CAD551DEABE162C7FC4BB58688A0C6EB6D9907C0D2A7C74A33C7EB")
-                .unwrap();
-        let representative = account.clone();
-        let balance = Rai::new(2711469892748129430069222848295u128);
         let link = Link::Source(
             BlockHash::from_str("0399B19B022D260F3DDFBA26D0306D423F1890D3AE06136FAB16802D1F2B87A7")
                 .unwrap(),
@@ -213,7 +219,13 @@ mod tests {
         let signature = Signature::from_str("BCF9F123138355AE9E741912D319FF48E5FCCA39D9E5DD74411D32C69B1C7501A0BF001C45D4F68CB561B902A42711E6166B9018E76C50CC868EF2E32B78F200").unwrap();
         let work = Work::from_str("d4757052401b9e08").unwrap();
 
-        let block = StateBlock::new(account, parent, representative, balance, link);
+        let block = StateBlock::new(
+            account_0(),
+            parent_0(),
+            representative_0(),
+            balance_0(),
+            link,
+        );
         let mut block = Block::from_state_block(&block);
 
         block.set_signature(signature);
@@ -227,6 +239,76 @@ mod tests {
             .unwrap()
         )
     }
+
+    #[test]
+    fn set_destination_link() {
+        let unsure_link = Link::Unsure(
+            UnsureLink::from_str(
+                "6B523BCB57B0997C808D89BA30F78BF5E4E7DAE880BFDC4179B537F0D8ED726E",
+            )
+            .unwrap(),
+        );
+        let destination_account =
+            Public::from_str("6B523BCB57B0997C808D89BA30F78BF5E4E7DAE880BFDC4179B537F0D8ED726E")
+                .unwrap();
+        let mut state_block = StateBlock::new(
+            account_0(),
+            parent_0(),
+            representative_0(),
+            balance_0(),
+            unsure_link,
+        );
+
+        state_block.set_link_type(true, Rai(200)).unwrap();
+
+        assert_eq!(state_block.amount, Some(Amount(Rai(200))));
+        assert_eq!(
+            state_block.link,
+            Link::DestinationAccount(destination_account)
+        );
+    }
+
+    #[test]
+    fn set_source_link() {
+        let unsure_link = Link::Unsure(
+            UnsureLink::from_str(
+                "6B523BCB57B0997C808D89BA30F78BF5E4E7DAE880BFDC4179B537F0D8ED726E",
+            )
+            .unwrap(),
+        );
+        let source =
+            BlockHash::from_str("6B523BCB57B0997C808D89BA30F78BF5E4E7DAE880BFDC4179B537F0D8ED726E")
+                .unwrap();
+        let mut state_block = StateBlock::new(
+            account_0(),
+            parent_0(),
+            representative_0(),
+            balance_0(),
+            unsure_link,
+        );
+
+        state_block.set_link_type(false, Rai(200)).unwrap();
+
+        assert_eq!(state_block.amount, Some(Amount(Rai(200))));
+        assert_eq!(state_block.link, Link::Source(source));
+    }
+
+    #[test]
+    fn set_nothing_link() {
+        let unsure_link = Link::Unsure(UnsureLink([0u8; 32]));
+        let mut state_block = StateBlock::new(
+            account_0(),
+            parent_0(),
+            representative_0(),
+            balance_0(),
+            unsure_link,
+        );
+
+        state_block.set_link_type(false, Rai(0)).unwrap();
+
+        assert_eq!(state_block.amount, None);
+        assert_eq!(state_block.link, Link::Nothing);
+    }
 }
 
 #[derive(Clone, PartialEq, Eq, Hash)]
@@ -236,6 +318,10 @@ hexify!(UnsureLink, "link");
 
 impl UnsureLink {
     pub(crate) const LEN: usize = Link::LEN;
+
+    pub fn is_all_zeros(&self) -> bool {
+        self.0.iter().all(|&b| b == 0)
+    }
 }
 
 /// Represent nanos transferred between account in send and receive sub-blocks
