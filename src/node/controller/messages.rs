@@ -1,5 +1,5 @@
 use super::Controller;
-use crate::blocks::{Block, BlockHash, BlockHolder, BlockType, StateBlock};
+use crate::blocks::{Block, BlockHash, BlockHolder, BlockType, Link, Previous, StateBlock};
 use crate::node::cookie::Cookie;
 use crate::node::header::{Extensions, Header, MessageType};
 use crate::node::messages::confirm_ack::ConfirmAck;
@@ -154,7 +154,7 @@ impl Controller {
             BlockHolder::Change(_) => {
                 todo!("Received a change block")
             }
-            BlockHolder::State(mut state_block) => {
+            BlockHolder::State(state_block) => {
                 self.state_block_handler(state_block).await?;
             }
         };
@@ -246,7 +246,63 @@ impl Controller {
         } else if state_block.verify_self_signature().is_err() {
             tracing::info!("Block {} has invalid signature!", state_block)
         } else {
-            todo!("Process valid and existing block")
+            self.process_valid_existing_state_block(state_block).await?
+        }
+        Ok(())
+    }
+
+    async fn process_valid_existing_state_block(
+        &self,
+        state_block: StateBlock,
+    ) -> anyhow::Result<()> {
+        match &state_block.previous {
+            Previous::Block(previous_hash) => {
+                // Either wants to send, receive or change
+                let maybe_previous_block = self.previous_as_account_info(previous_hash).await?;
+                if let Some(previous_state_block) = maybe_previous_block {
+                    Self::process_block_with_previous(state_block, previous_state_block)?
+                } else {
+                    tracing::info!("Block before {} not found!", state_block)
+                }
+            }
+            Previous::Open => {
+                todo!("Received an open sub-block")
+            }
+        }
+        Ok(())
+    }
+
+    fn process_block_with_previous(
+        mut state_block: StateBlock,
+        previous_state_block: StateBlock,
+    ) -> anyhow::Result<()> {
+        let is_send = state_block.balance < previous_state_block.balance;
+        let amount = if is_send {
+            previous_state_block
+                .balance
+                .checked_sub(&state_block.balance)
+        } else {
+            state_block
+                .balance
+                .checked_sub(&previous_state_block.balance)
+        };
+        let amount = amount.ok_or(anyhow!("Could not calculate amount!"))?;
+        state_block
+            .set_link_type(is_send, amount)
+            .context("Could not decide link type!")?;
+        match state_block.link {
+            Link::Nothing => {
+                todo!("Received a change sub-block")
+            }
+            Link::Source(_) => {
+                todo!("Received a receive sub-block")
+            }
+            Link::DestinationAccount(_) => {
+                todo!("Receive a send sub-block")
+            }
+            Link::Unsure(_) => {
+                panic!("Unexpected error! Was `decide_link_type` called on this block?")
+            }
         }
         Ok(())
     }
