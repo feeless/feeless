@@ -11,7 +11,7 @@ use crate::node::messages::keepalive::Keepalive;
 use crate::node::messages::publish::Publish;
 use crate::node::messages::telemetry_ack::TelemetryAck;
 use crate::node::messages::telemetry_req::TelemetryReq;
-use crate::{Public, Seed, Signature};
+use crate::{Difficulty, Public, Seed, Signature, Subject};
 use anyhow::anyhow;
 use anyhow::Context;
 use std::convert::TryFrom;
@@ -301,6 +301,11 @@ impl Controller {
             }
             Link::DestinationAccount(_) => {
                 // 1. check work
+                let _work_ok = state_block
+                    .work
+                    .unwrap()
+                    .difficulty(&Subject::Hash(previous_state_block.hash))?
+                    >= Difficulty::new(0u64);
                 // 2. store block
                 // 3. adjust rep weights cache
                 // 4. add to pending transactions
@@ -310,7 +315,6 @@ impl Controller {
                 panic!("Unexpected error! Was `decide_link_type` called on this block?")
             }
         }
-        Ok(())
     }
 
     /// Checks if the block exists in the database _or_ if it existed but was pruned
