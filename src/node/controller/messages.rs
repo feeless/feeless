@@ -240,7 +240,9 @@ impl Controller {
     }
 
     /// Actions to be performed to validate and store a state block
+    /// TODO: this assumes we will never get a live epoch block
     async fn state_block_handler(&self, state_block: StateBlock) -> anyhow::Result<()> {
+        // TODO: here there should be a check for epoch blocks
         if self.block_existed(&state_block.hash).await? {
             tracing::info!("Block {} already exists!", state_block)
         } else if state_block.verify_self_signature().is_err() {
@@ -298,7 +300,11 @@ impl Controller {
                 todo!("Received a receive sub-block")
             }
             Link::DestinationAccount(_) => {
-                todo!("Receive a send sub-block")
+                // 1. check work
+                // 2. store block
+                // 3. adjust rep weights cache
+                // 4. add to pending transactions
+                todo!("Received a send sub-block")
             }
             Link::Unsure(_) => {
                 panic!("Unexpected error! Was `decide_link_type` called on this block?")
