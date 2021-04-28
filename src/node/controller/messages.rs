@@ -233,41 +233,11 @@ mod tests {
     use crate::network::Network;
     use crate::node::state::State;
     use crate::node::MemoryState;
-    use crate::{Rai, Work};
+    use crate::Rai;
     use std::net::SocketAddr;
     use std::str::FromStr;
     use std::sync::Arc;
     use tokio::sync::Mutex;
-
-    fn new_test_state_block(
-        account: &Public,
-        previous: &Previous,
-        representative: &Public,
-        balance: &Rai,
-        link: &Link,
-        work: &Option<Work>,
-        signature: &Option<Signature>,
-        hash: &BlockHash,
-    ) -> StateBlock {
-        let account = account.clone();
-        let previous = previous.clone();
-        let representative = representative.clone();
-        let balance = balance.clone();
-        let link = link.clone();
-        let work = work.clone();
-        let signature = signature.clone();
-        let hash = hash.clone();
-        StateBlock {
-            account,
-            previous,
-            representative,
-            balance,
-            link,
-            work,
-            signature,
-            hash,
-        }
-    }
 
     fn root_block() -> (StateBlock, Block) {
         let source = Link::Source(
