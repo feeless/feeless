@@ -186,14 +186,11 @@ impl From<Block> for StateBlock {
 
 #[cfg(test)]
 mod tests {
-    use crate::blocks::state_block::{Amount, Link, UnsureLink};
-    use crate::{Address, Public, Signature, Work};
-
     use super::Rai;
     use super::StateBlock;
-    use crate::blocks::state_block::Link;
+    use crate::blocks::state_block::{Amount, Link, UnsureLink};
     use crate::blocks::{Block, BlockHash, Previous};
-    use crate::{Address, Signature, Work};
+    use crate::{Address, Public, Signature, Work};
     use std::str::FromStr;
 
     fn account_0() -> Public {
