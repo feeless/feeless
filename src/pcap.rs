@@ -205,7 +205,7 @@ impl PcapDump {
                     let state_cloned = state.clone();
                     let peer_addr =
                         SocketAddr::new(IpAddr::V4(ip.destination_addr()), tcp.destination_port());
-                    let (mut c, tx, mut rx) =
+                    let (mut c, tx, mut rx, cms) =
                         Controller::new_with_channels(network, state_cloned, peer_addr.clone());
 
                     // Discard all responses from the controller since we are just processing

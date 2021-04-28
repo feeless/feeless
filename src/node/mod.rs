@@ -38,7 +38,11 @@ impl Node {
         // let state = SledDiskState::new(Network::Live);
         let state = MemoryState::new(network);
         let state = Arc::new(Mutex::new(state));
-        Self { state, network }
+        Self {
+            state,
+            network,
+            controller_cmd_txs: vec![],
+        }
     }
 
     pub async fn start_rpc_server(&self) -> anyhow::Result<NodeCommandReceiver> {
@@ -83,9 +87,10 @@ impl Node {
     async fn request_peer_info(&self, response: PeerInfoResponseSender) {
         let (tx, rx) = mpsc::channel(100);
         for controller_tx in &self.controller_cmd_txs {
+            let tx_ = tx.clone();
             tokio::spawn(async move {
                 let (controller_tx, controller_rx) = oneshot::channel();
-                tx.send(ControllerCommand::PeerInfo(controller_tx))
+                tx_.send(ControllerCommand::PeerInfo(controller_tx))
                     .await
                     .expect("TODO");
             });

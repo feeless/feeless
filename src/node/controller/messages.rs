@@ -314,7 +314,7 @@ mod tests {
         state_raw.add_block(&frontier_block).await.unwrap();
         let state = Arc::new(Mutex::new(state_raw));
         let test_socket_addr = SocketAddr::from_str("[::1]:1").unwrap();
-        let (controller, _, _) = Controller::new_with_channels(network, state, test_socket_addr);
+        let (controller, _, _, _) = Controller::new_with_channels(network, state, test_socket_addr);
 
         Controller::previous_as_account_info(&controller, root_block.hash().unwrap())
             .await
@@ -328,7 +328,7 @@ mod tests {
         let state_raw = MemoryState::new(network);
         let state = Arc::new(Mutex::new(state_raw));
         let test_socket_addr = SocketAddr::from_str("[::1]:1").unwrap();
-        let (controller, _, _) = Controller::new_with_channels(network, state, test_socket_addr);
+        let (controller, _, _, _) = Controller::new_with_channels(network, state, test_socket_addr);
         let (_, root_block) = root_block();
 
         let none = Controller::previous_as_account_info(&controller, root_block.hash().unwrap())
@@ -345,7 +345,7 @@ mod tests {
         state_raw.add_block(&frontier_block).await.unwrap();
         let state = Arc::new(Mutex::new(state_raw));
         let test_socket_addr = SocketAddr::from_str("[::1]:1").unwrap();
-        let (controller, _, _) = Controller::new_with_channels(network, state, test_socket_addr);
+        let (controller, _, _, _) = Controller::new_with_channels(network, state, test_socket_addr);
 
         let frontier_result =
             Controller::previous_as_account_info(&controller, frontier_block.hash().unwrap())
