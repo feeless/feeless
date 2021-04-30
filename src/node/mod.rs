@@ -72,7 +72,7 @@ impl Node {
             dbg!("todo node command", &node_command);
             match node_command {
                 // TODO: broadcast to all controllers
-                NodeCommand::PeerInfo(tx) => self.request_peer_info(tx),
+                NodeCommand::PeerInfo(tx) => self.request_peer_info(tx).await,
                 // NodeCommand::PeerInfo(tx) => tx.send(crate::rpc::calls::Peers::Simple(vec![])),
             };
             // for node_rpc_tx in &Node {

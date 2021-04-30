@@ -6,6 +6,7 @@ use std::net::SocketAddr;
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use tokio::net::TcpStream;
 use tokio::sync::mpsc;
+use tracing::debug;
 
 pub fn new_peer_channel(
     network: Network,
@@ -39,7 +40,10 @@ pub fn new_peer_channel(
         loop {
             let to_send = match rx.recv().await {
                 Some(bytes) => bytes,
-                None => todo!(),
+                None => {
+                    debug!("Could not recv packet for sending");
+                    return;
+                }
             };
 
             out_stream

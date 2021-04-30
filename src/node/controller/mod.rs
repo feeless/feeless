@@ -155,7 +155,7 @@ impl Controller {
                 maybe_packet = self.peer_rx.recv() => {
                     match maybe_packet {
                         Some(packet) => self.handle_packet(packet).await?,
-                        None => todo!("Peer disconnected"),
+                        None => return Err(anyhow!("Peer disconnected")),
                     }
                 }
                 message = self.cmd_rx.recv() => {
