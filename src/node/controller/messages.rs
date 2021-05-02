@@ -294,27 +294,46 @@ impl Controller {
             .context("Could not decide link type!")?;
         match state_block.link {
             Link::Nothing => {
+                let _live_epoch_2_change_threshold = 0xfffffff800000000u64;
                 todo!("Received a change sub-block")
             }
             Link::Source(_) => {
+                let _live_epoch_2_receive_threshold = 0xfffffe0000000000u64;
                 todo!("Received a receive sub-block")
             }
             Link::DestinationAccount(_) => {
-                // 1. check work
-                let _work_ok = state_block
-                    .work
-                    .unwrap()
-                    .difficulty(&Subject::Hash(previous_state_block.hash))?
-                    >= Difficulty::new(0u64);
-                // 2. store block
-                // 3. adjust rep weights cache
-                // 4. add to pending transactions
-                todo!("Received a send sub-block")
+                Self::process_good_send_sub_block(state_block, previous_state_block.hash)
             }
             Link::Unsure(_) => {
                 panic!("Unexpected error! Was `decide_link_type` called on this block?")
             }
         }
+    }
+
+    fn process_good_send_sub_block(
+        send_block: StateBlock,
+        previous_block_hash: BlockHash,
+    ) -> anyhow::Result<()> {
+        let live_epoch_2_send_threshold = 0xfffffff800000000u64;
+        let block_difficulty = send_block
+            .work
+            .as_ref()
+            .ok_or(anyhow!("Send sub-block {} has no work!", &send_block))?
+            .difficulty(&Subject::Hash(previous_block_hash))?;
+        let work_ok = block_difficulty >= Difficulty::new(live_epoch_2_send_threshold);
+        if !work_ok {
+            tracing::info!("Send sub-block {} has insufficient difficulty!", send_block);
+            tracing::debug!(
+                "Send sub-block {} had difficulty {}",
+                send_block,
+                block_difficulty.as_u64()
+            );
+        } else {
+            todo!("Store send block");
+            // TODO: Update rep weight cache
+            // TODO: Add to pending transactions
+        }
+        Ok(())
     }
 
     /// Checks if the block exists in the database _or_ if it existed but was pruned
