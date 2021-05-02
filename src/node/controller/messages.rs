@@ -15,7 +15,7 @@ use crate::{Difficulty, Public, Seed, Signature, Subject};
 use anyhow::anyhow;
 use anyhow::Context;
 use std::convert::TryFrom;
-use tracing::{debug, instrument, trace, warn};
+use tracing::{debug, info, instrument, trace, warn};
 
 impl Controller {
     #[instrument(skip(self))]
@@ -244,9 +244,9 @@ impl Controller {
     async fn state_block_handler(&self, state_block: StateBlock) -> anyhow::Result<()> {
         // TODO: here there should be a check for epoch blocks
         if self.block_existed(&state_block.hash).await? {
-            tracing::info!("Block {} already exists!", state_block)
+            info!("Block {} already exists!", state_block)
         } else if state_block.verify_self_signature().is_err() {
-            tracing::info!("Block {} has invalid signature!", state_block)
+            info!("Block {} has invalid signature!", state_block)
         } else {
             self.process_valid_existing_state_block(state_block).await?
         }
@@ -262,9 +262,10 @@ impl Controller {
                 // Either wants to send, receive or change
                 let maybe_previous_block = self.previous_as_account_info(previous_hash).await?;
                 if let Some(previous_state_block) = maybe_previous_block {
-                    Self::process_block_with_previous(state_block, previous_state_block)?
+                    self.process_block_with_previous(state_block, previous_state_block)
+                        .await?
                 } else {
-                    tracing::info!("Block before {} not found!", state_block)
+                    info!("Block before {} not found!", state_block)
                 }
             }
             Previous::Open => {
@@ -274,7 +275,8 @@ impl Controller {
         Ok(())
     }
 
-    fn process_block_with_previous(
+    async fn process_block_with_previous(
+        &self,
         mut state_block: StateBlock,
         previous_state_block: StateBlock,
     ) -> anyhow::Result<()> {
@@ -302,7 +304,8 @@ impl Controller {
                 todo!("Received a receive sub-block")
             }
             Link::DestinationAccount(_) => {
-                Self::process_good_send_sub_block(state_block, previous_state_block.hash)
+                self.process_good_send_sub_block(state_block, previous_state_block.hash)
+                    .await
             }
             Link::Unsure(_) => {
                 panic!("Unexpected error! Was `decide_link_type` called on this block?")
@@ -310,7 +313,8 @@ impl Controller {
         }
     }
 
-    fn process_good_send_sub_block(
+    async fn process_good_send_sub_block(
+        &self,
         send_block: StateBlock,
         previous_block_hash: BlockHash,
     ) -> anyhow::Result<()> {
@@ -322,18 +326,28 @@ impl Controller {
             .difficulty(&Subject::Hash(previous_block_hash))?;
         let work_ok = block_difficulty >= Difficulty::new(live_epoch_2_send_threshold);
         if !work_ok {
-            tracing::info!("Send sub-block {} has insufficient difficulty!", send_block);
-            tracing::debug!(
+            info!("Send sub-block {} has insufficient difficulty!", send_block);
+            debug!(
                 "Send sub-block {} had difficulty {}",
                 send_block,
                 block_difficulty.as_u64()
             );
         } else {
-            todo!("Store send block");
+            self.store_block(&Block::from_state_block(&send_block))
+                .await?
             // TODO: Update rep weight cache
             // TODO: Add to pending transactions
         }
         Ok(())
+    }
+
+    async fn store_block(&self, block: &Block) -> anyhow::Result<()> {
+        // 1. if this block already exists, this operation is idempotent (but incurs in resource waste)
+        // 2. if this block was added and rolled back this could generate an invalid state
+        // 3. if we got a rollback request for this block and it didn't go through because it was missing
+        //    this could generate an invalid state
+        // 4. ???
+        self.state.lock().await.add_block(block).await
     }
 
     /// Checks if the block exists in the database _or_ if it existed but was pruned
