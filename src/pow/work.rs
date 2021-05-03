@@ -104,6 +104,19 @@ impl Work {
         let hash = Self::hash(&work_and_subject);
         Difficulty::from_le_slice(hash.as_ref())
     }
+
+    pub fn difficulty_block_hash(&self, block_hash: &BlockHash) -> anyhow::Result<Difficulty> {
+        let mut work_and_block_hash = Vec::with_capacity(40);
+
+        // For some reason this is reversed!
+        let mut reversed_work = self.0.to_vec();
+        reversed_work.reverse();
+
+        work_and_block_hash.extend_from_slice(&reversed_work);
+        work_and_block_hash.extend_from_slice(block_hash.as_bytes());
+        let hash = Self::hash(&work_and_block_hash);
+        Difficulty::from_le_slice(hash.as_ref())
+    }
 }
 
 #[cfg(test)]

@@ -11,7 +11,7 @@ use crate::node::messages::keepalive::Keepalive;
 use crate::node::messages::publish::Publish;
 use crate::node::messages::telemetry_ack::TelemetryAck;
 use crate::node::messages::telemetry_req::TelemetryReq;
-use crate::{Difficulty, Public, Seed, Signature, Subject};
+use crate::{Difficulty, Public, Seed, Signature};
 use anyhow::anyhow;
 use anyhow::Context;
 use std::convert::TryFrom;
@@ -303,27 +303,20 @@ impl Controller {
                 let _live_epoch_2_receive_threshold = 0xfffffe0000000000u64;
                 todo!("Received a receive sub-block")
             }
-            Link::DestinationAccount(_) => {
-                self.process_good_send_sub_block(state_block, previous_state_block.hash)
-                    .await
-            }
+            Link::DestinationAccount(_) => self.process_good_send_sub_block(state_block).await,
             Link::Unsure(_) => {
                 panic!("Unexpected error! Was `decide_link_type` called on this block?")
             }
         }
     }
 
-    async fn process_good_send_sub_block(
-        &self,
-        send_block: StateBlock,
-        previous_block_hash: BlockHash,
-    ) -> anyhow::Result<()> {
+    async fn process_good_send_sub_block(&self, send_block: StateBlock) -> anyhow::Result<()> {
         let live_epoch_2_send_threshold = 0xfffffff800000000u64;
         let block_difficulty = send_block
             .work
             .as_ref()
             .ok_or(anyhow!("Send sub-block {} has no work!", &send_block))?
-            .difficulty(&Subject::Hash(previous_block_hash))?;
+            .difficulty_block_hash(&send_block.hash)?;
         let work_ok = block_difficulty >= Difficulty::new(live_epoch_2_send_threshold);
         if !work_ok {
             info!("Send sub-block {} has insufficient difficulty!", send_block);
@@ -376,7 +369,7 @@ mod tests {
     use crate::network::Network;
     use crate::node::state::State;
     use crate::node::MemoryState;
-    use crate::Rai;
+    use crate::{Rai, Work};
     use std::net::SocketAddr;
     use std::str::FromStr;
     use std::sync::Arc;
@@ -414,6 +407,12 @@ mod tests {
         );
         let frontier_block = Block::from_state_block(&frontier);
         (frontier, frontier_block)
+    }
+
+    fn good_send_block() -> StateBlock {
+        let (mut frontier_block, _) = frontier_block();
+        frontier_block.work = Some(Work::from_str("8073a2031b9a3a6a").unwrap());
+        frontier_block
     }
 
     #[tokio::test]
@@ -466,5 +465,25 @@ mod tests {
                 .unwrap()
                 .unwrap();
         assert_eq!(frontier, frontier_result)
+    }
+
+    #[tokio::test]
+    async fn should_process_good_send_sub_block_when_block_is_good() {
+        let network = Network::Test;
+        let state_raw = MemoryState::new(network);
+        let test_socket_addr = SocketAddr::from_str("[::1]:1").unwrap();
+        let state = Arc::new(Mutex::new(state_raw));
+        let (controller, _, _) = Controller::new_with_channels(network, state, test_socket_addr);
+        let good_send_block = good_send_block();
+        let good_send_block_hash = good_send_block.hash.clone();
+
+        Controller::process_good_send_sub_block(&controller, good_send_block)
+            .await
+            .unwrap();
+
+        let result = Controller::block_exists(&controller, &good_send_block_hash)
+            .await
+            .unwrap();
+        assert_eq!(result, true)
     }
 }
