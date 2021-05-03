@@ -202,6 +202,7 @@ impl Controller {
     }
 
     /// Returns the previous block if is a head block AND is a state_block
+    /// Note: the returned block won't have Work, Amount or Signature
     async fn previous_as_account_info(
         &self,
         previous_block_hash: &BlockHash,
@@ -398,20 +399,20 @@ mod tests {
             Public::from_str("7194452B7997A9F5ABB2F434DB010CA18B5A2715D141F9CFA64A296B3EB4DCCD")
                 .unwrap(),
         );
-        let frontier = StateBlock::new(
+        let mut frontier = StateBlock::new(
             root_block.account().clone(),
             Previous::Block(root_block.hash().unwrap().clone()),
             root_block.representative().clone(),
             root_block.balance().checked_sub(&Rai(200)).unwrap(),
             destination,
         );
+        frontier.work = Some(Work::from_str("8073a2031b9a3a6a").unwrap());
         let frontier_block = Block::from_state_block(&frontier);
         (frontier, frontier_block)
     }
 
     fn good_send_block() -> StateBlock {
-        let (mut frontier_block, _) = frontier_block();
-        frontier_block.work = Some(Work::from_str("8073a2031b9a3a6a").unwrap());
+        let (frontier_block, _) = frontier_block();
         frontier_block
     }
 
@@ -421,18 +422,25 @@ mod tests {
         frontier_block
     }
 
+    async fn test_controller_with_blocks(blocks: &[&Block]) -> Controller {
+        let network = Network::Test;
+        let mut state_raw = MemoryState::new(network);
+        for block in blocks {
+            state_raw.add_block(*block).await.unwrap();
+        }
+        let test_socket_addr = SocketAddr::from_str("[::1]:1").unwrap();
+        let state = Arc::new(Mutex::new(state_raw));
+        let (controller, _, _) = Controller::new_with_channels(network, state, test_socket_addr);
+        controller
+    }
+
     #[tokio::test]
     #[should_panic(expected = "The block referred as previous is not head!")]
     async fn should_not_retrieve_previous_as_account_if_not_head() {
-        let network = Network::Test;
-        let mut state_raw = MemoryState::new(network);
         let (_, root_block) = root_block();
         let (_, frontier_block) = frontier_block();
-        state_raw.add_block(&root_block).await.unwrap();
-        state_raw.add_block(&frontier_block).await.unwrap();
-        let state = Arc::new(Mutex::new(state_raw));
-        let test_socket_addr = SocketAddr::from_str("[::1]:1").unwrap();
-        let (controller, _, _) = Controller::new_with_channels(network, state, test_socket_addr);
+        let blocks = &[&root_block, &frontier_block];
+        let controller = test_controller_with_blocks(blocks).await;
 
         Controller::previous_as_account_info(&controller, root_block.hash().unwrap())
             .await
@@ -442,11 +450,7 @@ mod tests {
 
     #[tokio::test]
     async fn should_retrieve_none_if_previous_not_existent() {
-        let network = Network::Test;
-        let state_raw = MemoryState::new(network);
-        let state = Arc::new(Mutex::new(state_raw));
-        let test_socket_addr = SocketAddr::from_str("[::1]:1").unwrap();
-        let (controller, _, _) = Controller::new_with_channels(network, state, test_socket_addr);
+        let controller = test_controller_with_blocks(&[]).await;
         let (_, root_block) = root_block();
 
         let none = Controller::previous_as_account_info(&controller, root_block.hash().unwrap())
@@ -457,29 +461,20 @@ mod tests {
 
     #[tokio::test]
     async fn should_retrieve_previous_as_account() {
-        let network = Network::Test;
-        let mut state_raw = MemoryState::new(network);
-        let (frontier, frontier_block) = frontier_block();
-        state_raw.add_block(&frontier_block).await.unwrap();
-        let state = Arc::new(Mutex::new(state_raw));
-        let test_socket_addr = SocketAddr::from_str("[::1]:1").unwrap();
-        let (controller, _, _) = Controller::new_with_channels(network, state, test_socket_addr);
+        let (_, frontier_block) = frontier_block();
+        let frontier = StateBlock::from(frontier_block.clone());
+        let controller = test_controller_with_blocks(&[&frontier_block]).await;
 
-        let frontier_result =
-            Controller::previous_as_account_info(&controller, frontier_block.hash().unwrap())
-                .await
-                .unwrap()
-                .unwrap();
+        let frontier_result = Controller::previous_as_account_info(&controller, &frontier.hash)
+            .await
+            .unwrap()
+            .unwrap();
         assert_eq!(frontier, frontier_result)
     }
 
     #[tokio::test]
     async fn should_process_good_send_sub_block_when_block_is_good() {
-        let network = Network::Test;
-        let state_raw = MemoryState::new(network);
-        let test_socket_addr = SocketAddr::from_str("[::1]:1").unwrap();
-        let state = Arc::new(Mutex::new(state_raw));
-        let (controller, _, _) = Controller::new_with_channels(network, state, test_socket_addr);
+        let controller = test_controller_with_blocks(&[]).await;
         let good_send_block = good_send_block();
         let good_send_block_hash = good_send_block.hash.clone();
 
@@ -495,11 +490,7 @@ mod tests {
 
     #[tokio::test]
     async fn should_not_process_bad_send_sub_block_when_block_is_bad() {
-        let network = Network::Test;
-        let state_raw = MemoryState::new(network);
-        let test_socket_addr = SocketAddr::from_str("[::1]:1").unwrap();
-        let state = Arc::new(Mutex::new(state_raw));
-        let (controller, _, _) = Controller::new_with_channels(network, state, test_socket_addr);
+        let controller = test_controller_with_blocks(&[]).await;
         let bad_send_block = bad_send_block();
         let bad_send_block_hash = bad_send_block.hash.clone();
 
@@ -508,6 +499,37 @@ mod tests {
             .unwrap();
 
         let block_was_stored = Controller::block_exists(&controller, &bad_send_block_hash)
+            .await
+            .unwrap();
+        assert_eq!(block_was_stored, false)
+    }
+
+    #[tokio::test]
+    async fn should_process_send_with_previous() {
+        let (root, root_block) = root_block();
+        let (frontier, _) = frontier_block();
+        let controller = test_controller_with_blocks(&[&root_block]).await;
+
+        Controller::process_block_with_previous(&controller, frontier.clone(), root)
+            .await
+            .unwrap();
+
+        let block_was_stored = Controller::block_exists(&controller, &frontier.hash)
+            .await
+            .unwrap();
+        assert_eq!(block_was_stored, true)
+    }
+
+    #[tokio::test]
+    async fn should_not_process_send_without_previous() {
+        let (frontier, _) = frontier_block();
+        let controller = test_controller_with_blocks(&[]).await;
+
+        Controller::process_valid_existing_state_block(&controller, frontier.clone())
+            .await
+            .unwrap();
+
+        let block_was_stored = Controller::block_exists(&controller, &frontier.hash)
             .await
             .unwrap();
         assert_eq!(block_was_stored, false)
