@@ -415,6 +415,12 @@ mod tests {
         frontier_block
     }
 
+    fn bad_send_block() -> StateBlock {
+        let (mut frontier_block, _) = frontier_block();
+        frontier_block.work = Some(Work::from_str("baaaaaaaaaaaaaad").unwrap());
+        frontier_block
+    }
+
     #[tokio::test]
     #[should_panic(expected = "The block referred as previous is not head!")]
     async fn should_not_retrieve_previous_as_account_if_not_head() {
@@ -481,9 +487,29 @@ mod tests {
             .await
             .unwrap();
 
-        let result = Controller::block_exists(&controller, &good_send_block_hash)
+        let block_was_stored = Controller::block_exists(&controller, &good_send_block_hash)
             .await
             .unwrap();
-        assert_eq!(result, true)
+        assert_eq!(block_was_stored, true)
+    }
+
+    #[tokio::test]
+    async fn should_not_process_bad_send_sub_block_when_block_is_bad() {
+        let network = Network::Test;
+        let state_raw = MemoryState::new(network);
+        let test_socket_addr = SocketAddr::from_str("[::1]:1").unwrap();
+        let state = Arc::new(Mutex::new(state_raw));
+        let (controller, _, _) = Controller::new_with_channels(network, state, test_socket_addr);
+        let bad_send_block = bad_send_block();
+        let bad_send_block_hash = bad_send_block.hash.clone();
+
+        Controller::process_good_send_sub_block(&controller, bad_send_block)
+            .await
+            .unwrap();
+
+        let block_was_stored = Controller::block_exists(&controller, &bad_send_block_hash)
+            .await
+            .unwrap();
+        assert_eq!(block_was_stored, false)
     }
 }
