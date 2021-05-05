@@ -8,9 +8,11 @@ use crate::blocks::{hash_block, Block, BlockHash, BlockType, Previous};
 use crate::bytes::Bytes;
 use crate::keys::public::{from_address, to_address};
 use crate::{expect_len, hexify, Error, Public, Rai, Result, Signature, Work};
+use anyhow::anyhow;
+use anyhow::Context;
 use serde::{Deserialize, Deserializer, Serialize};
 use std::convert::TryFrom;
-use std::fmt::Debug;
+use std::fmt::{Debug, Display, Formatter};
 use std::str::FromStr;
 use strum_macros::EnumString;
 
@@ -129,6 +131,17 @@ impl StateBlock {
             }
         }
     }
+
+    pub fn verify_self_signature(&self) -> anyhow::Result<()> {
+        let signature = self
+            .signature
+            .as_ref()
+            .ok_or(anyhow!("Signature missing"))?;
+        Ok(self
+            .account
+            .verify(self.hash.as_bytes(), signature)
+            .context("Verify block")?)
+    }
 }
 
 #[cfg(feature = "node")]
@@ -179,6 +192,24 @@ impl From<Block> for StateBlock {
             block.representative,
             block.balance,
             block.link,
+        )
+    }
+}
+
+impl Display for StateBlock {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        let work_render = match &self.work {
+            Some(work) => work.to_string(),
+            None => "No work".to_string(),
+        };
+        let signature_render = match &self.signature {
+            Some(signature) => signature.to_string(),
+            None => "No signature".to_string(),
+        };
+        write!(
+            f,
+            "Block(Account: {}, Previous: {:?}, Balance: {}, Link: {:?}, Work: {}, Signature: {})",
+            self.account, self.previous, self.balance, self.link, work_render, signature_render
         )
     }
 }

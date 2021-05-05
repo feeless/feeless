@@ -1,5 +1,5 @@
 use super::Controller;
-use crate::blocks::{Block, BlockHash, BlockType, StateBlock};
+use crate::blocks::{Block, BlockHash, BlockHolder, BlockType, Link, Previous, StateBlock};
 use crate::node::cookie::Cookie;
 use crate::node::header::{Extensions, Header, MessageType};
 use crate::node::messages::confirm_ack::ConfirmAck;
@@ -11,11 +11,11 @@ use crate::node::messages::keepalive::Keepalive;
 use crate::node::messages::publish::Publish;
 use crate::node::messages::telemetry_ack::TelemetryAck;
 use crate::node::messages::telemetry_req::TelemetryReq;
-use crate::{Public, Seed, Signature};
+use crate::{Difficulty, Public, Seed, Signature};
 use anyhow::anyhow;
 use anyhow::Context;
 use std::convert::TryFrom;
-use tracing::{debug, instrument, trace, warn};
+use tracing::{debug, info, instrument, trace, warn};
 
 impl Controller {
     #[instrument(skip(self))]
@@ -139,12 +139,25 @@ impl Controller {
     pub async fn handle_publish(
         &mut self,
         _header: &Header,
-        _publish: Publish,
+        publish: Publish,
     ) -> anyhow::Result<()> {
-        // dbg!(publish);
-
-        // self.state.lock().await.add_block(&publish.0).await?;
-        // todo!();
+        let _block = match publish.0 {
+            BlockHolder::Send(_) => {
+                todo!("Received a send block")
+            }
+            BlockHolder::Receive(_) => {
+                todo!("Received a receive block")
+            }
+            BlockHolder::Open(_) => {
+                todo!("Received an open block")
+            }
+            BlockHolder::Change(_) => {
+                todo!("Received a change block")
+            }
+            BlockHolder::State(state_block) => {
+                self.state_block_handler(state_block).await?;
+            }
+        };
 
         Ok(())
     }
@@ -189,6 +202,7 @@ impl Controller {
     }
 
     /// Returns the previous block if is a head block AND is a state_block
+    /// Note: the returned block won't have Work, Amount or Signature
     async fn previous_as_account_info(
         &self,
         previous_block_hash: &BlockHash,
@@ -225,6 +239,128 @@ impl Controller {
     async fn block_by_hash(&self, block_hash: &BlockHash) -> anyhow::Result<Option<Block>> {
         self.state.lock().await.get_block_by_hash(block_hash).await
     }
+
+    /// Actions to be performed to validate and store a state block
+    /// TODO: this assumes we will never get a live epoch block
+    async fn state_block_handler(&self, state_block: StateBlock) -> anyhow::Result<()> {
+        // TODO: here there should be a check for epoch blocks
+        if self.block_existed(&state_block.hash).await? {
+            info!("Block {} already exists!", state_block)
+        } else if state_block.verify_self_signature().is_err() {
+            info!("Block {} has invalid signature!", state_block)
+        } else {
+            self.process_valid_existing_state_block(state_block).await?
+        }
+        Ok(())
+    }
+
+    async fn process_valid_existing_state_block(
+        &self,
+        state_block: StateBlock,
+    ) -> anyhow::Result<()> {
+        match &state_block.previous {
+            Previous::Block(previous_hash) => {
+                // Either wants to send, receive or change
+                let maybe_previous_block = self.previous_as_account_info(previous_hash).await?;
+                if let Some(previous_state_block) = maybe_previous_block {
+                    self.process_block_with_previous(state_block, previous_state_block)
+                        .await?
+                } else {
+                    info!("Block before {} not found!", state_block)
+                }
+            }
+            Previous::Open => {
+                todo!("Received an open sub-block")
+            }
+        }
+        Ok(())
+    }
+
+    async fn process_block_with_previous(
+        &self,
+        mut state_block: StateBlock,
+        previous_state_block: StateBlock,
+    ) -> anyhow::Result<()> {
+        let is_send = state_block.balance < previous_state_block.balance;
+        let amount = if is_send {
+            previous_state_block
+                .balance
+                .checked_sub(&state_block.balance)
+        } else {
+            state_block
+                .balance
+                .checked_sub(&previous_state_block.balance)
+        };
+        let amount = amount.ok_or(anyhow!("Could not calculate amount!"))?;
+        state_block
+            .set_link_type(is_send, amount)
+            .context("Could not decide link type!")?;
+        match state_block.link {
+            Link::Nothing => {
+                let _live_epoch_2_change_threshold = 0xfffffff800000000u64;
+                todo!("Received a change sub-block")
+            }
+            Link::Source(_) => {
+                let _live_epoch_2_receive_threshold = 0xfffffe0000000000u64;
+                todo!("Received a receive sub-block")
+            }
+            Link::DestinationAccount(_) => self.process_good_send_sub_block(state_block).await,
+            Link::Unsure(_) => {
+                panic!("Unexpected error! Was `decide_link_type` called on this block?")
+            }
+        }
+    }
+
+    async fn process_good_send_sub_block(&self, send_block: StateBlock) -> anyhow::Result<()> {
+        let live_epoch_2_send_threshold = 0xfffffff800000000u64;
+        let block_difficulty = send_block
+            .work
+            .as_ref()
+            .ok_or(anyhow!("Send sub-block {} has no work!", &send_block))?
+            .difficulty_block_hash(&send_block.hash)?;
+        let work_ok = block_difficulty >= Difficulty::new(live_epoch_2_send_threshold);
+        if !work_ok {
+            info!("Send sub-block {} has insufficient difficulty!", send_block);
+            debug!(
+                "Send sub-block {} had difficulty {}",
+                send_block,
+                block_difficulty.as_u64()
+            );
+        } else {
+            self.store_block(&Block::from_state_block(&send_block))
+                .await?
+            // TODO: Update rep weight cache
+            // TODO: Add to pending transactions
+        }
+        Ok(())
+    }
+
+    async fn store_block(&self, block: &Block) -> anyhow::Result<()> {
+        // 1. if this block already exists, this operation is idempotent (but incurs in resource waste)
+        // 2. if this block was added and rolled back this could generate an invalid state
+        // 3. if we got a rollback request for this block and it didn't go through because it was missing
+        //    this could generate an invalid state
+        // 4. ???
+        self.state.lock().await.add_block(block).await
+    }
+
+    /// Checks if the block exists in the database _or_ if it existed but was pruned
+    async fn block_existed(&self, block_hash: &BlockHash) -> anyhow::Result<bool> {
+        Ok(self
+            .state
+            .lock()
+            .await
+            .get_block_by_hash(block_hash)
+            .await?
+            .is_some())
+    }
+
+    /// For history nodes this has the same semantics as `Controller::block_existed`
+    /// Right now history nodes are not implemented so effectively there is no
+    /// difference.
+    async fn block_exists(&self, block_hash: &BlockHash) -> anyhow::Result<bool> {
+        Controller::block_existed(self, block_hash).await
+    }
 }
 
 #[cfg(test)]
@@ -234,7 +370,7 @@ mod tests {
     use crate::network::Network;
     use crate::node::state::State;
     use crate::node::MemoryState;
-    use crate::Rai;
+    use crate::{Rai, Work};
     use std::net::SocketAddr;
     use std::str::FromStr;
     use std::sync::Arc;
@@ -263,29 +399,48 @@ mod tests {
             Public::from_str("7194452B7997A9F5ABB2F434DB010CA18B5A2715D141F9CFA64A296B3EB4DCCD")
                 .unwrap(),
         );
-        let frontier = StateBlock::new(
+        let mut frontier = StateBlock::new(
             root_block.account().clone(),
             Previous::Block(root_block.hash().unwrap().clone()),
             root_block.representative().clone(),
             root_block.balance().checked_sub(&Rai(200)).unwrap(),
             destination,
         );
+        frontier.work = Some(Work::from_str("8073a2031b9a3a6a").unwrap());
         let frontier_block = Block::from_state_block(&frontier);
         (frontier, frontier_block)
+    }
+
+    fn good_send_block() -> StateBlock {
+        let (frontier_block, _) = frontier_block();
+        frontier_block
+    }
+
+    fn bad_send_block() -> StateBlock {
+        let (mut frontier_block, _) = frontier_block();
+        frontier_block.work = Some(Work::from_str("baaaaaaaaaaaaaad").unwrap());
+        frontier_block
+    }
+
+    async fn test_controller_with_blocks(blocks: &[&Block]) -> Controller {
+        let network = Network::Test;
+        let mut state_raw = MemoryState::new(network);
+        for block in blocks {
+            state_raw.add_block(*block).await.unwrap();
+        }
+        let test_socket_addr = SocketAddr::from_str("[::1]:1").unwrap();
+        let state = Arc::new(Mutex::new(state_raw));
+        let (controller, _, _) = Controller::new_with_channels(network, state, test_socket_addr);
+        controller
     }
 
     #[tokio::test]
     #[should_panic(expected = "The block referred as previous is not head!")]
     async fn should_not_retrieve_previous_as_account_if_not_head() {
-        let network = Network::Test;
-        let mut state_raw = MemoryState::new(network);
         let (_, root_block) = root_block();
         let (_, frontier_block) = frontier_block();
-        state_raw.add_block(&root_block).await.unwrap();
-        state_raw.add_block(&frontier_block).await.unwrap();
-        let state = Arc::new(Mutex::new(state_raw));
-        let test_socket_addr = SocketAddr::from_str("[::1]:1").unwrap();
-        let (controller, _, _) = Controller::new_with_channels(network, state, test_socket_addr);
+        let blocks = &[&root_block, &frontier_block];
+        let controller = test_controller_with_blocks(blocks).await;
 
         Controller::previous_as_account_info(&controller, root_block.hash().unwrap())
             .await
@@ -295,11 +450,7 @@ mod tests {
 
     #[tokio::test]
     async fn should_retrieve_none_if_previous_not_existent() {
-        let network = Network::Test;
-        let state_raw = MemoryState::new(network);
-        let state = Arc::new(Mutex::new(state_raw));
-        let test_socket_addr = SocketAddr::from_str("[::1]:1").unwrap();
-        let (controller, _, _) = Controller::new_with_channels(network, state, test_socket_addr);
+        let controller = test_controller_with_blocks(&[]).await;
         let (_, root_block) = root_block();
 
         let none = Controller::previous_as_account_info(&controller, root_block.hash().unwrap())
@@ -310,19 +461,77 @@ mod tests {
 
     #[tokio::test]
     async fn should_retrieve_previous_as_account() {
-        let network = Network::Test;
-        let mut state_raw = MemoryState::new(network);
-        let (frontier, frontier_block) = frontier_block();
-        state_raw.add_block(&frontier_block).await.unwrap();
-        let state = Arc::new(Mutex::new(state_raw));
-        let test_socket_addr = SocketAddr::from_str("[::1]:1").unwrap();
-        let (controller, _, _) = Controller::new_with_channels(network, state, test_socket_addr);
+        let (_, frontier_block) = frontier_block();
+        let frontier = StateBlock::from(frontier_block.clone());
+        let controller = test_controller_with_blocks(&[&frontier_block]).await;
 
-        let frontier_result =
-            Controller::previous_as_account_info(&controller, frontier_block.hash().unwrap())
-                .await
-                .unwrap()
-                .unwrap();
+        let frontier_result = Controller::previous_as_account_info(&controller, &frontier.hash)
+            .await
+            .unwrap()
+            .unwrap();
         assert_eq!(frontier, frontier_result)
+    }
+
+    #[tokio::test]
+    async fn should_process_good_send_sub_block_when_block_is_good() {
+        let controller = test_controller_with_blocks(&[]).await;
+        let good_send_block = good_send_block();
+        let good_send_block_hash = good_send_block.hash.clone();
+
+        Controller::process_good_send_sub_block(&controller, good_send_block)
+            .await
+            .unwrap();
+
+        let block_was_stored = Controller::block_exists(&controller, &good_send_block_hash)
+            .await
+            .unwrap();
+        assert_eq!(block_was_stored, true)
+    }
+
+    #[tokio::test]
+    async fn should_not_process_bad_send_sub_block_when_block_is_bad() {
+        let controller = test_controller_with_blocks(&[]).await;
+        let bad_send_block = bad_send_block();
+        let bad_send_block_hash = bad_send_block.hash.clone();
+
+        Controller::process_good_send_sub_block(&controller, bad_send_block)
+            .await
+            .unwrap();
+
+        let block_was_stored = Controller::block_exists(&controller, &bad_send_block_hash)
+            .await
+            .unwrap();
+        assert_eq!(block_was_stored, false)
+    }
+
+    #[tokio::test]
+    async fn should_process_send_with_previous() {
+        let (root, root_block) = root_block();
+        let (frontier, _) = frontier_block();
+        let controller = test_controller_with_blocks(&[&root_block]).await;
+
+        Controller::process_block_with_previous(&controller, frontier.clone(), root)
+            .await
+            .unwrap();
+
+        let block_was_stored = Controller::block_exists(&controller, &frontier.hash)
+            .await
+            .unwrap();
+        assert_eq!(block_was_stored, true)
+    }
+
+    #[tokio::test]
+    async fn should_not_process_send_without_previous() {
+        let (frontier, _) = frontier_block();
+        let controller = test_controller_with_blocks(&[]).await;
+
+        Controller::process_valid_existing_state_block(&controller, frontier.clone())
+            .await
+            .unwrap();
+
+        let block_was_stored = Controller::block_exists(&controller, &frontier.hash)
+            .await
+            .unwrap();
+        assert_eq!(block_was_stored, false)
     }
 }
