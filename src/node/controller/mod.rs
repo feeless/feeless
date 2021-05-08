@@ -6,16 +6,13 @@ use crate::blocks::Block;
 use crate::encoding::to_hex;
 use crate::network::Network;
 use crate::node::header::{Extensions, Header, MessageType};
-
 use crate::node::state::ArcState;
 use crate::node::wire::Wire;
 use crate::{Public, Rai};
 use anyhow::{anyhow, Context};
-
 use std::fmt::Debug;
 use std::net::SocketAddr;
 use tokio::sync::mpsc;
-
 use tracing::{debug, instrument, trace};
 
 /// A message sent between channels that contains a peer's network data.
@@ -280,18 +277,15 @@ impl Controller {
 
 #[cfg(test)]
 mod tests {
-    use std::net::{Ipv4Addr, SocketAddrV4};
-    use std::str::FromStr;
-    use std::sync::Arc;
-
-    use tokio::sync::Mutex;
-
+    use super::*;
     use crate::blocks::{Block, BlockHash, OpenBlock, Previous, SendBlock};
     use crate::network::DEFAULT_PORT;
     use crate::node::state::MemoryState;
     use crate::Address;
-
-    use super::*;
+    use std::net::{Ipv4Addr, SocketAddrV4};
+    use std::str::FromStr;
+    use std::sync::Arc;
+    use tokio::sync::Mutex;
 
     async fn empty_lattice(network: Network) -> Controller {
         let state = Arc::new(Mutex::new(MemoryState::new(network)));
