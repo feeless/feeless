@@ -303,7 +303,7 @@ mod tests {
 
     async fn empty_lattice(network: Network) -> Controller {
         let state = Arc::new(Mutex::new(MemoryState::new(network)));
-        let (mut controller, _rx, _tx, cms) = Controller::new_with_channels(
+        let (mut controller, _rx, _tx) = Controller::new_with_channels(
             network,
             state,
             SocketAddr::V4(SocketAddrV4::new(Ipv4Addr::LOCALHOST, DEFAULT_PORT)),
