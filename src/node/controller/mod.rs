@@ -1,14 +1,10 @@
 mod blocks;
-mod command;
 mod genesis;
 mod messages;
 
 use crate::blocks::Block;
 use crate::encoding::to_hex;
 use crate::network::Network;
-pub(crate) use crate::node::controller::command::{
-    ControllerCommand, ControllerMessageReceiver, ControllerMessageSender,
-};
 use crate::node::header::{Extensions, Header, MessageType};
 use crate::node::messages::frontier_resp::FrontierResp;
 use crate::node::state::ArcState;
@@ -79,9 +75,6 @@ pub struct Controller {
     /// Data to be sent to the other peer.
     peer_tx: mpsc::Sender<Packet>,
 
-    /// Incoming RPC commands.
-    cmd_rx: ControllerMessageReceiver,
-
     /// A reusable header to reduce allocations.
     // pub(crate) header: Header,
     last_annotation: Option<String>,
@@ -92,18 +85,12 @@ impl Controller {
         network: Network,
         state: ArcState,
         peer_addr: SocketAddr,
-    ) -> (
-        Self,
-        mpsc::Sender<Packet>,
-        mpsc::Receiver<Packet>,
-        ControllerMessageSender,
-    ) {
+    ) -> (Self, mpsc::Sender<Packet>, mpsc::Receiver<Packet>) {
         // Packets coming in from a remote host.
         let (incoming_tx, incoming_rx) = mpsc::channel::<Packet>(100);
         // Packets to be sent out to a remote host.
         let (outgoing_tx, outgoing_rx) = mpsc::channel::<Packet>(100);
         // Controller RPC Commands
-        let (cmd_tx, cmd_rx) = mpsc::channel::<ControllerCommand>(100);
 
         let s = Self {
             validate_handshakes: true,
@@ -115,11 +102,10 @@ impl Controller {
             incoming_buffer: Vec::with_capacity(10_000),
             peer_rx: incoming_rx,
             peer_tx: outgoing_tx,
-            cmd_rx,
             last_annotation: None,
         };
 
-        (s, incoming_tx, outgoing_rx, cmd_tx)
+        (s, incoming_tx, outgoing_rx)
     }
 
     /// Run will loop forever and is expected to be spawned and will quit when the incoming channel
@@ -150,42 +136,34 @@ impl Controller {
         // trace!("Initial telemetry request");
         // self.send_telemetry_req().await?;
 
-        loop {
-            tokio::select! {
-                maybe_packet = self.peer_rx.recv() => {
-                    match maybe_packet {
-                        Some(packet) => self.handle_packet(packet).await?,
-                        None => return Err(anyhow!("Peer disconnected")),
-                    }
-                }
-                message = self.cmd_rx.recv() => {
-                    dbg!(message);
-                }
-            }
-
-            // if self.frontier_stream {
-            //     let payload = self.recv::<FrontierResp>(None).await?;
-            //     self.handle_frontier_resp(payload).await?;
-            // } else {
-            //     let header = self.recv::<Header>(None).await?;
-            //     header.validate(&self.network)?;
-            //
-            //     match header.message_type() {
-            //         MessageType::Keepalive => handle!(self, handle_keepalive, header),
-            //         MessageType::Publish => handle!(self, handle_publish, header),
-            //         MessageType::ConfirmReq => handle!(self, handle_confirm_req, header),
-            //         MessageType::ConfirmAck => handle!(self, handle_confirm_ack, header),
-            //         MessageType::FrontierReq => handle!(self, handle_frontier_req, header),
-            //         MessageType::Handshake => handle!(self, handle_handshake, header),
-            //         MessageType::TelemetryReq => handle!(self, handle_telemetry_req, header),
-            //         MessageType::TelemetryAck => handle!(self, handle_telemetry_ack, header),
-            //         // MessageType::BulkPull => {}
-            //         // MessageType::BulkPush => {}
-            //         // MessageType::BulkPullAccount => {}
-            //         _ => panic!("{:?}", header),
-            //     };
-            // }
+        while let Some(packet) = self.peer_rx.recv().await {
+            self.handle_packet(packet).await?;
         }
+
+        Ok(())
+
+        // if self.frontier_stream {
+        //     let payload = self.recv::<FrontierResp>(None).await?;
+        //     self.handle_frontier_resp(payload).await?;
+        // } else {
+        //     let header = self.recv::<Header>(None).await?;
+        //     header.validate(&self.network)?;
+        //
+        //     match header.message_type() {
+        //         MessageType::Keepalive => handle!(self, handle_keepalive, header),
+        //         MessageType::Publish => handle!(self, handle_publish, header),
+        //         MessageType::ConfirmReq => handle!(self, handle_confirm_req, header),
+        //         MessageType::ConfirmAck => handle!(self, handle_confirm_ack, header),
+        //         MessageType::FrontierReq => handle!(self, handle_frontier_req, header),
+        //         MessageType::Handshake => handle!(self, handle_handshake, header),
+        //         MessageType::TelemetryReq => handle!(self, handle_telemetry_req, header),
+        //         MessageType::TelemetryAck => handle!(self, handle_telemetry_ack, header),
+        //         // MessageType::BulkPull => {}
+        //         // MessageType::BulkPush => {}
+        //         // MessageType::BulkPullAccount => {}
+        //         _ => panic!("{:?}", header),
+        //     };
+        // }
     }
 
     async fn handle_packet(&mut self, packet: Packet) -> anyhow::Result<()> {

@@ -1,5 +1,5 @@
 use crate::network::Network;
-use crate::node::controller::{Controller, ControllerMessageSender, Packet};
+use crate::node::controller::{Controller, Packet};
 use crate::node::state::ArcState;
 use anyhow::Context;
 use std::net::SocketAddr;
@@ -12,9 +12,8 @@ pub fn new_peer_channel(
     network: Network,
     state: ArcState,
     address: SocketAddr,
-) -> anyhow::Result<ControllerMessageSender> {
-    let (controller, tx, mut rx, rpc_tx) =
-        Controller::new_with_channels(network, state.clone(), address);
+) -> anyhow::Result<()> {
+    let (controller, tx, mut rx) = Controller::new_with_channels(network, state.clone(), address);
 
     tokio::spawn(controller.run());
     tokio::spawn(async move {
@@ -53,7 +52,7 @@ pub fn new_peer_channel(
         }
     });
 
-    Ok(rpc_tx)
+    Ok(())
 }
 
 // /// A `channel` communicates with a peer over TCP. This will relay packets in and out of the
