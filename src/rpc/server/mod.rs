@@ -8,28 +8,6 @@ use tracing::{info, trace};
 use warp::http::StatusCode;
 use warp::Filter;
 
-// pub trait NodeHandler {
-//     fn handle();
-// }
-
-// pub type RpcMessageSender = mpsc::Sender<RPCMessage>;
-// pub type RpcMessageReceiver = mpsc::Receiver<RPCMessage>;
-// pub type RpcMessageResponseSender = oneshot::Sender<CommandResponse>;
-// pub type RpcMessageResponseReceiver = oneshot::Receiver<CommandResponse>;
-//
-// #[derive(Debug, Clone)]
-// pub struct RPCMessage {
-//     command: RpcCommand,
-//     tx: RpcMessageResponseSender,
-// }
-//
-// impl RPCMessage {
-//     fn new_with_channel(command: RpcCommand) -> (Self, RpcMessageResponseReceiver) {
-//         let (tx, rx) = oneshot::channel();
-//         (Self { command, tx }, rx)
-//     }
-// }
-
 pub struct RPCServer {
     state: ArcState,
     node_cmd_tx: NodeCommandSender,
