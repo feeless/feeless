@@ -1,13 +1,13 @@
 use crate::network::Network;
 use crate::node::controller::{Controller, Packet};
 use crate::node::state::ArcState;
-
 use std::net::SocketAddr;
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use tokio::net::TcpStream;
-
 use tracing::debug;
 
+/// A `channel` communicates with a peer over TCP. This will relay packets in and out of the
+/// contained [Controller] which does all the work.
 pub fn new_peer_channel(
     network: Network,
     state: ArcState,
@@ -54,39 +54,3 @@ pub fn new_peer_channel(
 
     Ok(())
 }
-
-// /// A `channel` communicates with a peer over TCP. This will relay packets in and out of the
-// /// contained [Controller] which does all the work.
-// pub struct Channel {
-//     network: Network,
-//     state: ArcState,
-//     address: SocketAddr,
-//     controller: Controller,
-//     tx: mpsc::Sender<Packet>,
-//     rx: mpsc::Receiver<Packet>,
-// }
-//
-// impl Channel {
-//     pub fn new_with_rpc_tx(
-//         network: Network,
-//         state: ArcState,
-//         address: SocketAddr,
-//     ) -> anyhow::Result<(Self, ControllerSender)> {
-//         let (controller, tx, mut rx, rpc_tx) =
-//             Controller::new_with_channels(network, state.clone(), address);
-//
-//         let channel = Self {
-//             network,
-//             state,
-//             address,
-//             tx,
-//             rx,
-//             controller,
-//         };
-//
-//         Ok((channel, rpc_tx))
-//     }
-//
-//     pub async fn start(mut self) -> anyhow::Result<()> {
-//         // We don't `await` here since the controller will quit when the incoming channel drops.
-// }
