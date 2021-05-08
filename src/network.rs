@@ -1,11 +1,8 @@
-use std::convert::TryFrom;
-
-use std::str::FromStr;
-
-use anyhow::anyhow;
-
 use crate::blocks::{Block, BlockHash, OpenBlock, Previous};
 use crate::Rai;
+use anyhow::anyhow;
+use std::convert::TryFrom;
+use std::str::FromStr;
 
 /// The default TCP port that Nano nodes use.
 pub const DEFAULT_PORT: u16 = 7075;
