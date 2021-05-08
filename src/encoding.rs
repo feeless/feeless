@@ -1,12 +1,10 @@
-use std::str::FromStr;
-
+use crate::Error;
 use bitvec::prelude::*;
 use blake2::digest::{Update, VariableOutput};
 use blake2::VarBlake2b;
 use once_cell::sync::Lazy;
 use serde::{Deserialize, Deserializer};
-
-use crate::Error;
+use std::str::FromStr;
 
 pub fn to_hex(bytes: &[u8]) -> String {
     let mut s = String::with_capacity(bytes.len() * 2);
