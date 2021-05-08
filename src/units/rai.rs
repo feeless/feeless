@@ -236,9 +236,8 @@ impl PartialEq<u128> for Rai {
 
 #[cfg(test)]
 mod tests {
-    use std::convert::TryFrom;
-
     use super::*;
+    use std::convert::TryFrom;
 
     #[test]
     fn display() {
