@@ -3,7 +3,7 @@ use crate::rpc::calls::{as_str, from_str};
 use crate::rpc::client::{RPCClient, RPCRequest};
 use crate::rpc::NodeHandler;
 use crate::version::Version;
-use crate::{Address, Rai, Result, Signature, Work};
+use crate::Result;
 use async_trait::async_trait;
 use clap::Clap;
 use serde::{Deserialize, Serialize};
@@ -78,7 +78,7 @@ pub enum NetType {
 
 #[cfg(test)]
 mod tests {
-    use std::net::{IpAddr, Ipv4Addr, Ipv6Addr, SocketAddrV6};
+    use std::net::{IpAddr, Ipv6Addr};
     use std::str::FromStr;
 
     use super::*;
