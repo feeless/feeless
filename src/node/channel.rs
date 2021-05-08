@@ -1,11 +1,11 @@
 use crate::network::Network;
 use crate::node::controller::{Controller, Packet};
 use crate::node::state::ArcState;
-use anyhow::Context;
+
 use std::net::SocketAddr;
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use tokio::net::TcpStream;
-use tokio::sync::mpsc;
+
 use tracing::debug;
 
 pub fn new_peer_channel(

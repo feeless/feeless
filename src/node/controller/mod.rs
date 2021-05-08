@@ -6,16 +6,16 @@ use crate::blocks::Block;
 use crate::encoding::to_hex;
 use crate::network::Network;
 use crate::node::header::{Extensions, Header, MessageType};
-use crate::node::messages::frontier_resp::FrontierResp;
+
 use crate::node::state::ArcState;
 use crate::node::wire::Wire;
 use crate::{Public, Rai};
 use anyhow::{anyhow, Context};
-use futures::future::OptionFuture;
+
 use std::fmt::Debug;
 use std::net::SocketAddr;
 use tokio::sync::mpsc;
-use tokio::sync::mpsc::Receiver;
+
 use tracing::{debug, instrument, trace};
 
 /// A message sent between channels that contains a peer's network data.
@@ -178,7 +178,7 @@ impl Controller {
                     self.recv_state = RecvState::Payload(header);
                 }
             }
-            RecvState::Payload(header) => {
+            RecvState::Payload(_header) => {
                 todo!()
             }
         }

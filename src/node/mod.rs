@@ -9,7 +9,6 @@ mod state;
 mod timestamp;
 mod wire;
 
-use crate::node::command::PeerInfoResponseSender;
 use crate::rpc::server::RPCServer;
 use crate::Network;
 pub use crate::Version;
@@ -21,8 +20,8 @@ pub use header::Header;
 pub use state::{ArcState, MemoryState, SledDiskState};
 use std::net::SocketAddr;
 use std::sync::Arc;
-use tokio::net::TcpStream;
-use tokio::sync::{mpsc, oneshot, Mutex};
+
+use tokio::sync::Mutex;
 use tracing::{debug, info};
 pub use wire::Wire;
 
@@ -45,7 +44,7 @@ impl Node {
         Ok(rx)
     }
 
-    pub async fn run(mut self, mut node_rx: NodeCommandReceiver) -> anyhow::Result<()> {
+    pub async fn run(self, mut node_rx: NodeCommandReceiver) -> anyhow::Result<()> {
         let initial_peers = self.state.lock().await.peers().await?;
         for address in initial_peers {
             info!("Spawning a channel to {:?}", address);
@@ -64,7 +63,7 @@ impl Node {
         while let Some(node_command) = node_rx.recv().await {
             dbg!("todo node command", &node_command);
             match node_command {
-                NodeCommand::PeerInfo(tx) => todo!("get_active_peers()"),
+                NodeCommand::PeerInfo(_tx) => todo!("get_active_peers()"),
             };
         }
 

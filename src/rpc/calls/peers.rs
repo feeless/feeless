@@ -1,9 +1,7 @@
-use crate::blocks::{deserialize_to_unsure_link, BlockType, StateBlock};
-use crate::blocks::{BlockHash, Link, Subtype};
 use crate::node::{NodeCommand, NodeCommandSender};
 use crate::rpc::calls::{as_str, from_str};
 use crate::rpc::client::{RPCClient, RPCRequest};
-use crate::rpc::{AlwaysTrue, NodeHandler};
+use crate::rpc::NodeHandler;
 use crate::version::Version;
 use crate::{Address, Rai, Result, Signature, Work};
 use async_trait::async_trait;

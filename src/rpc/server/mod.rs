@@ -3,7 +3,7 @@ use crate::rpc::client::RPCError;
 use crate::rpc::{NodeHandler, RpcCommand};
 use crate::Result;
 use serde::Serialize;
-use tokio::sync::{mpsc, oneshot};
+use tokio::sync::mpsc;
 use tracing::{info, trace};
 use warp::http::StatusCode;
 use warp::Filter;
@@ -60,7 +60,7 @@ impl RPCServer {
     }
 
     async fn handle(
-        state: ArcState,
+        _state: ArcState,
         node_tx: NodeCommandSender,
         cmd: RpcCommand,
     ) -> std::result::Result<Box<dyn warp::Reply>, warp::Rejection> {
