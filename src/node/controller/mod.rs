@@ -111,85 +111,103 @@ impl Controller {
     /// Run will loop forever and is expected to be spawned and will quit when the incoming channel
     /// is closed.
     pub async fn run(mut self) -> anyhow::Result<()> {
-        // macro_rules! handle {
-        //     ($self: ident, $fun:ident, $header:expr) => {{
-        //         let sh = Some(&$header);
-        //         let payload = self
-        //             .recv(sh)
-        //             .await
-        //             .with_context(|| format!("Receiving payload for {:?}", $header))?;
-        //
-        //         match &self.last_annotation {
-        //             Some(a) => debug!("{} {:?}", a, &payload),
-        //             None => debug!("{:?}", &payload),
-        //         };
-        //
-        //         $self
-        //             .$fun(&$header, payload)
-        //             .await
-        //             .with_context(|| format!("Handling payload for {:?}", $header))?;
-        //     };};
-        // }
-
         trace!("Initial handshake");
         self.send_handshake().await?;
         // trace!("Initial telemetry request");
         // self.send_telemetry_req().await?;
 
         while let Some(packet) = self.peer_rx.recv().await {
+            trace!("Handle packet");
             self.handle_packet(packet).await?;
         }
+        trace!("Exiting controller");
 
         Ok(())
-
-        // if self.frontier_stream {
-        //     let payload = self.recv::<FrontierResp>(None).await?;
-        //     self.handle_frontier_resp(payload).await?;
-        // } else {
-        //     let header = self.recv::<Header>(None).await?;
-        //     header.validate(&self.network)?;
-        //
-        //     match header.message_type() {
-        //         MessageType::Keepalive => handle!(self, handle_keepalive, header),
-        //         MessageType::Publish => handle!(self, handle_publish, header),
-        //         MessageType::ConfirmReq => handle!(self, handle_confirm_req, header),
-        //         MessageType::ConfirmAck => handle!(self, handle_confirm_ack, header),
-        //         MessageType::FrontierReq => handle!(self, handle_frontier_req, header),
-        //         MessageType::Handshake => handle!(self, handle_handshake, header),
-        //         MessageType::TelemetryReq => handle!(self, handle_telemetry_req, header),
-        //         MessageType::TelemetryAck => handle!(self, handle_telemetry_ack, header),
-        //         // MessageType::BulkPull => {}
-        //         // MessageType::BulkPush => {}
-        //         // MessageType::BulkPullAccount => {}
-        //         _ => panic!("{:?}", header),
-        //     };
-        // }
     }
 
     async fn handle_packet(&mut self, packet: Packet) -> anyhow::Result<()> {
+        trace!("handle_packet");
+
+        /// Handle a payload. Will do nothing if there isn't enough bytes for the expected payload
+        /// size.
+        macro_rules! handle {
+            ($self: ident, $fun:ident, $header:expr) => {{
+                let sh = Some(&$header);
+                let payload = self
+                    .recv(sh)
+                    .with_context(|| format!("Receiving payload for {:?}", $header))?;
+
+                if let Some(payload) = payload {
+                    match &self.last_annotation {
+                        Some(a) => debug!("{} {:?}", a, &payload),
+                        None => debug!("{:?}", &payload),
+                    };
+
+                    $self
+                        .$fun(&$header, payload)
+                        .await
+                        .with_context(|| format!("Handling payload for {:?}", $header))?;
+                } else {
+                }
+            };};
+        }
+
         if let Some(annotation) = packet.annotation {
             self.last_annotation = Some(annotation);
         }
         self.incoming_buffer.extend(packet.data);
 
-        match self.recv_state {
-            RecvState::Header => {
-                if let Some(header) = self.recv::<Header>(None)? {
-                    self.recv_state = RecvState::Payload(header);
+        // TODO: Handle frontier stream
+        // if self.frontier_stream {
+        //     let payload = self.recv::<FrontierResp>(None).await?;
+        //     self.handle_frontier_resp(payload).await?;
+        // } else {
+
+        let mut process = true;
+        while process {
+            match self.recv_state {
+                RecvState::Header => {
+                    if let Some(header) = self.recv::<Header>(None)? {
+                        header.validate(&self.network)?;
+                        self.recv_state = RecvState::Payload(header);
+                    } else {
+                        process = false;
+                    }
+                }
+                RecvState::Payload(header) => {
+                    match header.message_type() {
+                        MessageType::Keepalive => handle!(self, handle_keepalive, header),
+                        MessageType::Publish => handle!(self, handle_publish, header),
+                        MessageType::ConfirmReq => handle!(self, handle_confirm_req, header),
+                        MessageType::ConfirmAck => handle!(self, handle_confirm_ack, header),
+                        MessageType::FrontierReq => handle!(self, handle_frontier_req, header),
+                        MessageType::Handshake => handle!(self, handle_handshake, header),
+                        MessageType::TelemetryReq => handle!(self, handle_telemetry_req, header),
+                        MessageType::TelemetryAck => handle!(self, handle_telemetry_ack, header),
+                        // MessageType::BulkPull => {}
+                        // MessageType::BulkPush => {}
+                        // MessageType::BulkPullAccount => {}
+                        _ => panic!("{:?}", header),
+                    };
+                    process = false;
                 }
             }
-            RecvState::Payload(_header) => {
-                todo!()
-            }
         }
+
         Ok(())
     }
 
+    /// Receive from the incoming buffer for type `T`. Will return None if there aren't enough
+    /// bytes available.
     #[instrument(skip(self, header))]
     fn recv<T: Wire + Debug>(&mut self, header: Option<&Header>) -> anyhow::Result<Option<T>> {
         let bytes = T::len(header)?;
         if self.incoming_buffer.len() < bytes {
-            // Not enough bytes for T
+            trace!(
+                "Not enough bytes. Got {}, expected {}.",
+                self.incoming_buffer.len(),
+                bytes
+            );
             return Ok(None);
         }
 
@@ -200,32 +218,6 @@ impl Controller {
         Ok(Some(result))
     }
 
-    // async fn recv_buf(&mut self, size: usize) -> anyhow::Result<Vec<u8>> {
-    //     // TODO: Idle timeout so a toxic node can't just leave empty connections running without
-    //     //       any traffic.
-    //     loop {
-    //         if self.incoming_buffer.len() >= size {
-    //             return self.recv_immediate(size);
-    //         }
-    //
-    //         let packet = match self.peer_rx.recv().await {
-    //             Some(data) => data,
-    //             None => {
-    //                 return Err(anyhow!(
-    //                     "Incoming stream disconnected {:?} {:?}",
-    //                     self.peer_addr,
-    //                     self.last_annotation
-    //                 ))
-    //             }
-    //         };
-    //
-    //         if let Some(annotation) = packet.annotation {
-    //             self.last_annotation = Some(annotation);
-    //         }
-    //         self.incoming_buffer.extend(packet.data);
-    //     }
-    // }
-    //
     fn recv_immediate(&mut self, size: usize) -> anyhow::Result<Vec<u8>> {
         debug_assert!(self.incoming_buffer.len() >= size);
 

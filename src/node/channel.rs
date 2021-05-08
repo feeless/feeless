@@ -17,7 +17,9 @@ pub fn new_peer_channel(
 
     tokio::spawn(controller.run());
     tokio::spawn(async move {
-        let stream = TcpStream::connect(address).await.unwrap();
+        let stream = TcpStream::connect(address)
+            .await
+            .expect(&format!("Failed to connect to {}", address));
         let (mut in_stream, mut out_stream) = stream.into_split();
 
         // Handle reads in a separate task.

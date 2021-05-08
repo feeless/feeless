@@ -46,6 +46,7 @@ impl Controller {
             No,
             Yes(Public, Signature),
         }
+        trace!("Handling handshake: {:?}", handshake);
         let mut should_respond = ShouldRespond::No;
 
         if header.ext().is_query() {
@@ -73,7 +74,6 @@ impl Controller {
             let public = response.public;
             let signature = response.signature;
 
-            // TODO: Move to controller
             let cookie = &self
                 .state
                 .lock()
