@@ -72,8 +72,6 @@ pub struct Controller {
     /// Data to be sent to the other peer.
     peer_tx: mpsc::Sender<Packet>,
 
-    /// A reusable header to reduce allocations.
-    // pub(crate) header: Header,
     last_annotation: Option<String>,
 }
 
@@ -110,6 +108,8 @@ impl Controller {
     pub async fn run(mut self) -> anyhow::Result<()> {
         trace!("Initial handshake");
         self.send_handshake().await?;
+
+        // TODO: Send and handle telemetry
         // trace!("Initial telemetry request");
         // self.send_telemetry_req().await?;
 
@@ -125,8 +125,6 @@ impl Controller {
     async fn handle_packet(&mut self, packet: Packet) -> anyhow::Result<()> {
         trace!("handle_packet");
 
-        /// Handle a payload. Will do nothing if there isn't enough bytes for the expected payload
-        /// size.
         macro_rules! handle {
             ($self: ident, $fun:ident, $header:expr) => {{
                 let sh = Some(&$header);
