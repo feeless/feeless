@@ -1,4 +1,4 @@
-use crate::rpc::calls::Command;
+use crate::rpc::calls::RpcCommand;
 use crate::rpc::client::{RPCClient, RPCRequest};
 use clap::Clap;
 use colored_json::ToColoredJson;
@@ -21,32 +21,33 @@ pub(crate) struct RPCClientOpts {
 
     /// The RPC call to make.
     #[clap(subcommand)]
-    command: Command,
+    command: RpcCommand,
 }
 
 impl RPCClientOpts {
     pub(crate) async fn handle(&self) -> crate::Result<()> {
         match &self.command {
-            Command::AccountBalance(c) => self.show(c).await?,
-            Command::AccountHistory(c) => self.show(c).await?,
-            Command::AccountInfo(c) => self.show(c).await?,
-            Command::ActiveDifficulty(c) => self.show(c).await?,
-            Command::BlockCreate(c) => self.show(c).await?,
-            Command::BlockInfo(c) => self.show(c).await?,
-            Command::Process(c) => self.show(c).await?,
-            Command::WorkValidate(c) => self.show(c).await?,
-            Command::AccountBlockCount(c) => self.show(c).await?,
-            Command::AccountGet(c) => self.show(c).await?,
-            Command::AccountKey(c) => self.show(c).await?,
-            Command::AccountRepresentative(c) => self.show(c).await?,
-            Command::AccountWeight(c) => self.show(c).await?,
-            Command::AccountsBalances(c) => self.show(c).await?,
-            Command::AccountsFrontiers(c) => self.show(c).await?,
-            Command::AvailableSupply(c) => self.show(c).await?,
-            Command::BlockAccount(c) => self.show(c).await?,
-            Command::BlockConfirm(c) => self.show(c).await?,
-            Command::BlockCount(c) => self.show(c).await?,
-            Command::AccountsPending(c) => self.show(c).await?,
+            RpcCommand::AccountBalance(c) => self.show(c).await?,
+            RpcCommand::AccountBlockCount(c) => self.show(c).await?,
+            RpcCommand::AccountGet(c) => self.show(c).await?,
+            RpcCommand::AccountHistory(c) => self.show(c).await?,
+            RpcCommand::AccountInfo(c) => self.show(c).await?,
+            RpcCommand::AccountKey(c) => self.show(c).await?,
+            RpcCommand::AccountRepresentative(c) => self.show(c).await?,
+            RpcCommand::AccountWeight(c) => self.show(c).await?,
+            RpcCommand::AccountsBalances(c) => self.show(c).await?,
+            RpcCommand::AccountsFrontiers(c) => self.show(c).await?,
+            RpcCommand::AccountsPending(c) => self.show(c).await?,
+            RpcCommand::ActiveDifficulty(c) => self.show(c).await?,
+            RpcCommand::AvailableSupply(c) => self.show(c).await?,
+            RpcCommand::BlockAccount(c) => self.show(c).await?,
+            RpcCommand::BlockConfirm(c) => self.show(c).await?,
+            RpcCommand::BlockCount(c) => self.show(c).await?,
+            RpcCommand::BlockCreate(c) => self.show(c).await?,
+            RpcCommand::BlockInfo(c) => self.show(c).await?,
+            RpcCommand::Peers(c) => self.show(c).await?,
+            RpcCommand::Process(c) => self.show(c).await?,
+            RpcCommand::WorkValidate(c) => self.show(c).await?,
         };
         Ok(())
     }

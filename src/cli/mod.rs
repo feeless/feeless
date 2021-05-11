@@ -1,13 +1,32 @@
+#[cfg(feature = "pcap")]
+mod pcap;
+
+mod address;
+mod phrase;
+mod private;
+mod public;
+mod seed;
+mod unit;
+mod vanity;
+mod verify;
+mod wallet;
+mod work;
+
+#[cfg(feature = "rpc_client")]
+use crate::rpc::client::RPCClientOpts;
+
+#[cfg(feature = "pcap")]
 use crate::cli::pcap::PcapDumpOpts;
+
+#[cfg(feature = "node")]
+use crate::node::Node;
+
 use crate::cli::unit::UnitOpts;
 use crate::cli::vanity::VanityOpts;
 use crate::cli::verify::VerifyOpts;
 use crate::cli::wallet::WalletOpts;
 use crate::cli::work::WorkOpts;
-use crate::debug::parse_pcap_log_file_to_csv;
 use crate::network::Network;
-use crate::node::Node;
-use crate::rpc::client::RPCClientOpts;
 use address::AddressOpts;
 use anyhow::{anyhow, Context};
 use clap::Clap;
@@ -22,18 +41,6 @@ use std::str::FromStr;
 use std::{env, io};
 use tracing::Level;
 use tracing_subscriber::EnvFilter;
-
-mod address;
-mod pcap;
-mod phrase;
-mod private;
-mod public;
-mod seed;
-mod unit;
-mod vanity;
-mod verify;
-mod wallet;
-mod work;
 
 #[derive(Clap)]
 #[clap(author, about, version)]
@@ -52,8 +59,12 @@ struct Opts {
 
 #[derive(Clap)]
 enum Command {
+    #[cfg(feature = "node")]
     /// Launches a node
     Node(NodeOpts),
+    #[cfg(not(feature = "node"))]
+    /// Launches a node (DISABLED)
+    Node,
 
     /// Conversion between units, e.g. Rai to Nano
     Unit(UnitOpts),
@@ -85,14 +96,19 @@ enum Command {
     /// Find a secret that can generate a custom vanity address.
     Vanity(VanityOpts),
 
+    #[cfg(feature = "rpc_client")]
     /// RPC client that can call a function against a Nano RPC server.
     Call(RPCClientOpts),
+    #[cfg(not(feature = "rpc_client"))]
+    /// RPC client that can call a function against a Nano RPC server. (DISABLED)
+    Call,
 
+    #[cfg(feature = "pcap")]
     /// Tool to analyse network capture dumps for Nano packets.
     Pcap(PcapDumpOpts),
-
-    /// Debugging and experimental tools
-    Debug(DebugOpts),
+    #[cfg(not(feature = "pcap"))]
+    /// Tool to analyse network capture dumps for Nano packets. (DISABLED)
+    Pcap,
 }
 
 #[derive(Clap)]
@@ -100,17 +116,6 @@ struct NodeOpts {
     /// Comma separated list of IP:PORT pairs. Overrides default initial nodes.
     #[clap(short, long)]
     override_peers: Option<Vec<String>>,
-}
-
-#[derive(Clap)]
-struct DebugOpts {
-    #[clap(subcommand)]
-    command: DebugCommand,
-}
-
-#[derive(Clap)]
-enum DebugCommand {
-    PcapLogToCSV(PcapLogToCsvArgs),
 }
 
 #[derive(Clap)]
@@ -138,7 +143,7 @@ pub async fn run() -> anyhow::Result<()> {
         #[cfg(feature = "node")]
         Command::Node(o) => {
             let mut node = Node::new(Network::Live);
-            node.enable_rpc_server().await?;
+            let rpc_rx = node.start_rpc_server().await?;
             if let Some(str_addrs) = o.override_peers {
                 let mut socket_addrs = vec![];
                 for str_addr in str_addrs {
@@ -151,24 +156,20 @@ pub async fn run() -> anyhow::Result<()> {
                 node.peer_autodiscovery().await?;
             }
 
-            node.run().await
+            node.run(rpc_rx).await
         }
         #[cfg(not(feature = "node"))]
-        Command::Node(_) => panic!("Compile with the `node` feature to enable this."),
+        Command::Node => panic!("Compile with the `node` feature to enable this."),
 
         #[cfg(feature = "pcap")]
         Command::Pcap(o) => o.handle().await,
         #[cfg(not(feature = "pcap"))]
-        Command::Pcap(o) => panic!("Compile with the `pcap` feature to enable this."),
+        Command::Pcap => panic!("Compile with the `pcap` feature to enable this."),
 
         #[cfg(feature = "rpc_client")]
         Command::Call(o) => Ok(o.handle().await?),
         #[cfg(not(feature = "rpc_client"))]
-        Command::Call(o) => panic!("Compile with the `rpc_client` feature to enable this."),
-
-        Command::Debug(debug) => match debug.command {
-            DebugCommand::PcapLogToCSV(huh) => parse_pcap_log_file_to_csv(&huh.src, &huh.dst),
-        },
+        Command::Call => panic!("Compile with the `rpc_client` feature to enable this."),
 
         Command::Wallet(wallet) => wallet.handle().await,
         Command::Seed(seed) => seed.handle(),

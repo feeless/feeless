@@ -143,7 +143,7 @@ macro_rules! hexify {
             fn from_str(s: &str) -> crate::Result<Self> {
                 use ::std::convert::TryFrom;
 
-                crate::expect_len(s.len(), Self::LEN * 2, $description)?;
+                crate::encoding::expect_len(s.len(), Self::LEN * 2, $description)?;
                 let vec = hex::decode(s.as_bytes()).map_err(|e| crate::Error::FromHexError {
                     msg: String::from($description),
                     source: e,
@@ -220,9 +220,11 @@ macro_rules! hexify {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
-    use crate::Address;
     use std::str::FromStr;
+
+    use crate::Address;
+
+    use super::*;
 
     #[test]
     fn encode_decode() {
@@ -290,4 +292,22 @@ mod tests {
             assert!(result.is_err())
         }
     }
+}
+
+pub fn expect_len(got_len: usize, expected_len: usize, msg: &str) -> crate::Result<()> {
+    if got_len != expected_len {
+        return Err(crate::Error::WrongLength {
+            msg: msg.to_string(),
+            expected: expected_len,
+            found: got_len,
+        });
+    }
+    Ok(())
+}
+
+pub fn len_err_msg(got_len: usize, expected_len: usize, msg: &str) -> String {
+    format!(
+        "{} is the wrong length: got: {} expected: {}",
+        msg, got_len, expected_len,
+    )
 }

@@ -6,8 +6,9 @@ use crate::node::Wire;
 
 use crate::blocks::{hash_block, Block, BlockHash, BlockType, Previous};
 use crate::bytes::Bytes;
+use crate::encoding::expect_len;
 use crate::keys::public::{from_address, to_address};
-use crate::{expect_len, hexify, Error, Public, Rai, Result, Signature, Work};
+use crate::{hexify, Error, Public, Rai, Result, Signature, Work};
 use anyhow::anyhow;
 use anyhow::Context;
 use serde::{Deserialize, Deserializer, Serialize};
@@ -216,12 +217,11 @@ impl Display for StateBlock {
 
 #[cfg(test)]
 mod tests {
-    use crate::blocks::state_block::{Amount, Link, UnsureLink};
-    use crate::{Address, Public, Signature, Work};
-
     use super::Rai;
     use super::StateBlock;
+    use crate::blocks::state_block::{Amount, Link, UnsureLink};
     use crate::blocks::{Block, BlockHash, Previous};
+    use crate::{Address, Public, Signature, Work};
     use std::str::FromStr;
 
     fn account_0() -> Public {

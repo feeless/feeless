@@ -1,25 +1,25 @@
-use crate::node::ArcState;
+use crate::node::{ArcState, NodeCommandReceiver, NodeCommandSender};
 use crate::rpc::client::RPCError;
-use crate::rpc::Command;
+use crate::rpc::{NodeHandler, RpcCommand};
+use crate::Result;
 use serde::Serialize;
 use tokio::sync::mpsc;
 use tracing::{info, trace};
 use warp::http::StatusCode;
 use warp::Filter;
 
-pub struct RPCMessage {
-    response_rx: (),
-}
-
 pub struct RPCServer {
     state: ArcState,
-    tx: mpsc::Sender<RPCMessage>,
+    node_cmd_tx: NodeCommandSender,
 }
 
 impl RPCServer {
-    pub fn new_with_rx(state: ArcState) -> (Self, mpsc::Receiver<RPCMessage>) {
-        let (tx, rx) = mpsc::channel::<RPCMessage>(100);
-        let s = Self { tx, state };
+    pub fn new_with_channel(state: ArcState) -> (Self, NodeCommandReceiver) {
+        let (tx, rx) = mpsc::channel(100);
+        let s = Self {
+            node_cmd_tx: tx,
+            state,
+        };
         (s, rx)
     }
 
@@ -27,6 +27,8 @@ impl RPCServer {
         info!("Starting RPC server");
         let rpc = warp::post()
             .and(warp::body::content_length_limit(1024 * 16))
+            .and(with_state(self.state.clone()))
+            .and(with_node_tx(self.node_cmd_tx.clone()))
             .and(warp::body::json())
             .and_then(Self::handle);
 
@@ -35,9 +37,13 @@ impl RPCServer {
         Ok(())
     }
 
-    async fn handle(cmd: Command) -> Result<Box<dyn warp::Reply>, warp::Rejection> {
+    async fn handle(
+        _state: ArcState,
+        node_tx: NodeCommandSender,
+        cmd: RpcCommand,
+    ) -> std::result::Result<Box<dyn warp::Reply>, warp::Rejection> {
         trace!("Handling command: {:?}", cmd);
-        match cmd {
+        match &cmd {
             // TODO: Example usage
             // Command::ActiveDifficulty(c) => json(&ActiveDifficultyResponse {
             //     multiplier: 1.5,
@@ -46,14 +52,39 @@ impl RPCServer {
             //     network_receive_current: Difficulty::new(3),
             //     network_receive_minimum: Difficulty::new(4),
             // }),
-            action => json(&RPCError {
-                error: format!("The action: {:?} is unhandled", action),
-            }),
+            // RpcCommand::Peers(c) => json_result(handle_peers(state, tx, c).await),
+            RpcCommand::Peers(c) => json_result(c.handle(node_tx).await),
+            // RpcCommand::Process(c) => json_result(handle_process(state, tx, c).await),
+            action => json_result(Ok(RPCError {
+                error: format!("This action is unhandled by the RPC server: {:?}", action),
+            })),
         }
     }
 }
 
-fn json<T>(o: &T) -> Result<Box<dyn warp::Reply>, warp::Rejection>
+fn with_node_tx(
+    node_cmd_tx: NodeCommandSender,
+) -> impl Filter<Extract = (NodeCommandSender,), Error = std::convert::Infallible> + Clone {
+    warp::any().map(move || node_cmd_tx.clone())
+}
+
+fn with_state(
+    state: ArcState,
+) -> impl Filter<Extract = (ArcState,), Error = std::convert::Infallible> + Clone {
+    warp::any().map(move || state.clone())
+}
+
+fn json_result<T>(result: Result<T>) -> std::result::Result<Box<dyn warp::Reply>, warp::Rejection>
+where
+    T: Sized + Serialize,
+{
+    match &result {
+        Ok(o) => json(o),
+        Err(err) => todo!("{:?}", err),
+    }
+}
+
+fn json<T>(o: &T) -> std::result::Result<Box<dyn warp::Reply>, warp::Rejection>
 where
     T: ?Sized + Serialize,
 {

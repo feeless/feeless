@@ -1,11 +1,14 @@
-use crate::blocks::BlockType;
-use crate::expect_len;
-use crate::network::Network;
-use crate::node::wire::Wire;
-use anyhow::{anyhow, Context};
-use bitvec::prelude::*;
 use std::convert::{TryFrom, TryInto};
 use std::result::Result;
+
+use anyhow::{anyhow, Context};
+use bitvec::prelude::*;
+
+use crate::blocks::BlockType;
+use crate::encoding::expect_len;
+use crate::network::Network;
+use crate::node::wire::Wire;
+use crate::version::Version;
 
 // TODO: Have header internally only contain [u8; 8] and use accessors, so that the header doesn't
 //       have to be encoded/decoded when sending/receiving.
@@ -157,13 +160,6 @@ impl TryFrom<u8> for MagicNumber {
 
 #[derive(Debug, Clone, Copy, PartialEq)]
 #[repr(u8)]
-pub enum Version {
-    V18 = 18,
-    V19 = 19,
-}
-
-#[derive(Debug, Clone, Copy, PartialEq)]
-#[repr(u8)]
 pub enum MessageType {
     Keepalive = 2,
     Publish = 3,
@@ -289,9 +285,11 @@ impl TryFrom<&[u8]> for Extensions {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
-    use crate::node::state::MemoryState;
     use std::fmt::Debug;
+
+    use crate::node::state::MemoryState;
+
+    use super::*;
 
     #[test]
     fn serialize() {

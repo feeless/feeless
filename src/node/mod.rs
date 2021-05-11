@@ -1,4 +1,5 @@
 mod channel;
+mod command;
 mod controller;
 mod cookie;
 mod header;
@@ -8,26 +9,25 @@ mod state;
 mod timestamp;
 mod wire;
 
-use crate::network::Network;
-use crate::rpc::server::{RPCMessage, RPCServer};
+use crate::rpc::server::RPCServer;
+use crate::Network;
+pub use crate::Version;
 use anyhow::Context;
-use channel::network_channel;
+use channel::new_peer_channel;
+pub use command::{NodeCommand, NodeCommandReceiver, NodeCommandSender};
 pub use controller::{Controller, Packet};
 pub use header::Header;
 pub use state::{ArcState, MemoryState, SledDiskState};
 use std::net::SocketAddr;
 use std::sync::Arc;
-use tokio::net::TcpStream;
-use tokio::sync::{mpsc, Mutex};
+
+use tokio::sync::Mutex;
 use tracing::{debug, info};
 pub use wire::Wire;
 
 pub struct Node {
     network: Network,
     state: ArcState,
-
-    /// If an RPC server is running, this is where messages from it arrive to.
-    rpc_rx: Option<mpsc::Receiver<RPCMessage>>,
 }
 
 impl Node {
@@ -35,39 +35,36 @@ impl Node {
         // let state = SledDiskState::new(Network::Live);
         let state = MemoryState::new(network);
         let state = Arc::new(Mutex::new(state));
-        Self {
-            state,
-            network,
-            rpc_rx: None,
-        }
+        Self { state, network }
     }
 
-    // TODO: I think result will be needed here to make sure the RPC server can bind.
-    pub async fn enable_rpc_server(&mut self) -> anyhow::Result<()> {
-        let (rpc_server, rx) = RPCServer::new_with_rx(self.state.clone());
+    pub async fn start_rpc_server(&self) -> anyhow::Result<NodeCommandReceiver> {
+        let (rpc_server, rx) = RPCServer::new_with_channel(self.state.clone());
         tokio::spawn(rpc_server.run());
-        self.rpc_rx = Some(rx);
-        Ok(())
+        Ok(rx)
     }
 
-    pub async fn run(self) -> anyhow::Result<()> {
-        let mut handles = vec![];
+    pub async fn run(self, mut node_rx: NodeCommandReceiver) -> anyhow::Result<()> {
         let initial_peers = self.state.lock().await.peers().await?;
-        for socket_addr in initial_peers {
-            info!("Spawning a channel to {:?}", socket_addr);
+        for address in initial_peers {
+            info!("Spawning a channel to {:?}", address);
             let state = self.state.clone();
             let network = self.network.clone();
-            let handle = tokio::spawn(async move {
-                let stream = TcpStream::connect(socket_addr).await.unwrap();
-                network_channel(network, state, stream)
-                    .await
-                    .expect("Error in network_channel")
-            });
-            handles.push(handle)
+            new_peer_channel(network, state, address)?;
         }
 
-        for handle in handles {
-            handle.await?
+        // TODO: The node might need to receive commands from the controllers, e.g. found knowledge
+        //       of new peers, to decide if it should connect to these new nodes. <-- goodish
+        //       That or if the controller spawns another controller, the node will need to access
+        //       the controller message channel. <-- probably not a good solution
+        //       Another idea: Just have the node poll every few seconds to see if there are any
+        //       new peers in its state (which is added by the controller), then connect
+        //       to them appropriately. <-- I like this the best! It means no need for a channel back.
+        while let Some(node_command) = node_rx.recv().await {
+            dbg!("todo node command", &node_command);
+            match node_command {
+                NodeCommand::PeerInfo(_tx) => todo!("get_active_peers()"),
+            };
         }
 
         info!("Quitting...");

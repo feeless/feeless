@@ -4,8 +4,11 @@ use anyhow::anyhow;
 use std::convert::TryFrom;
 use std::str::FromStr;
 
+/// The default TCP port that Nano nodes use.
+pub const DEFAULT_PORT: u16 = 7075;
+
+/// Network to use: Test, Beta, Live.
 #[derive(Debug, Clone, Copy, PartialEq)]
-#[repr(u8)]
 pub enum Network {
     Test = 0x41,
     Beta = 0x42,

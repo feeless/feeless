@@ -16,9 +16,12 @@ mod block_confirm;
 mod block_count;
 mod block_create;
 mod block_info;
+mod peers;
 mod process;
 mod work_validate;
 
+use crate::node::NodeCommandSender;
+use crate::Result;
 pub use account_balance::{AccountBalanceRequest, AccountBalanceResponse};
 pub use account_block_count::{AccountBlockCountRequest, AccountBlockCountResponse};
 pub use account_get::{AccountGetRequest, AccountGetResponse};
@@ -31,6 +34,7 @@ pub use accounts_balances::{AccountsBalancesRequest, AccountsBalancesResponse};
 pub use accounts_frontiers::{AccountsFrontiersRequest, AccountsFrontiersResponse};
 pub use accounts_pending::{AccountsPendingRequest, AccountsPendingResponse};
 pub use active_difficulty::{ActiveDifficultyRequest, ActiveDifficultyResponse};
+use async_trait::async_trait;
 pub use available_supply::{AvailableSupplyRequest, AvailableSupplyResponse};
 pub use block_account::{BlockAccountRequest, BlockAccountResponse};
 pub use block_confirm::{BlockConfirmRequest, BlockConfirmResponse};
@@ -38,21 +42,30 @@ pub use block_count::{BlockCountRequest, BlockCountResponse};
 pub use block_create::{BlockCreateRequest, BlockCreateResponse};
 pub use block_info::{BlockInfoRequest, BlockInfoResponse};
 use clap::Clap;
+pub use peers::{DetailedPeerInfo, Peers, PeersRequest, PeersResponse};
 pub use process::{ProcessRequest, ProcessResponse};
 use serde::{de, Deserialize, Deserializer, Serialize, Serializer};
 use std::fmt::Display;
 use std::ops::Deref;
 use std::str::FromStr;
+
 pub use work_validate::{WorkValidateRequest, WorkValidateResponse};
+
+#[async_trait]
+pub trait NodeHandler {
+    type Response: Serialize;
+
+    async fn handle(&self, node_tx: NodeCommandSender) -> Result<Self::Response>;
+}
 
 #[derive(Debug, Clap, Deserialize)]
 #[serde(tag = "action", rename_all = "snake_case")]
-pub enum Command {
+pub enum RpcCommand {
     AccountBalance(AccountBalanceRequest),
     AccountHistory(AccountHistoryRequest),
     AccountInfo(AccountInfoRequest),
+    AccountsPending(AccountsPendingRequest),
     ActiveDifficulty(ActiveDifficultyRequest),
-    Process(ProcessRequest),
     AccountBlockCount(AccountBlockCountRequest),
     AccountGet(AccountGetRequest),
     AccountKey(AccountKeyRequest),
@@ -65,9 +78,10 @@ pub enum Command {
     BlockCount(BlockCountRequest),
     BlockCreate(BlockCreateRequest),
     BlockInfo(BlockInfoRequest),
-    WorkValidate(WorkValidateRequest),
     BlockConfirm(BlockConfirmRequest),
-    AccountsPending(AccountsPendingRequest),
+    Peers(PeersRequest),
+    Process(ProcessRequest),
+    WorkValidate(WorkValidateRequest),
 }
 
 pub(crate) fn from_str<'de, T, D>(deserializer: D) -> std::result::Result<T, D::Error>
@@ -94,7 +108,7 @@ where
         .map(|res| Some(res))
 }
 
-pub fn as_str<V, S>(v: &V, serializer: S) -> Result<S::Ok, S::Error>
+pub fn as_str<V, S>(v: &V, serializer: S) -> std::result::Result<S::Ok, S::Error>
 where
     S: Serializer,
     V: Display,
@@ -102,7 +116,7 @@ where
     serializer.serialize_str(v.to_string().as_str())
 }
 
-pub fn as_str_option<V, S>(v: &Option<V>, serializer: S) -> Result<S::Ok, S::Error>
+pub fn as_str_option<V, S>(v: &Option<V>, serializer: S) -> std::result::Result<S::Ok, S::Error>
 where
     S: Serializer,
     V: Display,
