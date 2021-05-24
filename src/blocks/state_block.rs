@@ -4,8 +4,10 @@ use crate::node::Header;
 #[cfg(feature = "node")]
 use crate::node::Wire;
 
-use crate::blocks::{hash_block, Block, BlockHash, BlockType, Previous};
+#[cfg(feature = "node")]
 use crate::bytes::Bytes;
+
+use crate::blocks::{hash_block, Block, BlockHash, BlockType, Previous};
 use crate::encoding::expect_len;
 use crate::keys::public::{from_address, to_address};
 use crate::{hexify, Error, Public, Rai, Result, Signature, Work};
