@@ -4,13 +4,20 @@ use crate::node::Header;
 #[cfg(feature = "node")]
 use crate::node::Wire;
 
-use crate::blocks::{BlockHash, BlockType};
+#[cfg(feature = "node")]
+use crate::blocks::BlockType;
+
+#[cfg(feature = "node")]
 use crate::bytes::Bytes;
+
+#[cfg(feature = "node")]
+use std::convert::TryFrom;
+
+use crate::blocks::BlockHash;
 use crate::keys::public::{from_address, to_address};
 use crate::units::rai::{deserialize_from_hex, serialize_to_hex};
 use crate::{Public, Rai, Signature, Work};
 use serde::{Deserialize, Serialize};
-use std::convert::TryFrom;
 
 #[derive(Debug, Clone, Serialize, Deserialize, Eq, PartialEq)]
 pub struct SendBlock {

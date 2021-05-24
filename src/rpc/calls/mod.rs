@@ -20,8 +20,15 @@ mod peers;
 mod process;
 mod work_validate;
 
+#[cfg(feature = "node")]
 use crate::node::NodeCommandSender;
+
+#[cfg(feature = "node")]
 use crate::Result;
+
+#[cfg(feature = "node")]
+use async_trait::async_trait;
+
 pub use account_balance::{AccountBalanceRequest, AccountBalanceResponse};
 pub use account_block_count::{AccountBlockCountRequest, AccountBlockCountResponse};
 pub use account_get::{AccountGetRequest, AccountGetResponse};
@@ -34,7 +41,6 @@ pub use accounts_balances::{AccountsBalancesRequest, AccountsBalancesResponse};
 pub use accounts_frontiers::{AccountsFrontiersRequest, AccountsFrontiersResponse};
 pub use accounts_pending::{AccountsPendingRequest, AccountsPendingResponse};
 pub use active_difficulty::{ActiveDifficultyRequest, ActiveDifficultyResponse};
-use async_trait::async_trait;
 pub use available_supply::{AvailableSupplyRequest, AvailableSupplyResponse};
 pub use block_account::{BlockAccountRequest, BlockAccountResponse};
 pub use block_confirm::{BlockConfirmRequest, BlockConfirmResponse};
@@ -51,6 +57,7 @@ use std::str::FromStr;
 
 pub use work_validate::{WorkValidateRequest, WorkValidateResponse};
 
+#[cfg(any(feature = "node"))]
 #[async_trait]
 pub trait NodeHandler {
     type Response: Serialize;

@@ -26,16 +26,14 @@ use crate::cli::vanity::VanityOpts;
 use crate::cli::verify::VerifyOpts;
 use crate::cli::wallet::WalletOpts;
 use crate::cli::work::WorkOpts;
-use crate::network::Network;
 use address::AddressOpts;
-use anyhow::{anyhow, Context};
+use anyhow::anyhow;
 use clap::Clap;
 use phrase::PhraseOpts;
 use private::PrivateOpts;
 use public::PublicOpts;
 use seed::SeedOpts;
 use std::io::Read;
-use std::net::SocketAddr;
 use std::path::PathBuf;
 use std::str::FromStr;
 use std::{env, io};
@@ -141,23 +139,7 @@ pub async fn run() -> anyhow::Result<()> {
 
     match opts.command {
         #[cfg(feature = "node")]
-        Command::Node(o) => {
-            let mut node = Node::new(Network::Live);
-            let rpc_rx = node.start_rpc_server().await?;
-            if let Some(str_addrs) = o.override_peers {
-                let mut socket_addrs = vec![];
-                for str_addr in str_addrs {
-                    let socket_addr = SocketAddr::from_str(&str_addr)
-                        .with_context(|| format!("Could not parse host:port: {}", str_addr))?;
-                    socket_addrs.push(socket_addr);
-                }
-                node.add_peers(&socket_addrs).await?;
-            } else {
-                node.peer_autodiscovery().await?;
-            }
-
-            node.run(rpc_rx).await
-        }
+        Command::Node(o) => Node::start(o.override_peers).await,
         #[cfg(not(feature = "node"))]
         Command::Node => panic!("Compile with the `node` feature to enable this."),
 

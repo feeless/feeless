@@ -62,6 +62,7 @@ pub enum Error {
     #[error("Invalid armor content: {0}")]
     InvalidArmor(String),
 
+    #[cfg(any(feature = "rpc_client", feature = "rpc_server"))]
     #[error("RPC request failed: {0}")]
     RPCRequestFailed(#[from] reqwest::Error),
 

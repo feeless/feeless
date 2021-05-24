@@ -12,6 +12,9 @@ use crate::node::Wire;
 #[cfg(feature = "node")]
 use crate::node::Header;
 
+#[cfg(any(feature = "node", feature = "rpc_client"))]
+pub(crate) use state_block::deserialize_to_unsure_link;
+
 use crate::encoding::blake2b;
 use crate::keys::public::to_address;
 use crate::network::Network;
@@ -24,7 +27,6 @@ pub use receive_block::ReceiveBlock;
 pub use send_block::SendBlock;
 use serde;
 use serde::{Deserialize, Serialize};
-pub(crate) use state_block::deserialize_to_unsure_link;
 pub use state_block::{Link, StateBlock, Subtype};
 use std::convert::TryFrom;
 use std::str::FromStr;

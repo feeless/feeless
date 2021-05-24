@@ -19,8 +19,8 @@ pub use controller::{Controller, Packet};
 pub use header::Header;
 pub use state::{ArcState, MemoryState, SledDiskState};
 use std::net::SocketAddr;
+use std::str::FromStr;
 use std::sync::Arc;
-
 use tokio::sync::Mutex;
 use tracing::{debug, info};
 pub use wire::Wire;
@@ -31,6 +31,24 @@ pub struct Node {
 }
 
 impl Node {
+    pub async fn start(override_peers: Option<Vec<String>>) -> anyhow::Result<()> {
+        let mut node = Node::new(Network::Live);
+        let rpc_rx = node.start_rpc_server().await?;
+        if let Some(str_addrs) = override_peers {
+            let mut socket_addrs = vec![];
+            for str_addr in str_addrs {
+                let socket_addr = SocketAddr::from_str(&str_addr)
+                    .with_context(|| format!("Could not parse host:port: {}", str_addr))?;
+                socket_addrs.push(socket_addr);
+            }
+            node.add_peers(&socket_addrs).await?;
+        } else {
+            node.peer_autodiscovery().await?;
+        }
+
+        node.run(rpc_rx).await
+    }
+
     pub fn new(network: Network) -> Self {
         // let state = SledDiskState::new(Network::Live);
         let state = MemoryState::new(network);

@@ -1,7 +1,11 @@
+#[cfg(feature = "node")]
 use crate::node::{NodeCommand, NodeCommandSender};
+
+#[cfg(feature = "node")]
+use crate::rpc::NodeHandler;
+
 use crate::rpc::calls::{as_str, from_str};
 use crate::rpc::client::{RPCClient, RPCRequest};
-use crate::rpc::NodeHandler;
 use crate::version::Version;
 use crate::Result;
 use async_trait::async_trait;
@@ -9,7 +13,6 @@ use clap::Clap;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::net::SocketAddr;
-use tokio::sync::oneshot;
 
 #[derive(Debug, Serialize, Deserialize, Clap)]
 pub struct PeersRequest {
@@ -32,11 +35,13 @@ impl RPCRequest for &PeersRequest {
     }
 }
 
+#[cfg(feature = "node")]
 #[async_trait]
 impl NodeHandler for &PeersRequest {
     type Response = PeersResponse;
 
     async fn handle(&self, node_tx: NodeCommandSender) -> Result<PeersResponse> {
+        use tokio::sync::oneshot;
         let (tx, rx) = oneshot::channel();
         node_tx.send(NodeCommand::PeerInfo(tx)).await.expect("TODO");
         Ok(PeersResponse {
