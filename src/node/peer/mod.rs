@@ -49,9 +49,9 @@ enum RecvState {
     Payload(Header),
 }
 
-/// The controller handles the logic of one peer. It handles and emits messages, as well as time
-/// based actions, peer management, etc.
-pub struct Controller {
+/// Handles the logic of one peer. It handles and emits messages, as well as time
+/// based actions, management of other peers, etc.
+pub struct Peer {
     /// Disable when used for pcap dump, where might have our own different cookie.
     pub validate_handshakes: bool,
 
@@ -75,7 +75,7 @@ pub struct Controller {
     last_annotation: Option<String>,
 }
 
-impl Controller {
+impl Peer {
     pub fn new_with_channels(
         network: Network,
         state: ArcState,
@@ -114,7 +114,6 @@ impl Controller {
         // self.send_telemetry_req().await?;
 
         while let Some(packet) = self.peer_rx.recv().await {
-            trace!("Handle packet");
             self.handle_packet(packet).await?;
         }
         trace!("Exiting controller");
@@ -285,15 +284,15 @@ mod tests {
     use std::sync::Arc;
     use tokio::sync::Mutex;
 
-    async fn empty_lattice(network: Network) -> Controller {
+    async fn empty_lattice(network: Network) -> Peer {
         let state = Arc::new(Mutex::new(MemoryState::new(network)));
-        let (mut controller, _rx, _tx) = Controller::new_with_channels(
+        let (mut peer, _rx, _tx) = Peer::new_with_channels(
             network,
             state,
             SocketAddr::V4(SocketAddrV4::new(Ipv4Addr::LOCALHOST, DEFAULT_PORT)),
         );
-        controller.init().await.unwrap();
-        controller
+        peer.init().await.unwrap();
+        peer
     }
 
     #[tokio::test]
@@ -301,10 +300,9 @@ mod tests {
         let network = Network::Live;
         let genesis = network.genesis_block();
 
-        let controller = empty_lattice(network).await;
+        let peer = empty_lattice(network).await;
         assert_eq!(
-            controller
-                .get_latest_block(genesis.account())
+            peer.get_latest_block(genesis.account())
                 .await
                 .unwrap()
                 .unwrap()
@@ -325,7 +323,7 @@ mod tests {
                 .unwrap()
                 .to_public();
 
-        let mut controller = empty_lattice(network).await;
+        let mut peer = empty_lattice(network).await;
 
         let gen_send: SendBlock = serde_json::from_str(
             r#"{
@@ -344,7 +342,7 @@ mod tests {
         let block: Block =
             Block::from_send_block(&gen_send, genesis.account(), genesis.representative());
 
-        controller.add_elected_block(&block).await.unwrap();
+        peer.add_elected_block(&block).await.unwrap();
 
         let given = Rai::from(3271945835778254456378601994536232802u128);
 
@@ -352,16 +350,13 @@ mod tests {
 
         // The genesis account has a reduced amount because they've created a send block.
         assert_eq!(
-            controller
-                .account_balance(&genesis.account())
-                .await
-                .unwrap(),
+            peer.account_balance(&genesis.account()).await.unwrap(),
             genesis_balance
         );
 
         // Account isn't opened yet so it's empty.
         assert_eq!(
-            controller.account_balance(&landing_account).await.unwrap(),
+            peer.account_balance(&landing_account).await.unwrap(),
             Rai::zero()
         );
 
@@ -389,12 +384,9 @@ mod tests {
             .unwrap()
         );
 
-        controller.add_elected_block(&land_open).await.unwrap();
+        peer.add_elected_block(&land_open).await.unwrap();
 
-        assert_eq!(
-            controller.account_balance(&landing_account).await.unwrap(),
-            given
-        );
+        assert_eq!(peer.account_balance(&landing_account).await.unwrap(), given);
 
         let land_send: SendBlock = serde_json::from_str(
             r#"{
@@ -409,10 +401,10 @@ mod tests {
         let land_send =
             Block::from_send_block(&land_send, &landing_account, &land_open.representative());
 
-        controller.add_elected_block(&land_send).await.unwrap();
+        peer.add_elected_block(&land_send).await.unwrap();
 
         assert_eq!(
-            controller.account_balance(&landing_account).await.unwrap(),
+            peer.account_balance(&landing_account).await.unwrap(),
             given
                 .checked_sub(&Rai::from(324518553658426726783156020576256))
                 .unwrap()
