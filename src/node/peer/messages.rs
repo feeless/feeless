@@ -37,6 +37,7 @@ impl Peer {
         Ok(())
     }
 
+    #[instrument(skip(self, header, handshake))]
     pub async fn handle_handshake(
         &mut self,
         header: &Header,
@@ -46,7 +47,18 @@ impl Peer {
             No,
             Yes(Public, Signature),
         }
-        trace!("Handling handshake: {:?}", handshake);
+
+        debug!(
+            "IsQuery: {:?} IsResponse: {:?}",
+            header.ext().is_query(),
+            header.ext().is_response()
+        );
+        if let Some(query) = &handshake.query {
+            trace!("Query: {:?}", query);
+        }
+        if let Some(response) = &handshake.response {
+            trace!("Response: {:?}", response);
+        }
         let mut should_respond = ShouldRespond::No;
 
         if header.ext().is_query() {
@@ -109,6 +121,7 @@ impl Peer {
         Ok(())
     }
 
+    #[instrument(skip(self, _header, keepalive))]
     pub async fn handle_keepalive(
         &mut self,
         _header: &Header,

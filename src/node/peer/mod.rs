@@ -104,7 +104,7 @@ impl Peer {
 
     /// Run will loop forever and is expected to be spawned and will quit when the incoming channel
     /// is closed.
-    #[instrument(skip(self), fields(address = %self.peer_addr))]
+    #[instrument(name = "node", skip(self), fields(address = %self.peer_addr))]
     pub async fn run(mut self) -> anyhow::Result<()> {
         trace!("Initial handshake");
         self.send_handshake().await?;
@@ -121,6 +121,7 @@ impl Peer {
         Ok(())
     }
 
+    #[instrument(skip(self, packet))]
     async fn handle_packet(&mut self, packet: Packet) -> anyhow::Result<()> {
         trace!("handle_packet");
 
@@ -228,7 +229,7 @@ impl Peer {
         Ok(buf)
     }
 
-    #[instrument(level = "debug", skip(self, message))]
+    #[instrument(skip(self, message))]
     async fn send<T: Wire + Debug>(&mut self, message: &T) -> anyhow::Result<()> {
         let data = message.serialize();
         trace!("HEX {}", to_hex(&data));
@@ -237,12 +238,14 @@ impl Peer {
         Ok(())
     }
 
+    #[instrument(skip(self, message_type, ext))]
     async fn send_header(
         &mut self,
         message_type: MessageType,
         ext: Extensions,
     ) -> anyhow::Result<()> {
         let header = Header::new(self.network, message_type, ext);
+        trace!("{:?}", header);
         Ok(self.send(&header).await?)
     }
 
