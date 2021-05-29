@@ -1,6 +1,6 @@
 use crate::network::Network;
 use crate::network::DEFAULT_PORT;
-use crate::node::{Controller, MemoryState, Packet};
+use crate::node::{MemoryState, Packet, Peer};
 use anyhow::Context;
 use chrono::{DateTime, Utc};
 use etherparse::{InternetSlice, SlicedPacket};
@@ -40,8 +40,8 @@ pub(crate) struct PcapDump {
     /// Frontier connections
     frontiers: HashSet<String>,
 
-    /// per_stream_controllers
-    controllers: HashMap<String, Sender<Packet>>,
+    /// per_stream_peers
+    peers: HashMap<String, Sender<Packet>>,
 
     pub start_at: Option<usize>,
     pub end_at: Option<usize>,
@@ -71,7 +71,7 @@ impl PcapDump {
             start_at: None,
             end_at: None,
             filter_addr: None,
-            controllers: Default::default(),
+            peers: Default::default(),
         }
     }
 
@@ -199,14 +199,14 @@ impl PcapDump {
                 data.len(),
             );
 
-            let tx = match self.controllers.get(&connection_id) {
+            let tx = match self.peers.get(&connection_id) {
                 Some(z) => z,
                 None => {
                     let state_cloned = state.clone();
                     let peer_addr =
                         SocketAddr::new(IpAddr::V4(ip.destination_addr()), tcp.destination_port());
                     let (mut c, tx, mut rx) =
-                        Controller::new_with_channels(network, state_cloned, peer_addr.clone());
+                        Peer::new_with_channels(network, state_cloned, peer_addr.clone());
 
                     // Discard all responses from the controller since we are just processing
                     // packets.
@@ -226,8 +226,8 @@ impl PcapDump {
                         }
                     });
 
-                    self.controllers.insert(connection_id.clone(), tx);
-                    self.controllers.get(&connection_id).unwrap()
+                    self.peers.insert(connection_id.clone(), tx);
+                    self.peers.get(&connection_id).unwrap()
                 }
             };
 

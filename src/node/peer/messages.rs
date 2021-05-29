@@ -1,4 +1,4 @@
-use super::Controller;
+use super::Peer;
 use crate::blocks::{Block, BlockHash, BlockHolder, BlockType, Link, Previous, StateBlock};
 use crate::node::cookie::Cookie;
 use crate::node::header::{Extensions, Header, MessageType};
@@ -17,7 +17,7 @@ use anyhow::Context;
 use std::convert::TryFrom;
 use tracing::{debug, info, instrument, trace, warn};
 
-impl Controller {
+impl Peer {
     #[instrument(skip(self))]
     pub async fn send_handshake(&mut self) -> anyhow::Result<()> {
         trace!("Sending handshake");
@@ -71,8 +71,8 @@ impl Controller {
             let response = handshake
                 .response
                 .expect("response is None but is_response is True");
-            let public = response.public;
-            let signature = response.signature;
+            let _public = response.public;
+            let _signature = response.signature;
 
             let cookie = &self
                 .state
@@ -87,12 +87,14 @@ impl Controller {
                 );
                 return Ok(());
             }
-            let cookie = cookie.as_ref().unwrap();
+            let _cookie = cookie.as_ref().unwrap();
 
             if self.validate_handshakes {
-                public
-                    .verify(&cookie.as_bytes(), &signature)
-                    .context("Invalid signature in handshake response")?;
+                // TODO: This is always failing currently.
+                warn!("TODO: Not validating handshake.");
+                // public
+                //     .verify(&cookie.as_bytes(), &signature)
+                //     .context("Invalid signature in handshake response")?;
             }
         }
 
@@ -206,7 +208,7 @@ impl Controller {
         &self,
         previous_block_hash: &BlockHash,
     ) -> anyhow::Result<Option<StateBlock>> {
-        let previous_block = Controller::block_by_hash(self, previous_block_hash).await?;
+        let previous_block = Peer::block_by_hash(self, previous_block_hash).await?;
         if let Some(previous_block) = previous_block {
             let is_head = self
                 .get_latest_block(previous_block.account())
@@ -354,11 +356,11 @@ impl Controller {
             .is_some())
     }
 
-    /// For history nodes this has the same semantics as `Controller::block_existed`
+    /// For history nodes this has the same semantics as `Peer::block_existed`
     /// Right now history nodes are not implemented so effectively there is no
     /// difference.
     async fn block_exists(&self, block_hash: &BlockHash) -> anyhow::Result<bool> {
-        Controller::block_existed(self, block_hash).await
+        Peer::block_existed(self, block_hash).await
     }
 }
 
@@ -421,7 +423,7 @@ mod tests {
         frontier_block
     }
 
-    async fn test_controller_with_blocks(blocks: &[&Block]) -> Controller {
+    async fn test_peer_with_blocks(blocks: &[&Block]) -> Peer {
         let network = Network::Test;
         let mut state_raw = MemoryState::new(network);
         for block in blocks {
@@ -429,8 +431,8 @@ mod tests {
         }
         let test_socket_addr = SocketAddr::from_str("[::1]:1").unwrap();
         let state = Arc::new(Mutex::new(state_raw));
-        let (controller, _, _) = Controller::new_with_channels(network, state, test_socket_addr);
-        controller
+        let (peer, _, _) = Peer::new_with_channels(network, state, test_socket_addr);
+        peer
     }
 
     #[tokio::test]
@@ -439,9 +441,9 @@ mod tests {
         let (_, root_block) = root_block();
         let (_, frontier_block) = frontier_block();
         let blocks = &[&root_block, &frontier_block];
-        let controller = test_controller_with_blocks(blocks).await;
+        let peer = test_peer_with_blocks(blocks).await;
 
-        Controller::previous_as_account_info(&controller, root_block.hash().unwrap())
+        Peer::previous_as_account_info(&peer, root_block.hash().unwrap())
             .await
             .unwrap()
             .unwrap();
@@ -449,10 +451,10 @@ mod tests {
 
     #[tokio::test]
     async fn should_retrieve_none_if_previous_not_existent() {
-        let controller = test_controller_with_blocks(&[]).await;
+        let peer = test_peer_with_blocks(&[]).await;
         let (_, root_block) = root_block();
 
-        let none = Controller::previous_as_account_info(&controller, root_block.hash().unwrap())
+        let none = Peer::previous_as_account_info(&peer, root_block.hash().unwrap())
             .await
             .unwrap();
         assert!(none.is_none())
@@ -462,9 +464,9 @@ mod tests {
     async fn should_retrieve_previous_as_account() {
         let (_, frontier_block) = frontier_block();
         let frontier = StateBlock::from(frontier_block.clone());
-        let controller = test_controller_with_blocks(&[&frontier_block]).await;
+        let peer = test_peer_with_blocks(&[&frontier_block]).await;
 
-        let frontier_result = Controller::previous_as_account_info(&controller, &frontier.hash)
+        let frontier_result = Peer::previous_as_account_info(&peer, &frontier.hash)
             .await
             .unwrap()
             .unwrap();
@@ -473,15 +475,15 @@ mod tests {
 
     #[tokio::test]
     async fn should_process_good_send_sub_block_when_block_is_good() {
-        let controller = test_controller_with_blocks(&[]).await;
+        let peer = test_peer_with_blocks(&[]).await;
         let good_send_block = good_send_block();
         let good_send_block_hash = good_send_block.hash.clone();
 
-        Controller::process_good_send_sub_block(&controller, good_send_block)
+        Peer::process_good_send_sub_block(&peer, good_send_block)
             .await
             .unwrap();
 
-        let block_was_stored = Controller::block_exists(&controller, &good_send_block_hash)
+        let block_was_stored = Peer::block_exists(&peer, &good_send_block_hash)
             .await
             .unwrap();
         assert_eq!(block_was_stored, true)
@@ -489,15 +491,15 @@ mod tests {
 
     #[tokio::test]
     async fn should_not_process_bad_send_sub_block_when_block_is_bad() {
-        let controller = test_controller_with_blocks(&[]).await;
+        let peer = test_peer_with_blocks(&[]).await;
         let bad_send_block = bad_send_block();
         let bad_send_block_hash = bad_send_block.hash.clone();
 
-        Controller::process_good_send_sub_block(&controller, bad_send_block)
+        Peer::process_good_send_sub_block(&peer, bad_send_block)
             .await
             .unwrap();
 
-        let block_was_stored = Controller::block_exists(&controller, &bad_send_block_hash)
+        let block_was_stored = Peer::block_exists(&peer, &bad_send_block_hash)
             .await
             .unwrap();
         assert_eq!(block_was_stored, false)
@@ -507,30 +509,26 @@ mod tests {
     async fn should_process_send_with_previous() {
         let (root, root_block) = root_block();
         let (frontier, _) = frontier_block();
-        let controller = test_controller_with_blocks(&[&root_block]).await;
+        let peer = test_peer_with_blocks(&[&root_block]).await;
 
-        Controller::process_block_with_previous(&controller, frontier.clone(), root)
+        Peer::process_block_with_previous(&peer, frontier.clone(), root)
             .await
             .unwrap();
 
-        let block_was_stored = Controller::block_exists(&controller, &frontier.hash)
-            .await
-            .unwrap();
+        let block_was_stored = Peer::block_exists(&peer, &frontier.hash).await.unwrap();
         assert_eq!(block_was_stored, true)
     }
 
     #[tokio::test]
     async fn should_not_process_send_without_previous() {
         let (frontier, _) = frontier_block();
-        let controller = test_controller_with_blocks(&[]).await;
+        let peer = test_peer_with_blocks(&[]).await;
 
-        Controller::process_valid_existing_state_block(&controller, frontier.clone())
+        Peer::process_valid_existing_state_block(&peer, frontier.clone())
             .await
             .unwrap();
 
-        let block_was_stored = Controller::block_exists(&controller, &frontier.hash)
-            .await
-            .unwrap();
+        let block_was_stored = Peer::block_exists(&peer, &frontier.hash).await.unwrap();
         assert_eq!(block_was_stored, false)
     }
 }

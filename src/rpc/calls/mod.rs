@@ -54,7 +54,6 @@ use serde::{de, Deserialize, Deserializer, Serialize, Serializer};
 use std::fmt::Display;
 use std::ops::Deref;
 use std::str::FromStr;
-
 pub use work_validate::{WorkValidateRequest, WorkValidateResponse};
 
 #[cfg(any(feature = "node"))]

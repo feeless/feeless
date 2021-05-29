@@ -1,10 +1,10 @@
 use crate::bytes::Bytes;
 use crate::node::header::Header;
-use crate::node::peer::Peer;
+use crate::node::peer_info::PeerInfo;
 use crate::node::wire::Wire;
 
 #[derive(Debug)]
-pub struct Keepalive(Vec<Peer>);
+pub struct Keepalive(Vec<PeerInfo>);
 
 impl Keepalive {
     pub const PEERS: usize = 8;
@@ -22,17 +22,17 @@ impl Wire for Keepalive {
         let mut s = Self(vec![]);
         let mut bytes = Bytes::new(data);
         for _ in 0..Keepalive::PEERS {
-            let slice = bytes.slice(Peer::LEN)?;
-            if slice == [0u8; Peer::LEN] {
+            let slice = bytes.slice(PeerInfo::LEN)?;
+            if slice == [0u8; PeerInfo::LEN] {
                 continue;
             }
-            let peer = Peer::deserialize(header, slice)?;
+            let peer = PeerInfo::deserialize(header, slice)?;
             s.0.push(peer);
         }
         Ok(s)
     }
 
     fn len(_: Option<&Header>) -> anyhow::Result<usize> {
-        Ok(Peer::LEN * Keepalive::PEERS)
+        Ok(PeerInfo::LEN * Keepalive::PEERS)
     }
 }

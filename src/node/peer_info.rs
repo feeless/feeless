@@ -4,9 +4,9 @@ use crate::node::wire::Wire;
 use std::net::{Ipv6Addr, SocketAddrV6};
 use std::str::FromStr;
 
-pub struct Peer(SocketAddrV6);
+pub struct PeerInfo(SocketAddrV6);
 
-impl Peer {
+impl PeerInfo {
     pub const LEN: usize = 18;
     pub const ADDR_LEN: usize = 16;
 
@@ -15,15 +15,15 @@ impl Peer {
     }
 }
 
-impl FromStr for Peer {
+impl FromStr for PeerInfo {
     type Err = anyhow::Error;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        Ok(Peer(SocketAddrV6::from_str(s)?))
+        Ok(PeerInfo(SocketAddrV6::from_str(s)?))
     }
 }
 
-impl Wire for Peer {
+impl Wire for PeerInfo {
     fn serialize(&self) -> Vec<u8> {
         let mut v = Vec::with_capacity(Self::LEN);
         v.extend_from_slice(&self.0.ip().octets());
@@ -46,11 +46,11 @@ impl Wire for Peer {
     }
 
     fn len(_header: Option<&Header>) -> anyhow::Result<usize> {
-        Ok(Peer::LEN)
+        Ok(PeerInfo::LEN)
     }
 }
 
-impl std::fmt::Debug for Peer {
+impl std::fmt::Debug for PeerInfo {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "Peer({})", self.0)
     }
@@ -63,9 +63,9 @@ mod tests {
     #[test]
     fn serialize() {
         let addr = "[::ffff:255.254.253.252]:7075";
-        let peer = Peer::from_str(addr).unwrap();
+        let peer = PeerInfo::from_str(addr).unwrap();
         let v = peer.serialize();
-        let peer2 = Peer::deserialize(None, v.as_slice()).unwrap();
+        let peer2 = PeerInfo::deserialize(None, v.as_slice()).unwrap();
         let addr2 = peer2.socket_addr_v6().to_string();
         assert_eq!(addr, addr2);
     }

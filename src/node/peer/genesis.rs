@@ -1,9 +1,9 @@
-use crate::node::controller::Controller;
+use crate::node::peer::Peer;
 
 use anyhow::Context;
 use tracing::info;
 
-impl Controller {
+impl Peer {
     pub async fn ensure_genesis(&mut self) -> anyhow::Result<()> {
         info!("Ensuring genesis");
         let mut block = self.network.genesis_block();

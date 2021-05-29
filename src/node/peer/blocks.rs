@@ -1,6 +1,6 @@
 use crate::blocks::{Block, BlockHash, BlockType, Previous};
-use crate::node::controller::Controller;
 use crate::node::messages::confirm_ack::{Confirm, ConfirmAck};
+use crate::node::peer::Peer;
 use crate::{Public, Rai, Signature};
 use anyhow::{anyhow, Context};
 use tracing::{debug, instrument, warn};
@@ -11,7 +11,7 @@ struct AccountDelta {
     amount: Rai,
 }
 
-impl Controller {
+impl Peer {
     #[instrument(skip(self))]
     pub async fn add_vote(&mut self, confirm_ack: &ConfirmAck) -> anyhow::Result<()> {
         let context = || format!("Adding vote {:?}", &confirm_ack);
