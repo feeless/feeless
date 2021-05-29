@@ -169,7 +169,10 @@ impl Peer {
                     }
                 }
                 RecvState::Payload(header) => {
-                    trace!("{:?}", header.message_type());
+                    trace!(
+                        "Attempt to handle message of type: {:?}",
+                        header.message_type()
+                    );
                     match header.message_type() {
                         MessageType::Keepalive => handle!(self, handle_keepalive, header),
                         MessageType::Publish => handle!(self, handle_publish, header),
