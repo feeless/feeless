@@ -85,7 +85,6 @@ impl Peer {
         let (incoming_tx, incoming_rx) = mpsc::channel::<Packet>(100);
         // Packets to be sent out to a remote host.
         let (outgoing_tx, outgoing_rx) = mpsc::channel::<Packet>(100);
-        // Controller RPC Commands
 
         let s = Self {
             validate_handshakes: true,

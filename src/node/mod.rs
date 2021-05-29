@@ -13,7 +13,6 @@ use crate::rpc::server::RPCServer;
 use crate::Network;
 pub use crate::Version;
 use anyhow::Context;
-use channel::new_peer_channel;
 pub use command::{NodeCommand, NodeCommandReceiver, NodeCommandSender};
 pub use header::Header;
 pub use peer::{Packet, Peer};
@@ -21,6 +20,8 @@ pub use state::{ArcState, MemoryState, SledDiskState};
 use std::net::SocketAddr;
 use std::str::FromStr;
 use std::sync::Arc;
+use tokio::io::{AsyncReadExt, AsyncWriteExt};
+use tokio::net::TcpStream;
 use tokio::sync::Mutex;
 use tracing::{debug, info};
 pub use wire::Wire;
@@ -65,19 +66,12 @@ impl Node {
     pub async fn run(self, mut node_rx: NodeCommandReceiver) -> anyhow::Result<()> {
         let initial_peers = self.state.lock().await.peers().await?;
         for address in initial_peers {
-            info!("Spawning a channel to {:?}", address);
+            info!("Spawning a connection to {:?}", address);
             let state = self.state.clone();
             let network = self.network.clone();
-            new_peer_channel(network, state, address)?;
+            Self::spawn_tcp_peer(network, state, address).await?;
         }
 
-        // TODO: The node might need to receive commands from the controllers, e.g. found knowledge
-        //       of new peers, to decide if it should connect to these new nodes. <-- goodish
-        //       That or if the controller spawns another controller, the node will need to access
-        //       the controller message channel. <-- probably not a good solution
-        //       Another idea: Just have the node poll every few seconds to see if there are any
-        //       new peers in its state (which is added by the controller), then connect
-        //       to them appropriately. <-- I like this the best! It means no need for a channel back.
         while let Some(node_command) = node_rx.recv().await {
             dbg!("todo node command", &node_command);
             match node_command {
@@ -86,6 +80,61 @@ impl Node {
         }
 
         info!("Quitting...");
+        Ok(())
+    }
+
+    pub async fn spawn_tcp_peer(
+        network: Network,
+        state: ArcState,
+        address: SocketAddr,
+    ) -> anyhow::Result<()> {
+        let (peer, tx, mut rx) = Peer::new_with_channels(network, state.clone(), address);
+
+        // Task for the Peer handler.
+        let peer_task = tokio::spawn(peer.run());
+
+        let stream = TcpStream::connect(address)
+            .await
+            .expect(&format!("Failed to connect to {}", address));
+        let (mut tcp_in, mut tcp_out) = stream.into_split();
+
+        // Handle reads in a separate task.
+        let reader_task = tokio::spawn(async move {
+            let mut buffer: [u8; 10240] = [0; 10240];
+            loop {
+                let bytes = tcp_in
+                    .read(&mut buffer)
+                    .await
+                    .expect("Could not read from socket");
+
+                let result = tx.send(Packet::new(Vec::from(&buffer[0..bytes]))).await;
+                if result.is_err() {
+                    // When the channel disconnects from Peer, we rely on Peer to report the error.
+                    break;
+                }
+            }
+        });
+
+        // Handle writes in a separate task.
+        let writer_task = tokio::spawn(async move {
+            loop {
+                let to_send = match rx.recv().await {
+                    Some(bytes) => bytes,
+                    None => {
+                        // When the channel disconnects from Peer, we rely on Peer to report the error.
+                        return;
+                    }
+                };
+
+                tcp_out
+                    .write_all(&to_send.data)
+                    .await
+                    .expect("Could not send to socket");
+            }
+        });
+
+        tokio::join!(node)
+
         Ok(())
     }
 
