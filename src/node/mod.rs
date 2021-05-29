@@ -68,7 +68,7 @@ impl Node {
         for address in initial_peers {
             let state = self.state.clone();
             let network = self.network.clone();
-            Self::tcp_connect(network, state, address).await?;
+            Self::tcp_connection(network, state, address).await?;
         }
 
         while let Some(node_command) = node_rx.recv().await {
@@ -83,7 +83,7 @@ impl Node {
     }
 
     #[instrument(name = "connection", skip(network, state))]
-    pub async fn tcp_connect(
+    pub async fn tcp_connection(
         network: Network,
         state: ArcState,
         address: SocketAddr,
