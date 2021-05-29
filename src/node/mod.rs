@@ -11,7 +11,7 @@ mod wire;
 use crate::rpc::server::RPCServer;
 use crate::Network;
 pub use crate::Version;
-use anyhow::{Context, Error};
+use anyhow::Context;
 pub use command::{NodeCommand, NodeCommandReceiver, NodeCommandSender};
 pub use header::Header;
 pub use peer::{Packet, Peer};

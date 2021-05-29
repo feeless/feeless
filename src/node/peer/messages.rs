@@ -71,8 +71,8 @@ impl Peer {
             let response = handshake
                 .response
                 .expect("response is None but is_response is True");
-            let public = response.public;
-            let signature = response.signature;
+            let _public = response.public;
+            let _signature = response.signature;
 
             let cookie = &self
                 .state
@@ -87,7 +87,7 @@ impl Peer {
                 );
                 return Ok(());
             }
-            let cookie = cookie.as_ref().unwrap();
+            let _cookie = cookie.as_ref().unwrap();
 
             if self.validate_handshakes {
                 // TODO: This is always failing currently.
