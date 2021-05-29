@@ -104,6 +104,7 @@ impl Peer {
 
     /// Run will loop forever and is expected to be spawned and will quit when the incoming channel
     /// is closed.
+    #[instrument(skip(self), fields(address = %self.peer_addr))]
     pub async fn run(mut self) -> anyhow::Result<()> {
         trace!("Initial handshake");
         self.send_handshake().await?;
@@ -115,7 +116,7 @@ impl Peer {
         while let Some(packet) = self.peer_rx.recv().await {
             self.handle_packet(packet).await?;
         }
-        trace!("Exiting controller");
+        trace!("Disconnecting peer");
 
         Ok(())
     }
@@ -168,6 +169,7 @@ impl Peer {
                     }
                 }
                 RecvState::Payload(header) => {
+                    trace!("{:?}", header.message_type());
                     match header.message_type() {
                         MessageType::Keepalive => handle!(self, handle_keepalive, header),
                         MessageType::Publish => handle!(self, handle_publish, header),
