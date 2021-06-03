@@ -13,7 +13,7 @@ use anyhow::{anyhow, Context};
 use std::fmt::Debug;
 use std::net::SocketAddr;
 use tokio::sync::mpsc;
-use tracing::{debug, instrument, trace};
+use tracing::{debug, info, instrument, trace};
 
 /// A message sent between channels that contains a peer's network data.
 #[derive(Debug)]
@@ -104,7 +104,7 @@ impl Peer {
 
     /// Run will loop forever and is expected to be spawned and will quit when the incoming channel
     /// is closed.
-    #[instrument(skip(self), fields(address = %self.peer_addr))]
+    #[instrument(name = "node", skip(self), fields(address = %self.peer_addr))]
     pub async fn run(mut self) -> anyhow::Result<()> {
         trace!("Initial handshake");
         self.send_handshake().await?;
@@ -121,6 +121,7 @@ impl Peer {
         Ok(())
     }
 
+    #[instrument(skip(self, packet))]
     async fn handle_packet(&mut self, packet: Packet) -> anyhow::Result<()> {
         trace!("handle_packet");
 
@@ -133,7 +134,7 @@ impl Peer {
 
                 if let Some(payload) = payload {
                     match &self.last_annotation {
-                        Some(a) => debug!("{} {:?}", a, &payload),
+                        Some(a) => info!("{} {:?}", a, &payload),
                         None => debug!("{:?}", &payload),
                     };
 
@@ -157,19 +158,21 @@ impl Peer {
         //     self.handle_frontier_resp(payload).await?;
         // } else {
 
-        let mut process = true;
-        while process {
-            match self.recv_state {
+        loop {
+            let (new_state, process) = match self.recv_state {
                 RecvState::Header => {
                     if let Some(header) = self.recv::<Header>(None)? {
                         header.validate(&self.network)?;
-                        self.recv_state = RecvState::Payload(header);
+                        (RecvState::Payload(header), true)
                     } else {
-                        process = false;
+                        (RecvState::Header, false)
                     }
                 }
                 RecvState::Payload(header) => {
-                    trace!("{:?}", header.message_type());
+                    trace!(
+                        "Attempt to handle message of type: {:?}",
+                        header.message_type()
+                    );
                     match header.message_type() {
                         MessageType::Keepalive => handle!(self, handle_keepalive, header),
                         MessageType::Publish => handle!(self, handle_publish, header),
@@ -182,10 +185,14 @@ impl Peer {
                         // MessageType::BulkPull => {}
                         // MessageType::BulkPush => {}
                         // MessageType::BulkPullAccount => {}
-                        _ => panic!("{:?}", header),
+                        _ => return Err(anyhow!("Unhandled message: {:?}", header)),
                     };
-                    process = false;
+                    (RecvState::Header, false)
                 }
+            };
+            self.recv_state = new_state;
+            if !process {
+                break;
             }
         }
 
@@ -225,22 +232,27 @@ impl Peer {
         Ok(buf)
     }
 
-    #[instrument(level = "debug", skip(self, message))]
+    #[instrument(skip(self, message))]
     async fn send<T: Wire + Debug>(&mut self, message: &T) -> anyhow::Result<()> {
         let data = message.serialize();
         trace!("HEX {}", to_hex(&data));
         debug!("OBJ {:?}", &message);
-        self.peer_tx.send(Packet::new(Vec::from(data))).await?;
+        self.peer_tx
+            .send(Packet::new(Vec::from(data)))
+            .await
+            .with_context(|| format!("Sending to peer: {:?}", &message))?;
         Ok(())
     }
 
+    #[instrument(skip(self, message_type, ext))]
     async fn send_header(
         &mut self,
         message_type: MessageType,
         ext: Extensions,
     ) -> anyhow::Result<()> {
         let header = Header::new(self.network, message_type, ext);
-        Ok(self.send(&header).await?)
+        trace!("{:?}", header);
+        Ok(self.send(&header).await.context("Sending header")?)
     }
 
     /// Set up the genesis block if it hasn't already.

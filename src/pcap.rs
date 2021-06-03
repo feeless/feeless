@@ -12,7 +12,8 @@ use std::net::{IpAddr, Ipv4Addr, SocketAddr};
 use std::sync::Arc;
 use tokio::sync::mpsc::Sender;
 use tokio::sync::Mutex;
-use tracing::{error, info, warn};
+use tokio::time::Duration;
+use tracing::{debug, error, info, trace, warn};
 
 /// Subject is the focused peer that we act as "us", when showing if we're sending or
 /// receiving.
@@ -96,6 +97,9 @@ impl PcapDump {
                 .with_context(|| format!("Reading next packet: {}", self.packet_idx))?;
             let packet = if packet.is_none() {
                 // EOF
+                debug!("No more packets in pcap. Waiting for cleanup, then exiting.");
+                // TODO: Do this a better way, maybe give the peer an internal only exit message.
+                tokio::time::sleep(Duration::from_secs(1)).await;
                 return Ok(());
             } else {
                 packet.unwrap()
@@ -213,6 +217,7 @@ impl PcapDump {
                     tokio::spawn(async move {
                         loop {
                             if rx.recv().await.is_none() {
+                                trace!("Receiving channel has closed.");
                                 return;
                             }
                         }
@@ -222,7 +227,7 @@ impl PcapDump {
                         c.validate_handshakes = false;
                         let result = c.run().await;
                         if let Err(err) = result {
-                            error!("Error on pcap controller {:?}: {:#?}", peer_addr, err);
+                            error!("Error on pcap controller {:?}: {:?}", peer_addr, err);
                         }
                     });
 

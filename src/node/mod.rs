@@ -68,7 +68,7 @@ impl Node {
         for address in initial_peers {
             let state = self.state.clone();
             let network = self.network.clone();
-            Self::tcp_connection(network, state, address).await?;
+            Self::connection(network, state, address).await?;
         }
 
         while let Some(node_command) = node_rx.recv().await {
@@ -82,8 +82,8 @@ impl Node {
         Ok(())
     }
 
-    #[instrument(name = "connection", skip(network, state))]
-    pub async fn tcp_connection(
+    #[instrument(skip(network, state))]
+    pub async fn connection(
         network: Network,
         state: ArcState,
         address: SocketAddr,
@@ -146,10 +146,10 @@ impl Node {
             error!("Disconnected because of peer: {:?}", err);
         };
         if let Err(err) = reader {
-            info!("Disconnected because of read socket: {:?}", err);
+            error!("Disconnected because of read socket: {:?}", err);
         };
         if let Err(err) = writer {
-            info!("Disconnected because of write socket: {:?}", err);
+            error!("Disconnected because of write socket: {:?}", err);
         };
         Ok(())
     }
