@@ -158,15 +158,14 @@ impl Peer {
         //     self.handle_frontier_resp(payload).await?;
         // } else {
 
-        let mut process = true;
-        while process {
-            match self.recv_state {
+        loop {
+            let (new_state, process) = match self.recv_state {
                 RecvState::Header => {
                     if let Some(header) = self.recv::<Header>(None)? {
                         header.validate(&self.network)?;
-                        self.recv_state = RecvState::Payload(header);
+                        (RecvState::Payload(header), true)
                     } else {
-                        process = false;
+                        (RecvState::Header, false)
                     }
                 }
                 RecvState::Payload(header) => {
@@ -186,11 +185,14 @@ impl Peer {
                         // MessageType::BulkPull => {}
                         // MessageType::BulkPush => {}
                         // MessageType::BulkPullAccount => {}
-                        _ => panic!("{:?}", header),
+                        _ => return Err(anyhow!("Unhandled message: {:?}", header)),
                     };
-                    process = false;
-                    self.recv_state = RecvState::Header;
+                    (RecvState::Header, false)
                 }
+            };
+            self.recv_state = new_state;
+            if !process {
+                break;
             }
         }
 
