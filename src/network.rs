@@ -1,5 +1,5 @@
 use crate::blocks::{Block, BlockHash, OpenBlock, Previous};
-use crate::Rai;
+use crate::Raw;
 use anyhow::anyhow;
 use std::convert::TryFrom;
 use std::str::FromStr;
@@ -38,7 +38,7 @@ impl Network {
         };
 
         // Give the genesis block the maximum u128 value.
-        let balance = Rai::max();
+        let balance = Raw::max();
 
         Block::from_open_block(&open_block, &Previous::Open, &balance)
     }

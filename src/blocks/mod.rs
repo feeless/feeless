@@ -18,7 +18,7 @@ pub(crate) use state_block::deserialize_to_unsure_link;
 use crate::encoding::blake2b;
 use crate::keys::public::to_address;
 use crate::network::Network;
-use crate::{Private, Public, Rai, Signature, Work};
+use crate::{Private, Public, Raw, Signature, Work};
 use anyhow::{anyhow, Context};
 pub use block_hash::BlockHash;
 pub use change_block::ChangeBlock;
@@ -195,7 +195,7 @@ pub struct Block {
     representative: Public,
 
     /// The new balance of this account.
-    balance: Rai,
+    balance: Raw,
 
     /// Link to either a send block, or a destination account.
     link: Link,
@@ -225,7 +225,7 @@ impl Block {
         account: Public,
         previous: Previous,
         representative: Public,
-        balance: Rai,
+        balance: Raw,
         link: Link,
         state: ValidationState,
     ) -> Self {
@@ -245,7 +245,7 @@ impl Block {
         new_block
     }
 
-    pub fn from_open_block(open_block: &OpenBlock, previous: &Previous, balance: &Rai) -> Self {
+    pub fn from_open_block(open_block: &OpenBlock, previous: &Previous, balance: &Raw) -> Self {
         let mut b = Self::new(
             BlockType::Open,
             open_block.account.to_owned(),
@@ -394,7 +394,7 @@ impl Block {
         Ok(())
     }
 
-    pub fn balance(&self) -> &Rai {
+    pub fn balance(&self) -> &Raw {
         &self.balance
     }
 
@@ -455,7 +455,7 @@ pub fn hash_block(parts: &[&[u8]]) -> BlockHash {
 mod tests {
     use crate::blocks::{Block, BlockHash, Link, Previous, StateBlock};
     use crate::network::Network;
-    use crate::{Public, Rai};
+    use crate::{Public, Raw};
     use std::str::FromStr;
 
     #[test]
@@ -483,7 +483,7 @@ mod tests {
             Public::from_str("7194452B7997A9F5ABB2F434DB010CA18B5A2715D141F9CFA64A296B3EB4DCCD")
                 .unwrap();
 
-        StateBlock::new(account, Previous::Open, representative, Rai(500), source)
+        StateBlock::new(account, Previous::Open, representative, Raw(500), source)
     }
 
     #[test]

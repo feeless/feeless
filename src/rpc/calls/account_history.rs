@@ -1,7 +1,7 @@
 use crate::blocks::{BlockHash, BlockType, Subtype};
 use crate::rpc::calls::{as_str, from_str};
 use crate::rpc::client::{RPCClient, RPCRequest};
-use crate::{Address, Rai, Result, Signature, Work};
+use crate::{Address, Raw, Result, Signature, Work};
 use async_trait::async_trait;
 use chrono::Utc;
 use clap::Clap;
@@ -87,7 +87,7 @@ pub struct AccountHistoryEntry {
 
     // This sometimes does not exist in raw mode.
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub amount: Option<Rai>,
+    pub amount: Option<Raw>,
 
     #[serde_as(as = "TimestampSeconds<String>")]
     pub local_timestamp: chrono::DateTime<Utc>,
@@ -116,7 +116,7 @@ pub struct AccountHistoryEntry {
     pub representative: Option<Address>,
 
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub balance: Option<Rai>,
+    pub balance: Option<Raw>,
 
     #[serde(skip_serializing_if = "Option::is_none")]
     pub link: Option<BlockHash>, // TODO: Link type, which could be a BlockHash or Address.
@@ -161,7 +161,7 @@ mod tests {
                         )
                         .unwrap()
                     ),
-                    amount: Some(Rai::new(1500000000000000000000000000000000001u128)),
+                    amount: Some(Raw::new(1500000000000000000000000000000000001u128)),
                     local_timestamp: DateTime::<Utc>::from_str("2021-02-26T08:15:55Z").unwrap(),
                     height: 39,
                     hash: BlockHash::from_str(

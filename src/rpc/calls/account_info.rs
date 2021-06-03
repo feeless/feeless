@@ -1,7 +1,7 @@
 use crate::blocks::BlockHash;
 use crate::rpc::calls::{as_str, from_str};
 use crate::rpc::client::{RPCClient, RPCRequest};
-use crate::{Address, Rai, Result};
+use crate::{Address, Raw, Result};
 use async_trait::async_trait;
 use chrono::Utc;
 use clap::Clap;
@@ -59,7 +59,7 @@ pub struct AccountInfoResponse {
     pub frontier: BlockHash,
     pub open_block: BlockHash,
     pub representative_block: BlockHash,
-    pub balance: Rai,
+    pub balance: Raw,
 
     #[serde_as(as = "TimestampSeconds<String>")]
     pub modified_timestamp: chrono::DateTime<Utc>,
@@ -79,10 +79,10 @@ pub struct AccountInfoResponse {
     representative: Option<Address>,
 
     #[serde(skip_serializing_if = "Option::is_none")]
-    weight: Option<Rai>,
+    weight: Option<Raw>,
 
     #[serde(skip_serializing_if = "Option::is_none")]
-    pending: Option<Rai>,
+    pending: Option<Raw>,
 }
 
 #[cfg(test)]
@@ -123,7 +123,7 @@ mod tests {
                     "991CF190094C00F0B68E2E5F75F6BEE95A2E0BD93CEAA4A6734DB9F19B728948"
                 )
                 .unwrap(),
-                balance: Rai::from(235580100176034320859259343606608761791),
+                balance: Raw::from(235580100176034320859259343606608761791),
                 modified_timestamp: DateTime::<Utc>::from_str("2017-08-03T20:56:15Z").unwrap(),
                 block_count: 33,
                 confirmation_height: 28,
@@ -175,7 +175,7 @@ mod tests {
                     "991CF190094C00F0B68E2E5F75F6BEE95A2E0BD93CEAA4A6734DB9F19B728948"
                 )
                 .unwrap(),
-                balance: Rai::from(235580100176034320859259343606608761791),
+                balance: Raw::from(235580100176034320859259343606608761791),
                 modified_timestamp: DateTime::<Utc>::from_str("2017-08-03T20:56:15Z").unwrap(),
                 block_count: 33,
                 confirmation_height: 28,
@@ -190,8 +190,8 @@ mod tests {
                     )
                     .unwrap()
                 ),
-                weight: Some(Rai::from(1105577030935649664609129644855132177)),
-                pending: Some(Rai::from(2309370929000000000000000000000000)),
+                weight: Some(Raw::from(1105577030935649664609129644855132177)),
+                pending: Some(Raw::from(2309370929000000000000000000000000)),
             }
         )
     }

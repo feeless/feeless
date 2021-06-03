@@ -1,5 +1,5 @@
 use crate::rpc::client::{RPCClient, RPCRequest};
-use crate::Rai;
+use crate::Raw;
 use crate::Result;
 use async_trait::async_trait;
 use clap::Clap;
@@ -30,7 +30,7 @@ impl AvailableSupplyRequest {
 
 #[derive(Debug, Serialize, Deserialize, PartialEq)]
 pub struct AvailableSupplyResponse {
-    available: Rai,
+    available: Raw,
 }
 
 #[cfg(test)]
@@ -49,7 +49,7 @@ mod tests {
         assert_eq!(
             r,
             AvailableSupplyResponse {
-                available: Rai::from(133248061996216572282917317807824970865),
+                available: Raw::from(133248061996216572282917317807824970865),
             }
         )
     }

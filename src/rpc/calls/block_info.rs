@@ -2,7 +2,7 @@ use crate::blocks::{BlockHash, BlockHolder, Subtype};
 use crate::rpc::calls::{as_str, from_str};
 use crate::rpc::client::{RPCClient, RPCRequest};
 use crate::rpc::AlwaysTrue;
-use crate::{Address, Rai, Result};
+use crate::{Address, Raw, Result};
 use async_trait::async_trait;
 use chrono::Utc;
 use clap::Clap;
@@ -44,8 +44,8 @@ impl BlockInfoRequest {
 #[derive(Debug, Serialize, Deserialize, PartialEq)]
 pub struct BlockInfoResponse {
     pub block_account: Address,
-    pub amount: Rai,
-    pub balance: Rai,
+    pub amount: Raw,
+    pub balance: Raw,
 
     #[serde(deserialize_with = "from_str", serialize_with = "as_str")]
     pub height: u64,
