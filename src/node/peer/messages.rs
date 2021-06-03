@@ -73,7 +73,7 @@ impl Peer {
             let signature = private.sign(query.cookie().as_bytes())?;
             public
                 .verify(query.cookie().as_bytes(), &signature)
-                .context("Verify recv handshake signature")?;
+                .context("Verify recv handshake signature.")?;
 
             // Respond at the end because we mess with the header buffer.
             should_respond = ShouldRespond::Yes(public, signature);
@@ -82,16 +82,17 @@ impl Peer {
         if header.ext().is_response() {
             let response = handshake
                 .response
-                .expect("response is None but is_response is True");
-            let _public = response.public;
-            let _signature = response.signature;
+                .context("response is None but is_response is True.")?;
+            let public = response.public;
+            let signature = response.signature;
 
             let cookie = &self
                 .state
                 .lock()
                 .await
                 .cookie_for_socket_addr(&self.peer_addr)
-                .await?;
+                .await
+                .context("Could not lookup cookie for socket addr.")?;
             if cookie.is_none() {
                 warn!(
                     "Peer {:?} has no cookie. Can't verify handshake.",
@@ -99,14 +100,12 @@ impl Peer {
                 );
                 return Ok(());
             }
-            let _cookie = cookie.as_ref().unwrap();
+            let cookie = cookie.as_ref().unwrap();
 
             if self.validate_handshakes {
-                // TODO: This is always failing currently.
-                warn!("TODO: Not validating handshake.");
-                // public
-                //     .verify(&cookie.as_bytes(), &signature)
-                //     .context("Invalid signature in handshake response")?;
+                public
+                    .verify(&cookie.as_bytes(), &signature)
+                    .context("Invalid signature in handshake response")?;
             }
         }
 
@@ -115,7 +114,9 @@ impl Peer {
                 .await?;
 
             let response = HandshakeResponse::new(public, signature);
-            self.send(&response).await?;
+            self.send(&response)
+                .await
+                .context("Could not send response to peer.")?;
         }
 
         Ok(())

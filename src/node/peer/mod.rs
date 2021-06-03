@@ -13,7 +13,7 @@ use anyhow::{anyhow, Context};
 use std::fmt::Debug;
 use std::net::SocketAddr;
 use tokio::sync::mpsc;
-use tracing::{debug, instrument, trace};
+use tracing::{debug, info, instrument, trace};
 
 /// A message sent between channels that contains a peer's network data.
 #[derive(Debug)]
@@ -134,7 +134,7 @@ impl Peer {
 
                 if let Some(payload) = payload {
                     match &self.last_annotation {
-                        Some(a) => debug!("{} {:?}", a, &payload),
+                        Some(a) => info!("{} {:?}", a, &payload),
                         None => debug!("{:?}", &payload),
                     };
 
@@ -189,6 +189,7 @@ impl Peer {
                         _ => panic!("{:?}", header),
                     };
                     process = false;
+                    self.recv_state = RecvState::Header;
                 }
             }
         }
@@ -234,7 +235,10 @@ impl Peer {
         let data = message.serialize();
         trace!("HEX {}", to_hex(&data));
         debug!("OBJ {:?}", &message);
-        self.peer_tx.send(Packet::new(Vec::from(data))).await?;
+        self.peer_tx
+            .send(Packet::new(Vec::from(data)))
+            .await
+            .with_context(|| format!("Sending to peer: {:?}", &message))?;
         Ok(())
     }
 
@@ -246,7 +250,7 @@ impl Peer {
     ) -> anyhow::Result<()> {
         let header = Header::new(self.network, message_type, ext);
         trace!("{:?}", header);
-        Ok(self.send(&header).await?)
+        Ok(self.send(&header).await.context("Sending header")?)
     }
 
     /// Set up the genesis block if it hasn't already.
