@@ -48,19 +48,7 @@ impl Peer {
             Yes(Public, Signature),
         }
 
-        debug!(
-            "IsQuery: {:?} IsResponse: {:?}",
-            header.ext().is_query(),
-            header.ext().is_response()
-        );
-        if let Some(query) = &handshake.query {
-            trace!("Query: {:?}", query);
-        }
-        if let Some(response) = &handshake.response {
-            trace!("Response: {:?}", response);
-        }
         let mut should_respond = ShouldRespond::No;
-
         if header.ext().is_query() {
             // This would probably be a programming error if it panicked.
             let query = handshake.query.expect("query is None but is_query is True");
