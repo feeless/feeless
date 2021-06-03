@@ -373,7 +373,7 @@ mod tests {
     use crate::network::Network;
     use crate::node::state::State;
     use crate::node::MemoryState;
-    use crate::{Rai, Work};
+    use crate::{Raw, Work};
     use std::net::SocketAddr;
     use std::str::FromStr;
     use std::sync::Arc;
@@ -391,7 +391,7 @@ mod tests {
             Public::from_str("7194452B7997A9F5ABB2F434DB010CA18B5A2715D141F9CFA64A296B3EB4DCCD")
                 .unwrap();
 
-        let root = StateBlock::new(account, Previous::Open, representative, Rai(500), source);
+        let root = StateBlock::new(account, Previous::Open, representative, Raw(500), source);
         let root_block = Block::from_state_block(&root);
         (root, root_block)
     }
@@ -406,7 +406,7 @@ mod tests {
             root_block.account().clone(),
             Previous::Block(root_block.hash().unwrap().clone()),
             root_block.representative().clone(),
-            root_block.balance().checked_sub(&Rai(200)).unwrap(),
+            root_block.balance().checked_sub(&Raw(200)).unwrap(),
             destination,
         );
         frontier.work = Some(Work::from_str("8073a2031b9a3a6a").unwrap());

@@ -1,6 +1,5 @@
-use super::{MicroNano, Nano};
+use super::{Mnano, Nano, UnboundedRaw};
 use crate::encoding::{expect_len, to_hex};
-use crate::units::{Cents, UnboundedRai};
 use crate::Error;
 use bigdecimal::BigDecimal;
 use serde::{de, Deserialize, Deserializer, Serialize, Serializer};
@@ -9,40 +8,40 @@ use std::convert::TryFrom;
 use std::fmt::Display;
 use std::str::FromStr;
 
-/// Special bounded container for the smallest unit, rai.
+/// Special bounded container for the smallest unit, raw.
 ///
-/// Can not contain values outside of `0` to [u128::MAX]. To get around this, use [UnboundedRai] or
-/// one of the other denominations: [Nano], [Cents], [MicroNano].
+/// Can not contain values outside of `0` to [u128::MAX]. To get around this, use [UnboundedRaw] or
+/// one of the other denominations: [Nano], [Mnano].
 ///
 /// ```
-/// use feeless::Rai;
+/// use feeless::Raw;
 ///
 /// fn main() -> anyhow::Result<()> {
-/// use feeless::units::Nano;
-///     let rai = Rai::new(1000000000000000000000000000000u128);
-///     assert_eq!(rai.to_nano(), Nano::new(1));
+/// use feeless::units::Mnano;
+///     let raw = Raw::new(1000000000000000000000000000000u128);
+///     assert_eq!(raw.to_mnano(), Mnano::new(1));
 ///     Ok(())
 /// }
 /// ```
 #[derive(Clone, Debug, Eq, PartialEq)]
-pub struct Rai(pub(crate) u128);
+pub struct Raw(pub(crate) u128);
 
-impl Rai {
+impl Raw {
     pub(crate) const LEN: usize = 16;
 
-    /// Create a new [Rai] instance. The value must be [Into<u128>]. This might change to something
+    /// Create a new [Raw] instance. The value must be [Into<u128>]. This might change to something
     /// more flexible soon!
     pub fn new<T: Into<u128>>(v: T) -> Self {
         Self(v.into())
     }
 
     pub fn from_hex(s: &str) -> Result<Self, Error> {
-        expect_len(s.len(), Rai::LEN * 2, "Hex rai")?;
+        expect_len(s.len(), Raw::LEN * 2, "Hex raw")?;
         let vec = hex::decode(s.as_bytes()).map_err(|e| Error::FromHexError {
-            msg: String::from("Decoding hex rai"),
+            msg: String::from("Decoding hex raw"),
             source: e,
         })?;
-        Ok(Rai::try_from(vec.as_slice())?)
+        Ok(Raw::try_from(vec.as_slice())?)
     }
 
     pub fn zero() -> Self {
@@ -53,20 +52,16 @@ impl Rai {
         Self(u128::MAX)
     }
 
+    pub fn to_mnano(&self) -> Mnano {
+        Mnano::from(self)
+    }
+
     pub fn to_nano(&self) -> Nano {
         Nano::from(self)
     }
 
-    pub fn to_cents(&self) -> Cents {
-        Cents::from(self)
-    }
-
-    pub fn to_micro_nano(&self) -> MicroNano {
-        MicroNano::from(self)
-    }
-
-    pub fn to_unbounded(&self) -> UnboundedRai {
-        UnboundedRai::from(self)
+    pub fn to_unbounded(&self) -> UnboundedRaw {
+        UnboundedRaw::from(self)
     }
 
     pub fn to_vec(&self) -> Vec<u8> {
@@ -87,15 +82,15 @@ impl Rai {
     }
 
     pub fn checked_add(&self, rhs: &Self) -> Option<Self> {
-        self.0.checked_add(rhs.0).map(Rai::from)
+        self.0.checked_add(rhs.0).map(Raw::from)
     }
 
     pub fn checked_sub(&self, rhs: &Self) -> Option<Self> {
-        self.0.checked_sub(rhs.0).map(Rai::from)
+        self.0.checked_sub(rhs.0).map(Raw::from)
     }
 }
 
-impl FromStr for Rai {
+impl FromStr for Raw {
     type Err = Error;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
@@ -105,7 +100,7 @@ impl FromStr for Rai {
 
 /// This serializer and deserializer are for strings with decimal numbers. See serialize_to_hex
 /// and deserialize_from_hex if you expect your strings to be hex.
-impl Serialize for Rai {
+impl Serialize for Raw {
     fn serialize<S>(&self, serializer: S) -> Result<<S as Serializer>::Ok, <S as Serializer>::Error>
     where
         S: Serializer,
@@ -114,47 +109,47 @@ impl Serialize for Rai {
     }
 }
 
-impl<'de> Deserialize<'de> for Rai {
+impl<'de> Deserialize<'de> for Raw {
     fn deserialize<D>(deserializer: D) -> Result<Self, <D as Deserializer<'de>>::Error>
     where
         D: Deserializer<'de>,
     {
         let s: &str = Deserialize::deserialize(deserializer)?;
-        Ok(Rai::from_str(s).map_err(de::Error::custom)?)
+        Ok(Raw::from_str(s).map_err(de::Error::custom)?)
     }
 }
 
 pub fn serialize_to_hex<S>(
-    rai: &Rai,
+    raw: &Raw,
     serializer: S,
 ) -> Result<<S as Serializer>::Ok, <S as Serializer>::Error>
 where
     S: Serializer,
 {
-    serializer.serialize_str(rai.to_hex_string().as_str())
+    serializer.serialize_str(raw.to_hex_string().as_str())
 }
 
-pub fn deserialize_from_hex<'de, D>(deserializer: D) -> Result<Rai, <D as Deserializer<'de>>::Error>
+pub fn deserialize_from_hex<'de, D>(deserializer: D) -> Result<Raw, <D as Deserializer<'de>>::Error>
 where
     D: Deserializer<'de>,
 {
     let s: &str = Deserialize::deserialize(deserializer)?;
-    Ok(Rai::from_hex(s).map_err(de::Error::custom)?)
+    Ok(Raw::from_hex(s).map_err(de::Error::custom)?)
 }
 
-impl Display for Rai {
+impl Display for Raw {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}", self.0)
     }
 }
 
-impl From<u128> for Rai {
+impl From<u128> for Raw {
     fn from(v: u128) -> Self {
-        Rai(v)
+        Raw(v)
     }
 }
 
-impl TryFrom<&[u8]> for Rai {
+impl TryFrom<&[u8]> for Raw {
     type Error = Error;
 
     fn try_from(value: &[u8]) -> Result<Self, Self::Error> {
@@ -162,18 +157,18 @@ impl TryFrom<&[u8]> for Rai {
         let mut b = [0u8; 16];
         b.copy_from_slice(value);
         let amount = u128::from_be_bytes(b);
-        Ok(Rai(amount))
+        Ok(Raw(amount))
     }
 }
 
-impl TryFrom<&BigDecimal> for Rai {
+impl TryFrom<&BigDecimal> for Raw {
     type Error = Error;
 
-    /// Convert from BigDecimal into Rai, removing any fraction.
+    /// Convert from BigDecimal into Raw, removing any fraction.
     ///
     /// It's up to the caller to round to a whole number beforehand.
     ///
-    /// One Rai is monetarily insignificant, but if you're using fractions and trying to encode
+    /// One Raw is monetarily insignificant, but if you're using fractions and trying to encode
     /// data this might bite you!
     fn try_from(value: &BigDecimal) -> Result<Self, Self::Error> {
         // Remove decimals.
@@ -184,7 +179,7 @@ impl TryFrom<&BigDecimal> for Rai {
     }
 }
 
-impl PartialOrd for Rai {
+impl PartialOrd for Raw {
     fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
         self.0.partial_cmp(&other.0)
     }
@@ -206,7 +201,7 @@ impl PartialOrd for Rai {
     }
 }
 
-impl PartialOrd<u128> for Rai {
+impl PartialOrd<u128> for Raw {
     fn partial_cmp(&self, other: &u128) -> Option<Ordering> {
         self.0.partial_cmp(other)
     }
@@ -228,7 +223,7 @@ impl PartialOrd<u128> for Rai {
     }
 }
 
-impl PartialEq<u128> for Rai {
+impl PartialEq<u128> for Raw {
     fn eq(&self, other: &u128) -> bool {
         self.0.eq(other)
     }
@@ -241,85 +236,82 @@ mod tests {
 
     #[test]
     fn display() {
-        assert_eq!(Rai::zero().to_string(), "0");
+        assert_eq!(Raw::zero().to_string(), "0");
         assert_eq!(
-            Rai::from_str("98765432100123456789").unwrap().to_string(),
+            Raw::from_str("98765432100123456789").unwrap().to_string(),
             "98765432100123456789"
         );
     }
 
     #[test]
-    fn convert_from_rai() {
-        let one_rai = Rai::from(1u128);
-        assert_eq!(one_rai.to_string(), "1");
+    fn convert_from_raw() {
+        let one_raw = Raw::from(1u128);
+        assert_eq!(one_raw.to_string(), "1");
+        assert_eq!(one_raw.to_nano().to_string(), "0.000000000000000000000001");
         assert_eq!(
-            one_rai.to_nano().to_string(),
+            one_raw.to_mnano().to_string(),
             "0.000000000000000000000000000001"
         );
+
         assert_eq!(
-            one_rai.to_micro_nano().to_string(),
-            "0.000000000000000000000001"
+            Mnano::new(1).to_raw().unwrap(),
+            Raw::from_str("1000000000000000000000000000000").unwrap()
         );
 
         assert_eq!(
-            MicroNano::new(1).to_rai().unwrap(),
-            Rai::from_str("1000000000000000000000000").unwrap()
+            Nano::new(1).to_raw().unwrap(),
+            Raw::from_str("1000000000000000000000000").unwrap()
         );
 
+        let max_raw = Raw::from_str("340282366920938463463374607431768211455").unwrap();
         assert_eq!(
-            Nano::new(1).to_rai().unwrap(),
-            Rai::from_str("1000000000000000000000000000000").unwrap()
-        );
-
-        let max_rai = Rai::from_str("340282366920938463463374607431768211455").unwrap();
-        assert_eq!(
-            max_rai.to_string(),
+            max_raw.to_string(),
             "340282366920938463463374607431768211455"
         );
         assert_eq!(
-            max_rai.to_micro_nano().to_string(),
-            "340282366920938.463463374607431768211455"
+            max_raw.to_mnano().to_string(),
+            "340282366.920938463463374607431768211455"
         );
         assert_eq!(
-            max_rai.to_nano().to_string(),
-            "340282366.920938463463374607431768211455"
+            max_raw.to_nano().to_string(),
+            "340282366920938.463463374607431768211455"
         );
     }
 
     #[test]
-    fn convert_to_rai() {
+    fn convert_to_raw() {
         assert_eq!(
-            MicroNano::new(1).to_rai().unwrap().to_string(),
-            "1000000000000000000000000"
+            Mnano::new(1).to_raw().unwrap().to_string(),
+            "1000000000000000000000000000000"
         );
         assert_eq!(
-            Nano::new(1).to_rai().unwrap().to_string(),
-            "1000000000000000000000000000000"
+            Nano::new(1).to_raw().unwrap().to_string(),
+            "1000000000000000000000000"
         );
     }
 
     #[test]
     fn eq() {
         assert_eq!(
-            Nano::new(1).to_rai().unwrap(),
-            Rai::new(1000000000000000000000000000000u128)
+            Nano::new(1).to_raw().unwrap(),
+            Raw::new(1000000000000000000000000u128)
         );
     }
 
     #[test]
     fn serialize() {
-        let rai1 = Nano::new(1).to_rai().unwrap();
-        let bytes = rai1.to_vec();
-        let rai2 = Rai::try_from(bytes.as_slice()).unwrap();
-        assert_eq!(rai1, rai2);
+        let raw1 = Nano::new(1).to_raw().unwrap();
+        let bytes = raw1.to_vec();
+        let raw2 = Raw::try_from(bytes.as_slice()).unwrap();
+        assert_eq!(raw1, raw2);
     }
 
     #[test]
     fn decimal_json() -> anyhow::Result<()> {
-        let rai = Nano::new(1).to_rai().unwrap();
-        let json = serde_json::to_string(&rai).unwrap();
-        assert_eq!(json, r#""1000000000000000000000000000000""#);
-        assert_eq!(serde_json::from_str::<Rai>(&json)?, rai);
+        let raw = Nano::new(1).to_raw().unwrap();
+        let json = serde_json::to_string(&raw).unwrap();
+        assert_eq!(json, r#""1000000000000000000000000""#);
+        assert_eq!(serde_json::from_str::<Raw>(&json)?, raw);
         Ok(())
     }
 
@@ -331,22 +323,22 @@ mod tests {
                 serialize_with = "serialize_to_hex",
                 deserialize_with = "deserialize_from_hex"
             )]
-            hex_rai: Rai,
+            hex_raw: Raw,
         }
-        let hex_rai = HexRaw {
-            hex_rai: Nano::new(1).to_rai().unwrap(),
+        let hex_raw = HexRaw {
+            hex_raw: Mnano::new(1).to_raw().unwrap(),
         };
-        let json = serde_json::to_string(&hex_rai).unwrap();
-        assert_eq!(json, r#"{"hex_rai":"0000000C9F2C9CD04674EDEA40000000"}"#);
+        let json = serde_json::to_string(&hex_raw).unwrap();
+        assert_eq!(json, r#"{"hex_raw":"0000000C9F2C9CD04674EDEA40000000"}"#);
         assert_eq!(
-            serde_json::from_str::<HexRaw>(&json).unwrap().hex_rai,
-            hex_rai.hex_rai
+            serde_json::from_str::<HexRaw>(&json).unwrap().hex_raw,
+            hex_raw.hex_raw
         );
     }
 
     #[test]
     fn negative_unbounded() {
-        let mut v = Rai::zero().to_unbounded();
-        v -= UnboundedRai::new(1);
+        let mut v = Raw::zero().to_unbounded();
+        v -= UnboundedRaw::new(1);
     }
 }

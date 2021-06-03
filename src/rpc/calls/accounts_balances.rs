@@ -1,5 +1,5 @@
 use crate::rpc::client::{RPCClient, RPCRequest};
-use crate::{Address, Rai, Result};
+use crate::{Address, Raw, Result};
 use async_trait::async_trait;
 use clap::Clap;
 use serde::{Deserialize, Serialize};
@@ -36,8 +36,8 @@ pub struct AccountsBalancesResponse {
 
 #[derive(Debug, Serialize, Deserialize, PartialEq)]
 pub struct AccountsBalancesEntry {
-    balance: Rai,
-    pending: Rai,
+    balance: Raw,
+    pending: Raw,
 }
 
 #[cfg(test)]
@@ -71,8 +71,8 @@ mod tests {
             Address::from_str("nano_3i1aq1cchnmbn9x5rsbap8b15akfh7wj7pwskuzi7ahz8oq6cobd99d4r3b7")
                 .unwrap(),
             AccountsBalancesEntry {
-                balance: Rai::from(10000),
-                pending: Rai::from(10000),
+                balance: Raw::from(10000),
+                pending: Raw::from(10000),
             },
         );
 
@@ -80,8 +80,8 @@ mod tests {
             Address::from_str("nano_3i1aq1cchnmbn9x5rsbap8b15akfh7wj7pwskuzi7ahz8oq6cobd99d4r3b7")
                 .unwrap(),
             AccountsBalancesEntry {
-                balance: Rai::from(10000000),
-                pending: Rai::from(0),
+                balance: Raw::from(10000000),
+                pending: Raw::from(0),
             },
         );
 

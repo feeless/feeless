@@ -72,5 +72,5 @@ pub use keys::seed::Seed;
 pub use keys::signature::Signature;
 pub use network::{Network, DEFAULT_PORT};
 pub use pow::{Difficulty, Subject, Work};
-pub use units::rai::Rai;
+pub use units::raw::Raw;
 pub use version::Version;

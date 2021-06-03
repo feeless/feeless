@@ -3,6 +3,7 @@
 
 mod keys;
 mod signing;
+mod units;
 mod wallet;
 
 use ansi_term::Color;
@@ -33,6 +34,7 @@ fn main() -> anyhow::Result<()> {
     keys::keys(&mut test, &feeless)?;
     wallet::wallet(&mut test, &feeless)?;
     signing::signing(&mut test, &feeless)?;
+    units::units(&mut test, &feeless)?;
 
     test.end()?;
 
@@ -103,6 +105,25 @@ impl Outcome {
         if !self.output.contains(s) {
             self.state = State::Fail(format!(
                 "Output does not contain '{}'.\nOutput: {}",
+                s, &self.output
+            ));
+            self.print();
+            return self;
+        }
+
+        self.print();
+        self
+    }
+
+    pub fn equals(&mut self, s: &str) -> &mut Self {
+        if let State::Error(_) = &self.state {
+            self.print();
+            return self;
+        }
+
+        if !self.output.eq(s) {
+            self.state = State::Fail(format!(
+                "Output does not equal '{}'.\nOutput: {}",
                 s, &self.output
             ));
             self.print();

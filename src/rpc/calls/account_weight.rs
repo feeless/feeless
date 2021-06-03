@@ -1,5 +1,5 @@
 use crate::rpc::client::{RPCClient, RPCRequest};
-use crate::{Address, Rai, Result};
+use crate::{Address, Raw, Result};
 use async_trait::async_trait;
 use clap::Clap;
 use serde::{Deserialize, Serialize};
@@ -30,7 +30,7 @@ impl AccountWeightRequest {
 
 #[derive(Debug, Serialize, Deserialize, PartialEq)]
 pub struct AccountWeightResponse {
-    weight: Rai,
+    weight: Raw,
 }
 
 #[cfg(test)]
@@ -49,7 +49,7 @@ mod tests {
         assert_eq!(
             r,
             AccountWeightResponse {
-                weight: Rai::from(10000),
+                weight: Raw::from(10000),
             }
         )
     }

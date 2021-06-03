@@ -2,7 +2,7 @@ use crate::blocks::{BlockHash, BlockType, Link, StateBlock};
 use crate::rpc::client::{RPCClient, RPCRequest};
 use crate::rpc::AlwaysTrue;
 use crate::wallet::WalletId;
-use crate::{Address, Difficulty, Private, Rai, Result, Work};
+use crate::{Address, Difficulty, Private, Raw, Result, Work};
 use async_trait::async_trait;
 use clap::Clap;
 use serde::{Deserialize, Serialize};
@@ -20,7 +20,7 @@ pub struct BlockCreateRequest {
 
     /// Final balance for account after block creation.
     #[clap(short, long)]
-    pub balance: Rai,
+    pub balance: Raw,
 
     /// The wallet ID that the account the block is being created for is in.
     #[clap(short = 'i', long)]
@@ -93,7 +93,7 @@ impl RPCRequest for &BlockCreateRequest {
 impl BlockCreateRequest {
     pub fn new(
         block_type: BlockType,
-        balance: Rai,
+        balance: Raw,
         representative: Address,
         previous: BlockHash,
     ) -> Self {

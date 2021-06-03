@@ -8,7 +8,7 @@ use crate::network::Network;
 use crate::node::header::{Extensions, Header, MessageType};
 use crate::node::state::ArcState;
 use crate::node::wire::Wire;
-use crate::{Public, Rai};
+use crate::{Public, Raw};
 use anyhow::{anyhow, Context};
 use std::fmt::Debug;
 use std::net::SocketAddr;
@@ -266,13 +266,13 @@ impl Peer {
         todo!()
     }
 
-    pub async fn account_balance(&self, account: &Public) -> anyhow::Result<Rai> {
+    pub async fn account_balance(&self, account: &Public) -> anyhow::Result<Raw> {
         let context = || anyhow!("Account balance for {:?}", account);
         let block = self.get_latest_block(account).await.with_context(context)?;
 
         match block {
             Some(block) => Ok(block.balance().to_owned()),
-            None => Ok(Rai::zero()),
+            None => Ok(Raw::zero()),
         }
     }
 
@@ -320,7 +320,7 @@ mod tests {
                 .unwrap()
                 .unwrap()
                 .balance(),
-            &Rai::max()
+            &Raw::max()
         );
     }
 
@@ -357,9 +357,9 @@ mod tests {
 
         peer.add_elected_block(&block).await.unwrap();
 
-        let given = Rai::from(3271945835778254456378601994536232802u128);
+        let given = Raw::from(3271945835778254456378601994536232802u128);
 
-        let genesis_balance = Rai::max().checked_sub(&given).unwrap();
+        let genesis_balance = Raw::max().checked_sub(&given).unwrap();
 
         // The genesis account has a reduced amount because they've created a send block.
         assert_eq!(
@@ -370,7 +370,7 @@ mod tests {
         // Account isn't opened yet so it's empty.
         assert_eq!(
             peer.account_balance(&landing_account).await.unwrap(),
-            Rai::zero()
+            Raw::zero()
         );
 
         // TODO: Check pending balance of landing account.
@@ -419,7 +419,7 @@ mod tests {
         assert_eq!(
             peer.account_balance(&landing_account).await.unwrap(),
             given
-                .checked_sub(&Rai::from(324518553658426726783156020576256))
+                .checked_sub(&Raw::from(324518553658426726783156020576256))
                 .unwrap()
         );
     }

@@ -2,7 +2,7 @@ use crate::blocks::{deserialize_to_unsure_link, BlockType, StateBlock};
 use crate::blocks::{BlockHash, Link, Subtype};
 use crate::rpc::client::{RPCClient, RPCRequest};
 use crate::rpc::AlwaysTrue;
-use crate::{Address, Rai, Result, Signature, Work};
+use crate::{Address, Raw, Result, Signature, Work};
 use async_trait::async_trait;
 use clap::Clap;
 use serde::{Deserialize, Serialize};
@@ -23,7 +23,7 @@ pub struct StateBlockRequest {
     pub representative: Address,
 
     #[clap(short, long)]
-    pub balance: Rai,
+    pub balance: Raw,
 
     #[serde(deserialize_with = "deserialize_to_unsure_link")]
     #[clap(short, long)]

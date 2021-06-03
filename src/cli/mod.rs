@@ -64,7 +64,7 @@ enum Command {
     /// Launches a node (DISABLED)
     Node,
 
-    /// Conversion between units, e.g. Rai to Nano
+    /// Conversion between units, e.g. Raw to Nano
     Unit(UnitOpts),
 
     /// Manage wallet files.

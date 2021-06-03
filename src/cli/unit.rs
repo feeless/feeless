@@ -1,11 +1,11 @@
 use crate::cli::StringOrStdin;
-use crate::units::{Cents, MicroNano, Nano, UnboundedRai};
+use crate::units::{Mnano, Nano, UnboundedRaw};
 use clap::Clap;
 use std::str::FromStr;
 
-macro_rules! rai {
+macro_rules! raw {
     ($dst:expr) => {
-        UnboundedRai::from_str(&$dst.resolve()?)?
+        UnboundedRaw::from_str(&$dst.resolve()?)?
     };
 }
 
@@ -15,15 +15,9 @@ macro_rules! nano {
     };
 }
 
-macro_rules! cents {
+macro_rules! mnano {
     ($dst:expr) => {
-        Cents::from_str(&$dst.resolve()?)?
-    };
-}
-
-macro_rules! micro {
-    ($dst:expr) => {
-        MicroNano::from_str(&$dst.resolve()?)?
+        Mnano::from_str(&$dst.resolve()?)?
     };
 }
 
@@ -38,33 +32,24 @@ impl UnitOpts {
         // This is a bit unwieldy because of the "from to amount" structure.
         // Not sure how to improve.
         let src = match &self.command {
-            SrcUnit::Rai(src) => match &src.dst {
-                DstCommand::Rai(dst) => rai!(dst).to_unbounded_rai().to_string(),
-                DstCommand::Nano(dst) => rai!(dst).to_nano().to_string(),
-                DstCommand::Cents(dst) => rai!(dst).to_cents().to_string(),
-                DstCommand::Micro(dst) => rai!(dst).to_micro_nano().to_string(),
+            SrcUnit::Raw(src) => match &src.dst {
+                DstCommand::Raw(dst) => raw!(dst).to_unbounded_raw().to_string(),
+                DstCommand::Nano(dst) => raw!(dst).to_nano().to_string(),
+                DstCommand::Mnano(dst) => raw!(dst).to_mnano().to_string(),
             }
             .to_string(),
             SrcUnit::Nano(src) => match &src.dst {
-                DstCommand::Rai(dst) => nano!(dst).to_unbounded_rai().to_string(),
+                DstCommand::Raw(dst) => nano!(dst).to_unbounded_raw().to_string(),
                 DstCommand::Nano(dst) => nano!(dst).to_nano().to_string(),
-                DstCommand::Cents(dst) => nano!(dst).to_cents().to_string(),
-                DstCommand::Micro(dst) => nano!(dst).to_micro_nano().to_string(),
+                DstCommand::Mnano(dst) => nano!(dst).to_mnano().to_string(),
             }
             .to_string(),
-            SrcUnit::Cents(src) => match &src.dst {
-                DstCommand::Rai(dst) => cents!(dst).to_unbounded_rai().to_string(),
-                DstCommand::Nano(dst) => cents!(dst).to_nano().to_string(),
-                DstCommand::Cents(dst) => cents!(dst).to_cents().to_string(),
-                DstCommand::Micro(dst) => cents!(dst).to_micro_nano().to_string(),
+            SrcUnit::Mnano(src) => match &src.dst {
+                DstCommand::Raw(dst) => mnano!(dst).to_unbounded_raw().to_string(),
+                DstCommand::Nano(dst) => mnano!(dst).to_nano().to_string(),
+                DstCommand::Mnano(dst) => mnano!(dst).to_mnano().to_string(),
             }
             .to_string(),
-            SrcUnit::Micro(src) => match &src.dst {
-                DstCommand::Rai(dst) => micro!(dst).to_unbounded_rai().to_string(),
-                DstCommand::Nano(dst) => micro!(dst).to_nano().to_string(),
-                DstCommand::Cents(dst) => micro!(dst).to_cents().to_string(),
-                DstCommand::Micro(dst) => micro!(dst).to_micro_nano().to_string(),
-            },
         };
         println!("{}", src);
         Ok(())
@@ -73,17 +58,14 @@ impl UnitOpts {
 
 #[derive(Clap)]
 enum SrcUnit {
-    /// From a rai amount.
-    Rai(Dst),
+    /// From a raw amount.
+    Raw(Dst),
 
     /// From a Nano amount
     Nano(Dst),
 
     /// From a Cents amount
-    Cents(Dst),
-
-    /// From a MicroNano amount
-    Micro(Dst),
+    Mnano(Dst),
 }
 
 #[derive(Clap)]
@@ -94,17 +76,14 @@ struct Dst {
 
 #[derive(Clap)]
 enum DstCommand {
-    /// Convert to a rai amount.
-    Rai(Opts),
+    /// Convert to a raw amount.
+    Raw(Opts),
 
-    /// Convert to a Nano amount.
+    /// Convert to a nano amount.
     Nano(Opts),
 
-    /// Convert to a Cent amount
-    Cents(Opts),
-
-    /// Convert to a MicroNano amount
-    Micro(Opts),
+    /// Convert to a Mnano/NANO/Nano amount
+    Mnano(Opts),
 }
 
 #[derive(Clap)]

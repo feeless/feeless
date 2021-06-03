@@ -10,7 +10,7 @@ use crate::bytes::Bytes;
 use crate::blocks::{hash_block, Block, BlockHash, BlockType, Previous};
 use crate::encoding::expect_len;
 use crate::keys::public::{from_address, to_address};
-use crate::{hexify, Error, Public, Rai, Result, Signature, Work};
+use crate::{hexify, Error, Public, Raw, Result, Signature, Work};
 use anyhow::anyhow;
 use anyhow::Context;
 use serde::{Deserialize, Deserializer, Serialize};
@@ -51,7 +51,7 @@ pub struct StateBlock {
     #[serde(serialize_with = "to_address", deserialize_with = "from_address")]
     pub representative: Public,
 
-    pub balance: Rai,
+    pub balance: Raw,
 
     #[serde(deserialize_with = "deserialize_to_unsure_link")]
     pub link: Link,
@@ -73,7 +73,7 @@ impl StateBlock {
         account: Public,
         previous: Previous,
         representative: Public,
-        balance: Rai,
+        balance: Raw,
         link: Link,
     ) -> Self {
         let mut preamble = [0u8; 32];
@@ -100,7 +100,7 @@ impl StateBlock {
         }
     }
 
-    pub fn set_link_type(&mut self, is_send: bool, amount: Rai) -> anyhow::Result<()> {
+    pub fn set_link_type(&mut self, is_send: bool, amount: Raw) -> anyhow::Result<()> {
         match &self.link {
             Link::Nothing => {
                 tracing::trace!("set_link_type likely called twice by mistake.");
@@ -126,7 +126,7 @@ impl StateBlock {
                         self.link = Link::Source(BlockHash::try_from(unsure_link.as_bytes())?);
                         self.amount = Some(Amount(amount))
                     } else if is_change {
-                        debug_assert_eq!(amount, Rai(0));
+                        debug_assert_eq!(amount, Raw(0));
                         self.link = Link::Nothing
                     }
                 }
@@ -162,7 +162,7 @@ impl Wire for StateBlock {
         let account = Public::try_from(data.slice(Public::LEN)?)?;
         let previous = Previous::try_from(data.slice(BlockHash::LEN)?)?;
         let representative = Public::try_from(data.slice(Public::LEN)?)?;
-        let balance = Rai::try_from(data.slice(Rai::LEN)?)?;
+        let balance = Raw::try_from(data.slice(Raw::LEN)?)?;
 
         let link_data = data.slice(Public::LEN)?;
         // We are unsure because we need to work out the previous balance of this account first.
@@ -219,7 +219,7 @@ impl Display for StateBlock {
 
 #[cfg(test)]
 mod tests {
-    use super::Rai;
+    use super::Raw;
     use super::StateBlock;
     use crate::blocks::state_block::{Amount, Link, UnsureLink};
     use crate::blocks::{Block, BlockHash, Previous};
@@ -238,8 +238,8 @@ mod tests {
     fn representative_0() -> Public {
         account_0()
     }
-    fn balance_0() -> Rai {
-        Rai::new(2711469892748129430069222848295u128)
+    fn balance_0() -> Raw {
+        Raw::new(2711469892748129430069222848295u128)
     }
 
     #[test]
@@ -292,9 +292,9 @@ mod tests {
             unsure_link,
         );
 
-        state_block.set_link_type(true, Rai(200)).unwrap();
+        state_block.set_link_type(true, Raw(200)).unwrap();
 
-        assert_eq!(state_block.amount, Some(Amount(Rai(200))));
+        assert_eq!(state_block.amount, Some(Amount(Raw(200))));
         assert_eq!(
             state_block.link,
             Link::DestinationAccount(destination_account)
@@ -320,9 +320,9 @@ mod tests {
             unsure_link,
         );
 
-        state_block.set_link_type(false, Rai(200)).unwrap();
+        state_block.set_link_type(false, Raw(200)).unwrap();
 
-        assert_eq!(state_block.amount, Some(Amount(Rai(200))));
+        assert_eq!(state_block.amount, Some(Amount(Raw(200))));
         assert_eq!(state_block.link, Link::Source(source));
     }
 
@@ -337,7 +337,7 @@ mod tests {
             unsure_link,
         );
 
-        state_block.set_link_type(false, Rai(0)).unwrap();
+        state_block.set_link_type(false, Raw(0)).unwrap();
 
         assert_eq!(state_block.amount, None);
         assert_eq!(state_block.link, Link::Nothing);
@@ -359,7 +359,7 @@ impl UnsureLink {
 
 /// Represent nanos transferred between account in send and receive sub-blocks
 #[derive(Debug, Clone, Eq, PartialEq)]
-pub struct Amount(Rai);
+pub struct Amount(Raw);
 
 /// Used in state block as a reference to either the previous block or a destination address.
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
