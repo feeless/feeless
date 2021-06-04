@@ -26,6 +26,7 @@ use crate::cli::vanity::VanityOpts;
 use crate::cli::verify::VerifyOpts;
 use crate::cli::wallet::WalletOpts;
 use crate::cli::work::WorkOpts;
+use crate::paths::Paths;
 use address::AddressOpts;
 use anyhow::anyhow;
 use clap::Clap;
@@ -51,7 +52,7 @@ struct Opts {
     no_color: bool,
 
     /// Maximum level of logging to be displayed: trace, debug, info, warn, error.
-    #[clap(long)]
+    #[clap(short = 'l', long)]
     log_level: Option<Level>,
 }
 

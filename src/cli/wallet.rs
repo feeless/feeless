@@ -1,5 +1,6 @@
 use crate::cli::StringOrStdin;
 use crate::keys::armor::Armor;
+use crate::paths::PathsOpts;
 use crate::wallet::{Wallet, WalletId, WalletManager};
 use crate::Phrase;
 use clap::Clap;
@@ -94,20 +95,20 @@ impl WalletOpts {
     }
 
     async fn read(o: &CommonOpts) -> anyhow::Result<Wallet> {
-        let manager = WalletManager::new(&o.file);
+        let manager = WalletManager::new(&o.paths_opts.wallet_path()?);
         let wallet = manager.wallet(&o.wallet_id()?).await?;
         Ok(wallet)
     }
 
     async fn create(o: &CommonOptsCreate) -> anyhow::Result<(WalletManager, WalletId)> {
-        let manager = WalletManager::new(&o.common_opts.file);
+        let manager = WalletManager::new(&o.common_opts.paths_opts.wallet_path()?);
         manager.ensure().await?;
         let wallet_id = o.wallet_id()?.to_owned();
         Ok((manager, wallet_id))
     }
 
     async fn delete(o: &CommonOpts) -> anyhow::Result<(WalletManager, WalletId)> {
-        let manager = WalletManager::new(&o.file);
+        let manager = WalletManager::new(&o.paths_opts.wallet_path()?);
         manager.ensure().await?;
         let wallet_id = o.wallet_id()?;
         Ok((manager, wallet_id))
@@ -140,9 +141,8 @@ enum Command {
 
 #[derive(Clap)]
 struct CommonOpts {
-    /// Path to the wallet file.
-    #[clap(short, long, env = "FEELESS_WALLET_FILE")]
-    file: PathBuf,
+    #[clap(flatten)]
+    paths_opts: PathsOpts,
 
     /// Wallet ID.
     #[clap(short, long, env = "FEELESS_WALLET_ID")]

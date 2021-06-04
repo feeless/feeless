@@ -3,12 +3,14 @@ use crate::Raw;
 use anyhow::anyhow;
 use std::convert::TryFrom;
 use std::str::FromStr;
+use strum_macros::{Display, EnumString};
 
 /// The default TCP port that Nano nodes use.
 pub const DEFAULT_PORT: u16 = 7075;
 
 /// Network to use: Test, Beta, Live.
-#[derive(Debug, Clone, Copy, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq, Display, EnumString)]
+#[strum(serialize_all = "snake_case")]
 pub enum Network {
     Test = 0x41,
     Beta = 0x42,
