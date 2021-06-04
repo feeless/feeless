@@ -5,8 +5,9 @@ use directories::BaseDirs;
 use std::fs::create_dir_all;
 use std::path::{Path, PathBuf};
 
+/// CLI options for [Paths].
 #[derive(Clap)]
-pub struct PathsOpts {
+pub(crate) struct PathsOpts {
     #[clap(short = 'n', long, default_value = "live")]
     network: Network,
 
@@ -23,6 +24,13 @@ impl PathsOpts {
 }
 
 /// Contains the base path to wallets, databases, etc.
+///
+/// It requires the network type so that the path constructed is in this layout:
+/// `{app_data}/feeless/{network}/{file or dir}
+///
+/// For example:
+/// * /home/gak/.local/share/feeless/live/wallet.dat
+/// * C:\Users\gak\App Data\Local\feeless\live\wallet.dat
 pub(crate) struct Paths {
     pub data: PathBuf,
 }
