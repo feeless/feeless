@@ -4,7 +4,6 @@ use crate::paths::PathsOpts;
 use crate::wallet::{Wallet, WalletId, WalletManager};
 use crate::Phrase;
 use clap::Clap;
-use std::path::PathBuf;
 
 #[derive(Clap)]
 pub struct WalletOpts {
