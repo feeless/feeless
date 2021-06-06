@@ -55,6 +55,7 @@ mod encoding;
 mod errors;
 mod keys;
 mod network;
+mod paths;
 mod pow;
 pub mod rpc;
 pub mod units;

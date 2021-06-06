@@ -1,15 +1,11 @@
-use crate::Test;
+use crate::{setup_data_dir, Test};
 use cmd_lib::run_fun;
 use std::env::set_var;
 use std::fs::remove_file;
-use std::path::Path;
 
 pub fn signing(test: &mut Test, feeless: &str) -> anyhow::Result<()> {
-    let wallet_path = "test.wallet";
-    if Path::new(wallet_path).exists() {
-        remove_file(wallet_path)?;
-    }
-    set_var("FEELESS_WALLET_FILE", wallet_path);
+    let data_dir = setup_data_dir()?;
+    set_var("FEELESS_DATA_DIR", &data_dir);
 
     let wallet_id = run_fun!(
         $feeless wallet new phrase
@@ -48,7 +44,6 @@ pub fn signing(test: &mut Test, feeless: &str) -> anyhow::Result<()> {
     });
 
     remove_file(armor_path)?;
-    remove_file(wallet_path)?;
 
     Ok(())
 }

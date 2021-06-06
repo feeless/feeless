@@ -51,7 +51,7 @@ struct Opts {
     no_color: bool,
 
     /// Maximum level of logging to be displayed: trace, debug, info, warn, error.
-    #[clap(long)]
+    #[clap(short = 'l', long)]
     log_level: Option<Level>,
 }
 
