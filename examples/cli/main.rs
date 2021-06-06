@@ -7,9 +7,15 @@ mod units;
 mod wallet;
 
 use ansi_term::Color;
-use anyhow::anyhow;
+use anyhow::{anyhow, Context};
 use clap::Clap;
+use cmd_lib::log::LevelFilter;
 use cmd_lib::run_fun;
+use std::ffi::OsStr;
+use std::fs::remove_dir_all;
+use std::ops::Deref;
+use std::path::Path;
+use std::process::exit;
 
 // These `Opts` are only for the path to feeless, not the actual feeless CLI.
 #[derive(Clap)]
@@ -19,7 +25,18 @@ struct Opts {
 }
 
 /// This example is to show how to use the CLI, and also acts as an integration test.
-fn main() -> anyhow::Result<()> {
+fn main() {
+    if let Err(err) = run() {
+        println!("Error: {:?}", err);
+        exit(1);
+    }
+}
+
+fn run() -> anyhow::Result<()> {
+    pretty_env_logger::formatted_builder()
+        .filter_level(LevelFilter::Trace)
+        .init();
+
     let opts = Opts::parse();
     let feeless = &opts.feeless_path;
     let mut test = Test::new();
@@ -57,7 +74,7 @@ impl Test {
     {
         let outcome = match result() {
             Ok(s) => Outcome::new(desc, &s, State::Pass),
-            Err(err) => Outcome::new(desc, "", State::Error(err.to_string())),
+            Err(err) => Outcome::new(desc, "", State::Error(format!("{:?}", err))),
         };
         self.outcomes.push(outcome.to_owned());
         outcome
@@ -146,4 +163,39 @@ impl Outcome {
             println!("{}", Color::Purple.paint(err));
         }
     }
+}
+
+#[derive(Debug)]
+struct DataDir(String);
+
+impl Drop for DataDir {
+    fn drop(&mut self) {
+        if Path::new(&self.0).exists() {
+            if let Err(err) = remove_dir_all(&self.0).context("Removing existing data dir") {
+                eprintln!("Error dropping DataDir: {:?}", err);
+            }
+        }
+    }
+}
+
+impl Deref for DataDir {
+    type Target = String;
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+
+impl AsRef<OsStr> for DataDir {
+    fn as_ref(&self) -> &OsStr {
+        &OsStr::new(&self.0)
+    }
+}
+
+fn setup_data_dir() -> anyhow::Result<DataDir> {
+    let data_dir = "examples-data-dir";
+    if Path::new(data_dir).exists() {
+        remove_dir_all(data_dir).context("Removing existing data dir")?;
+    }
+    Ok(DataDir(data_dir.into()))
 }

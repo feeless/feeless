@@ -11,7 +11,7 @@ pub(crate) struct PathsOpts {
     #[clap(short = 'n', long, default_value = "live")]
     network: Network,
 
-    #[clap(long)]
+    #[clap(long, env = "FEELESS_DATA_DIR")]
     data_dir: Option<PathBuf>,
 }
 
