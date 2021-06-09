@@ -22,8 +22,6 @@ dependencies = [
 [[package]]
 name = "age"
 version = "0.5.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "35f0ec2ddb1e2aefd2d9964c26531b8f939e5c1a8aea05eb7d3b8e48c2948e6b"
 dependencies = [
  "age-core",
  "base64 0.12.3",
@@ -51,8 +49,6 @@ dependencies = [
 [[package]]
 name = "age-core"
 version = "0.5.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1486e2dbe4dad22a42dd0bd71e125ec0d0a25ca4c7275aaf3fa8f285b44ad1c1"
 dependencies = [
  "base64 0.12.3",
  "c2-chacha",
@@ -1245,9 +1241,9 @@ checksum = "e2abad23fbc42b3700f2f279844dc832adb2b2eb069b2df918f455c4e18cc646"
 
 [[package]]
 name = "lexical-core"
-version = "0.7.5"
+version = "0.7.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "21f866863575d0e1d654fbeeabdc927292fdf862873dc3c96c6f753357e13374"
+checksum = "6607c62aa161d23d17a9072cc5da0be67cdfc89d3afb1e8d9c842bebc2525ffe"
 dependencies = [
  "arrayvec",
  "bitflags",
