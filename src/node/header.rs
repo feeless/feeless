@@ -206,6 +206,7 @@ impl Extensions {
 
     // Bit offsets and lengths
     const QUERY: usize = 0;
+    const EXTENDED_PARAMETERS_PRESENT: usize = 0;
     const RESPONSE: usize = 1;
     const ITEM_COUNT: usize = 12;
     const ITEM_COUNT_BITS: usize = 4;
@@ -223,6 +224,10 @@ impl Extensions {
 
     pub fn is_query(&self) -> bool {
         self.bits()[Self::QUERY]
+    }
+
+    pub fn has_extended_parameters(&self) -> bool {
+        self.bits()[Self::EXTENDED_PARAMETERS_PRESENT]
     }
 
     pub fn response(&mut self) -> &mut Self {

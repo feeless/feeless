@@ -7,6 +7,7 @@ mod peer_info;
 mod state;
 mod timestamp;
 mod wire;
+mod bootstrap;
 
 use crate::rpc::server::RPCServer;
 use crate::Network;

@@ -67,7 +67,7 @@ pub struct StateBlock {
 }
 
 impl StateBlock {
-    pub const LEN: usize = 216;
+    pub const LEN: usize = 32+32+32+16+32+64+8;
 
     pub fn new(
         account: Public,
@@ -179,9 +179,9 @@ impl Wire for StateBlock {
     }
 
     fn len(header: Option<&Header>) -> anyhow::Result<usize> {
-        debug_assert!(header.is_some());
-        let header = header.unwrap();
-        debug_assert_eq!(header.ext().block_type()?, BlockType::State);
+        if let Some(header) = header {
+            debug_assert_eq!(header.ext().block_type()?, BlockType::State);
+        }
 
         Ok(StateBlock::LEN)
     }

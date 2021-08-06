@@ -18,6 +18,8 @@ pub struct OpenBlock {
 }
 
 impl OpenBlock {
+    pub const LEN: usize = 32+32+32+64+8;
+
     pub fn new(source: BlockHash, representative: Public, account: Public) -> Self {
         Self {
             source,

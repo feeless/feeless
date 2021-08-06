@@ -8,3 +8,4 @@ pub mod keepalive;
 pub mod publish;
 pub mod telemetry_ack;
 pub mod telemetry_req;
+pub mod bulk_pull;

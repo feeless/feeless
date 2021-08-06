@@ -209,10 +209,10 @@ impl PcapDump {
                     let state_cloned = state.clone();
                     let peer_addr =
                         SocketAddr::new(IpAddr::V4(ip.destination_addr()), tcp.destination_port());
-                    let (mut c, tx, mut rx) =
+                    let (mut peer, tx, mut rx) =
                         Peer::new_with_channels(network, state_cloned, peer_addr.clone());
 
-                    // Discard all responses from the controller since we are just processing
+                    // Discard all responses from the peer since we are just processing
                     // packets.
                     tokio::spawn(async move {
                         loop {
@@ -224,8 +224,8 @@ impl PcapDump {
                     });
 
                     tokio::spawn(async move {
-                        c.validate_handshakes = false;
-                        let result = c.run().await;
+                        peer.validate_handshakes = false;
+                        let result = peer.run().await;
                         if let Err(err) = result {
                             error!("Error on pcap controller {:?}: {:?}", peer_addr, err);
                         }

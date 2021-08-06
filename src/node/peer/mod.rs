@@ -2,7 +2,7 @@ mod blocks;
 mod genesis;
 mod messages;
 
-use crate::blocks::Block;
+use crate::blocks::{Block, BlockType, SendBlock, ReceiveBlock, OpenBlock, ChangeBlock, StateBlock};
 use crate::encoding::to_hex;
 use crate::network::Network;
 use crate::node::header::{Extensions, Header, MessageType};
@@ -13,7 +13,9 @@ use anyhow::{anyhow, Context};
 use std::fmt::Debug;
 use std::net::SocketAddr;
 use tokio::sync::mpsc;
-use tracing::{debug, info, instrument, trace};
+use tracing::{debug, info, instrument, trace, error, warn};
+use crate::node::peer::BootstrapState::Idle;
+use std::convert::TryFrom;
 
 /// A message sent between channels that contains a peer's network data.
 #[derive(Debug)]
@@ -49,6 +51,12 @@ enum RecvState {
     Payload(Header),
 }
 
+enum BootstrapState {
+    Idle,
+    FrontierStream,
+    BulkPull,
+}
+
 /// Handles the logic of one peer. It handles and emits messages, as well as time
 /// based actions, management of other peers, etc.
 pub struct Peer {
@@ -61,7 +69,8 @@ pub struct Peer {
     recv_state: RecvState,
 
     /// Are we doing a frontier req stream? (Bootstrap?)
-    frontier_stream: bool,
+    /// Are we doing a bulk pull req? (Bootstrap?)
+    bootstrap_state: BootstrapState,
 
     /// Internal buffer for incoming data.
     incoming_buffer: Vec<u8>,
@@ -92,7 +101,7 @@ impl Peer {
             state,
             peer_addr,
             recv_state: RecvState::Header,
-            frontier_stream: false,
+            bootstrap_state: Idle,
             incoming_buffer: Vec::with_capacity(10_000),
             peer_rx: incoming_rx,
             peer_tx: outgoing_tx,
@@ -104,7 +113,7 @@ impl Peer {
 
     /// Run will loop forever and is expected to be spawned and will quit when the incoming channel
     /// is closed.
-    #[instrument(name = "node", skip(self), fields(address = %self.peer_addr))]
+    #[instrument(name = "node", skip(self), fields(address = % self.peer_addr))]
     pub async fn run(mut self) -> anyhow::Result<()> {
         trace!("Initial handshake");
         self.send_handshake().await?;
@@ -158,41 +167,86 @@ impl Peer {
         //     self.handle_frontier_resp(payload).await?;
         // } else {
 
-        loop {
-            let (new_state, process) = match self.recv_state {
-                RecvState::Header => {
-                    if let Some(header) = self.recv::<Header>(None)? {
-                        header.validate(&self.network)?;
-                        (RecvState::Payload(header), true)
+        if matches!(self.bootstrap_state, BootstrapState::BulkPull) {
+            let block_type_byte = self.incoming_buffer[0].to_owned();
+            self.incoming_buffer = Vec::from(&self.incoming_buffer[1..]);
+            let block_type = BlockType::try_from(block_type_byte)?;
+            match block_type {
+                BlockType::Invalid => {
+                    error!("invalid block, not implemented")
+                }
+                BlockType::NotABlock => {
+                    trace!("Received NotABlock, reverting to Idle bootstrap state");
+                    self.bootstrap_state = Idle
+                }
+                BlockType::Send => {
+                    info!("send block, not implemented");
+                    self.incoming_buffer = Vec::from(&self.incoming_buffer[SendBlock::LEN..])
+                }
+                BlockType::Receive => {
+                    info!("receive block, not implemented");
+                    self.incoming_buffer = Vec::from(&self.incoming_buffer[ReceiveBlock::LEN..])
+                }
+                BlockType::Open => {
+                    info!("open block, not implemented");
+                    self.incoming_buffer = Vec::from(&self.incoming_buffer[OpenBlock::LEN..])
+                }
+                BlockType::Change => {
+                    info!("change block, not implemented");
+                    self.incoming_buffer = Vec::from(&self.incoming_buffer[ChangeBlock::LEN..])
+                }
+                BlockType::State => {
+                    let payload: Option<StateBlock> = self
+                        .recv(None)?;
+                    if let Some(payload) = payload {
+                        match &self.last_annotation {
+                            Some(a) => info!("{} {:?}", a, &payload),
+                            None => debug!("{:?}", &payload),
+                        };
+
+                        self.handle_bootstrap_state_block(&payload).await?;
                     } else {
-                        (RecvState::Header, false)
+                        warn!("Expected payload not received")
                     }
                 }
-                RecvState::Payload(header) => {
-                    trace!(
+            }
+        } else {
+            loop {
+                let (new_state, keep_processing) = match self.recv_state {
+                    RecvState::Header => {
+                        if let Some(header) = self.recv::<Header>(None)? {
+                            header.validate(&self.network)?;
+                            (RecvState::Payload(header), true)
+                        } else {
+                            (RecvState::Header, false)
+                        }
+                    }
+                    RecvState::Payload(header) => {
+                        trace!(
                         "Attempt to handle message of type: {:?}",
                         header.message_type()
                     );
-                    match header.message_type() {
-                        MessageType::Keepalive => handle!(self, handle_keepalive, header),
-                        MessageType::Publish => handle!(self, handle_publish, header),
-                        MessageType::ConfirmReq => handle!(self, handle_confirm_req, header),
-                        MessageType::ConfirmAck => handle!(self, handle_confirm_ack, header),
-                        MessageType::FrontierReq => handle!(self, handle_frontier_req, header),
-                        MessageType::Handshake => handle!(self, handle_handshake, header),
-                        MessageType::TelemetryReq => handle!(self, handle_telemetry_req, header),
-                        MessageType::TelemetryAck => handle!(self, handle_telemetry_ack, header),
-                        // MessageType::BulkPull => {}
-                        // MessageType::BulkPush => {}
-                        // MessageType::BulkPullAccount => {}
-                        _ => return Err(anyhow!("Unhandled message: {:?}", header)),
-                    };
-                    (RecvState::Header, false)
+                        match header.message_type() {
+                            MessageType::Keepalive => handle!(self, handle_keepalive, header),
+                            MessageType::Publish => handle!(self, handle_publish, header),
+                            MessageType::ConfirmReq => handle!(self, handle_confirm_req, header),
+                            MessageType::ConfirmAck => handle!(self, handle_confirm_ack, header),
+                            MessageType::FrontierReq => handle!(self, handle_frontier_req, header),
+                            MessageType::Handshake => handle!(self, handle_handshake, header),
+                            MessageType::TelemetryReq => handle!(self, handle_telemetry_req, header),
+                            MessageType::TelemetryAck => handle!(self, handle_telemetry_ack, header),
+                            MessageType::BulkPull => handle!(self, handle_bulk_pull, header),
+                            // MessageType::BulkPush => {}
+                            // MessageType::BulkPullAccount => {}
+                            _ => return Err(anyhow!("Unhandled message: {:?}", header)),
+                        };
+                        (RecvState::Header, false)
+                    }
+                };
+                self.recv_state = new_state;
+                if !keep_processing {
+                    break;
                 }
-            };
-            self.recv_state = new_state;
-            if !process {
-                break;
             }
         }
 
@@ -348,7 +402,7 @@ mod tests {
                 "signature": "5B11B17DB9C8FE0CC58CAC6A6EECEF9CB122DA8A81C6D3DB1B5EE3AB065AA8F8CB1D6765C8EB91B58530C5FF5987AD95E6D34BB57F44257E20795EE412E61600"
             }"#,
         )
-        .unwrap();
+            .unwrap();
 
         // TODO: This should be done somewhere (the controller?
         // e.g. controller.validate_send_block() or controller.fill_send_block()
@@ -394,7 +448,7 @@ mod tests {
             &BlockHash::from_str(
                 "90D0C16AC92DD35814E84BFBCC739A039615D0A42A76EF44ADAEF1D99E9F8A35"
             )
-            .unwrap()
+                .unwrap()
         );
 
         peer.add_elected_block(&land_open).await.unwrap();

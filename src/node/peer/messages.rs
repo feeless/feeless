@@ -16,6 +16,9 @@ use anyhow::anyhow;
 use anyhow::Context;
 use std::convert::TryFrom;
 use tracing::{debug, info, instrument, trace, warn};
+use crate::node::messages::bulk_pull::BulkPull;
+use crate::node::peer::BootstrapState::FrontierStream;
+use crate::node::peer::BootstrapState;
 
 impl Peer {
     #[instrument(skip(self))]
@@ -139,6 +142,27 @@ impl Peer {
         Ok(())
     }
 
+    pub async fn handle_bulk_pull(
+        &mut self,
+        _header: &Header,
+        _bulk_pull: BulkPull,
+    ) -> anyhow::Result<()> {
+        // The rest of this connection will be a bunch of blocks without any headers.
+        if matches!(self.bootstrap_state, FrontierStream) {
+            panic!("Invalid bootstrap state transition FrontierStream => BulkPull");
+        }
+        self.bootstrap_state = BootstrapState::BulkPull;
+        Ok(())
+    }
+
+    pub async fn handle_bootstrap_state_block(
+        &mut self,
+        state_block: &StateBlock
+    ) -> anyhow::Result<()> {
+        trace!("Got bootstrap state block {}", state_block);
+        Ok(())
+    }
+
     pub async fn handle_publish(
         &mut self,
         _header: &Header,
@@ -189,7 +213,10 @@ impl Peer {
         _frontier_req: FrontierReq,
     ) -> anyhow::Result<()> {
         // The rest of this connection will be a bunch of frontiers without any headers.
-        self.frontier_stream = true;
+        if matches!(self.bootstrap_state, BootstrapState::BulkPull) {
+            panic!("Invalid bootstrap state transition BulkPull => FrontierStream");
+        }
+        self.bootstrap_state = FrontierStream;
 
         Ok(())
     }
