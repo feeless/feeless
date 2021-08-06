@@ -2,6 +2,7 @@ use super::Peer;
 use crate::blocks::{Block, BlockHash, BlockHolder, BlockType, Link, Previous, StateBlock};
 use crate::node::cookie::Cookie;
 use crate::node::header::{Extensions, Header, MessageType};
+use crate::node::messages::bulk_pull::BulkPull;
 use crate::node::messages::confirm_ack::ConfirmAck;
 use crate::node::messages::confirm_req::ConfirmReq;
 use crate::node::messages::frontier_req::FrontierReq;
@@ -11,14 +12,13 @@ use crate::node::messages::keepalive::Keepalive;
 use crate::node::messages::publish::Publish;
 use crate::node::messages::telemetry_ack::TelemetryAck;
 use crate::node::messages::telemetry_req::TelemetryReq;
+use crate::node::peer::BootstrapState;
+use crate::node::peer::BootstrapState::FrontierStream;
 use crate::{Difficulty, Public, Seed, Signature};
 use anyhow::anyhow;
 use anyhow::Context;
 use std::convert::TryFrom;
 use tracing::{debug, info, instrument, trace, warn};
-use crate::node::messages::bulk_pull::BulkPull;
-use crate::node::peer::BootstrapState::FrontierStream;
-use crate::node::peer::BootstrapState;
 
 impl Peer {
     #[instrument(skip(self))]
@@ -157,7 +157,7 @@ impl Peer {
 
     pub async fn handle_bootstrap_state_block(
         &mut self,
-        state_block: &StateBlock
+        state_block: &StateBlock,
     ) -> anyhow::Result<()> {
         trace!("Got bootstrap state block {}", state_block);
         Ok(())

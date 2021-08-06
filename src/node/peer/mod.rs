@@ -2,20 +2,22 @@ mod blocks;
 mod genesis;
 mod messages;
 
-use crate::blocks::{Block, BlockType, SendBlock, ReceiveBlock, OpenBlock, ChangeBlock, StateBlock};
+use crate::blocks::{
+    Block, BlockType, ChangeBlock, OpenBlock, ReceiveBlock, SendBlock, StateBlock,
+};
 use crate::encoding::to_hex;
 use crate::network::Network;
 use crate::node::header::{Extensions, Header, MessageType};
+use crate::node::peer::BootstrapState::Idle;
 use crate::node::state::ArcState;
 use crate::node::wire::Wire;
 use crate::{Public, Raw};
 use anyhow::{anyhow, Context};
+use std::convert::TryFrom;
 use std::fmt::Debug;
 use std::net::SocketAddr;
 use tokio::sync::mpsc;
-use tracing::{debug, info, instrument, trace, error, warn};
-use crate::node::peer::BootstrapState::Idle;
-use std::convert::TryFrom;
+use tracing::{debug, error, info, instrument, trace, warn};
 
 /// A message sent between channels that contains a peer's network data.
 #[derive(Debug)]
@@ -196,8 +198,7 @@ impl Peer {
                     self.incoming_buffer = Vec::from(&self.incoming_buffer[ChangeBlock::LEN..])
                 }
                 BlockType::State => {
-                    let payload: Option<StateBlock> = self
-                        .recv(None)?;
+                    let payload: Option<StateBlock> = self.recv(None)?;
                     if let Some(payload) = payload {
                         match &self.last_annotation {
                             Some(a) => info!("{} {:?}", a, &payload),
@@ -223,9 +224,9 @@ impl Peer {
                     }
                     RecvState::Payload(header) => {
                         trace!(
-                        "Attempt to handle message of type: {:?}",
-                        header.message_type()
-                    );
+                            "Attempt to handle message of type: {:?}",
+                            header.message_type()
+                        );
                         match header.message_type() {
                             MessageType::Keepalive => handle!(self, handle_keepalive, header),
                             MessageType::Publish => handle!(self, handle_publish, header),
@@ -233,8 +234,12 @@ impl Peer {
                             MessageType::ConfirmAck => handle!(self, handle_confirm_ack, header),
                             MessageType::FrontierReq => handle!(self, handle_frontier_req, header),
                             MessageType::Handshake => handle!(self, handle_handshake, header),
-                            MessageType::TelemetryReq => handle!(self, handle_telemetry_req, header),
-                            MessageType::TelemetryAck => handle!(self, handle_telemetry_ack, header),
+                            MessageType::TelemetryReq => {
+                                handle!(self, handle_telemetry_req, header)
+                            }
+                            MessageType::TelemetryAck => {
+                                handle!(self, handle_telemetry_ack, header)
+                            }
                             MessageType::BulkPull => handle!(self, handle_bulk_pull, header),
                             // MessageType::BulkPush => {}
                             // MessageType::BulkPullAccount => {}
@@ -448,7 +453,7 @@ mod tests {
             &BlockHash::from_str(
                 "90D0C16AC92DD35814E84BFBCC739A039615D0A42A76EF44ADAEF1D99E9F8A35"
             )
-                .unwrap()
+            .unwrap()
         );
 
         peer.add_elected_block(&land_open).await.unwrap();

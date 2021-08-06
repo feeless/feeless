@@ -38,7 +38,7 @@ pub struct SendBlock {
 }
 
 impl SendBlock {
-    pub const LEN: usize = 32+32+16+64+8;
+    pub const LEN: usize = 32 + 32 + 16 + 64 + 8;
 
     pub fn new(previous: BlockHash, destination: Public, balance: Raw) -> Self {
         Self {

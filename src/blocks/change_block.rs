@@ -11,5 +11,5 @@ pub struct ChangeBlock {
 }
 
 impl ChangeBlock {
-    pub const LEN: usize = 32+32+64+8;
+    pub const LEN: usize = 32 + 32 + 64 + 8;
 }

@@ -1,9 +1,9 @@
-use crate::Public;
-use crate::bytes::Bytes;
 use crate::blocks::BlockHash;
-use crate::node::{Wire, Header};
-use std::convert::TryFrom;
+use crate::bytes::Bytes;
+use crate::node::{Header, Wire};
+use crate::Public;
 use anyhow::{anyhow, Error};
+use std::convert::TryFrom;
 
 #[derive(Debug)]
 struct ExtendedParameters {
@@ -12,7 +12,7 @@ struct ExtendedParameters {
 
 #[derive(Debug)]
 pub struct BulkPull {
-    start: Public, // TODO: handle when this is a hash
+    start: Public,  // TODO: handle when this is a hash
     end: BlockHash, // TODO: anything special to do when this is all 0?
     extended_parameters: Option<ExtendedParameters>,
 }
@@ -34,14 +34,14 @@ impl Wire for BulkPull {
     }
 
     fn deserialize(header: Option<&Header>, data: &[u8]) -> anyhow::Result<Self, anyhow::Error>
-        where
-            Self: Sized
+    where
+        Self: Sized,
     {
         let mut bytes = Bytes::new(data);
         let start: Public = // TODO: handle the case when this is a hash
             Public::try_from(bytes.slice(Public::LEN)?).expect("bulk pull deserializing `start`");
-        let end: BlockHash =
-            BlockHash::try_from(bytes.slice(BlockHash::LEN)?).expect("bulk pull deserializing `end`");
+        let end: BlockHash = BlockHash::try_from(bytes.slice(BlockHash::LEN)?)
+            .expect("bulk pull deserializing `end`");
         let has_extended_parameters = header
             .ok_or(Error::msg("Header required!"))?
             .ext()
@@ -60,10 +60,17 @@ impl Wire for BulkPull {
         } else {
             None
         };
-        Ok(Self { start, end, extended_parameters })
+        Ok(Self {
+            start,
+            end,
+            extended_parameters,
+        })
     }
 
-    fn len(header: Option<&Header>) -> anyhow::Result<usize> where Self: Sized {
+    fn len(header: Option<&Header>) -> anyhow::Result<usize>
+    where
+        Self: Sized,
+    {
         if Self::has_extended_parameters(header)? {
             Ok(Self::LEN_WITH_EXTENSIONS)
         } else {
