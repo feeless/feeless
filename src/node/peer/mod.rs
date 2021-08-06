@@ -407,7 +407,7 @@ mod tests {
                 "signature": "5B11B17DB9C8FE0CC58CAC6A6EECEF9CB122DA8A81C6D3DB1B5EE3AB065AA8F8CB1D6765C8EB91B58530C5FF5987AD95E6D34BB57F44257E20795EE412E61600"
             }"#,
         )
-            .unwrap();
+        .unwrap();
 
         // TODO: This should be done somewhere (the controller?
         // e.g. controller.validate_send_block() or controller.fill_send_block()
