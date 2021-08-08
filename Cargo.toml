@@ -17,10 +17,12 @@ name = "cli"
 [features]
 default = ["full"]
 full = ["pcap", "node", "rpc_client", "rpc_server"]
-node = ["rpc_server", "sled"]
+node = ["rpc_server", "sled", "transport"]
 rpc_client = ["reqwest", "colored_json", "serde_with"]
 rpc_server = ["rpc_client", "warp", "node"]
 deny_warnings = []
+bootstrap = ["transport"]
+transport = []
 
 # pcap needs node for all the messages. This could be moved outside of node in the future.
 pcap = ["node", "pcarp", "etherparse"]
@@ -50,7 +52,7 @@ serde_json = "1.0.64"
 strum = "0.21.0"
 strum_macros = "0.21.1"
 thiserror = "1.0.25"
-tokio = { version = "1.6.1", features = ["full", "rt-multi-thread"] }
+tokio = { version = "1.9.0", features = ["full", "rt-multi-thread"] }
 tracing = "0.1"
 tracing-subscriber = "0.2"
 

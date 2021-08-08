@@ -1,4 +1,3 @@
-pub mod bulk_pull;
 pub mod confirm_ack;
 pub mod confirm_req;
 pub mod empty;

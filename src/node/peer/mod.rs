@@ -1,23 +1,23 @@
+use std::fmt::Debug;
+use std::net::SocketAddr;
+
+use anyhow::{anyhow, Context};
+use tokio::sync::mpsc;
+use tracing::{debug, instrument, trace};
+
+use crate::blocks::Block;
+use crate::bootstrap::server::BootstrapServer;
+use crate::encoding::to_hex;
+use crate::handle;
+use crate::network::Network;
+use crate::node::state::ArcState;
+use crate::transport::header::{Extensions, Header, MessageType};
+use crate::transport::wire::Wire;
+use crate::{Public, Raw};
+
 mod blocks;
 mod genesis;
 mod messages;
-
-use crate::blocks::{
-    Block, BlockType, ChangeBlock, OpenBlock, ReceiveBlock, SendBlock, StateBlock,
-};
-use crate::encoding::to_hex;
-use crate::network::Network;
-use crate::node::header::{Extensions, Header, MessageType};
-use crate::node::peer::BootstrapState::Idle;
-use crate::node::state::ArcState;
-use crate::node::wire::Wire;
-use crate::{Public, Raw};
-use anyhow::{anyhow, Context};
-use std::convert::TryFrom;
-use std::fmt::Debug;
-use std::net::SocketAddr;
-use tokio::sync::mpsc;
-use tracing::{debug, error, info, instrument, trace, warn};
 
 /// A message sent between channels that contains a peer's network data.
 #[derive(Debug)]
@@ -70,9 +70,7 @@ pub struct Peer {
     peer_addr: SocketAddr,
     recv_state: RecvState,
 
-    /// Are we doing a frontier req stream? (Bootstrap?)
-    /// Are we doing a bulk pull req? (Bootstrap?)
-    bootstrap_state: BootstrapState,
+    bootstrap_server: BootstrapServer,
 
     /// Internal buffer for incoming data.
     incoming_buffer: Vec<u8>,
@@ -103,7 +101,7 @@ impl Peer {
             state,
             peer_addr,
             recv_state: RecvState::Header,
-            bootstrap_state: Idle,
+            bootstrap_server: BootstrapServer::new(),
             incoming_buffer: Vec::with_capacity(10_000),
             peer_rx: incoming_rx,
             peer_tx: outgoing_tx,
@@ -136,28 +134,6 @@ impl Peer {
     async fn handle_packet(&mut self, packet: Packet) -> anyhow::Result<()> {
         trace!("handle_packet");
 
-        macro_rules! handle {
-            ($self: ident, $fun:ident, $header:expr) => {{
-                let sh = Some(&$header);
-                let payload = self
-                    .recv(sh)
-                    .with_context(|| format!("Receiving payload for {:?}", $header))?;
-
-                if let Some(payload) = payload {
-                    match &self.last_annotation {
-                        Some(a) => info!("{} {:?}", a, &payload),
-                        None => debug!("{:?}", &payload),
-                    };
-
-                    $self
-                        .$fun(&$header, payload)
-                        .await
-                        .with_context(|| format!("Handling payload for {:?}", $header))?;
-                } else {
-                }
-            };};
-        }
-
         if let Some(annotation) = packet.annotation {
             self.last_annotation = Some(annotation);
         }
@@ -169,89 +145,105 @@ impl Peer {
         //     self.handle_frontier_resp(payload).await?;
         // } else {
 
-        if matches!(self.bootstrap_state, BootstrapState::BulkPull) {
-            let block_type_byte = self.incoming_buffer[0].to_owned();
-            self.incoming_buffer = Vec::from(&self.incoming_buffer[1..]);
-            let block_type = BlockType::try_from(block_type_byte)?;
-            match block_type {
-                BlockType::Invalid => {
-                    error!("invalid block, not implemented")
-                }
-                BlockType::NotABlock => {
-                    trace!("Received NotABlock, reverting to Idle bootstrap state");
-                    self.bootstrap_state = Idle
-                }
-                BlockType::Send => {
-                    info!("send block, not implemented");
-                    self.incoming_buffer = Vec::from(&self.incoming_buffer[SendBlock::LEN..])
-                }
-                BlockType::Receive => {
-                    info!("receive block, not implemented");
-                    self.incoming_buffer = Vec::from(&self.incoming_buffer[ReceiveBlock::LEN..])
-                }
-                BlockType::Open => {
-                    info!("open block, not implemented");
-                    self.incoming_buffer = Vec::from(&self.incoming_buffer[OpenBlock::LEN..])
-                }
-                BlockType::Change => {
-                    info!("change block, not implemented");
-                    self.incoming_buffer = Vec::from(&self.incoming_buffer[ChangeBlock::LEN..])
-                }
-                BlockType::State => {
-                    let payload: Option<StateBlock> = self.recv(None)?;
-                    if let Some(payload) = payload {
-                        match &self.last_annotation {
-                            Some(a) => info!("{} {:?}", a, &payload),
-                            None => debug!("{:?}", &payload),
-                        };
-
-                        self.handle_bootstrap_state_block(&payload).await?;
+        // if matches!(self.bootstrap_state, BootstrapState::BulkPull) {
+        //     // TODO: this won't always work depending on the amount of data in the incoming buffer: needs to be a loop
+        //     let block_type_byte = self.incoming_buffer[0].to_owned();
+        //     self.incoming_buffer = Vec::from(&self.incoming_buffer[1..]);
+        //     let block_type = BlockType::try_from(block_type_byte)?;
+        //     match block_type {
+        //         BlockType::Invalid => {
+        //             error!("invalid block, not implemented")
+        //         }
+        //         BlockType::NotABlock => {
+        //             trace!("Received NotABlock, reverting to Idle bootstrap state");
+        //             self.bootstrap_state = Idle
+        //         }
+        //         BlockType::Send => {
+        //             info!("send block, not implemented");
+        //             self.incoming_buffer = Vec::from(&self.incoming_buffer[SendBlock::LEN..])
+        //         }
+        //         BlockType::Receive => {
+        //             info!("receive block, not implemented");
+        //             self.incoming_buffer = Vec::from(&self.incoming_buffer[ReceiveBlock::LEN..])
+        //         }
+        //         BlockType::Open => {
+        //             info!("open block, not implemented");
+        //             self.incoming_buffer = Vec::from(&self.incoming_buffer[OpenBlock::LEN..])
+        //         }
+        //         BlockType::Change => {
+        //             info!("change block, not implemented");
+        //             self.incoming_buffer = Vec::from(&self.incoming_buffer[ChangeBlock::LEN..])
+        //         }
+        //         BlockType::State => {
+        //             let payload: Option<StateBlock> = self.recv(None)?;
+        //             if let Some(payload) = payload {
+        //                 match &self.last_annotation {
+        //                     Some(a) => info!("{} {:?}", a, &payload),
+        //                     None => debug!("{:?}", &payload),
+        //                 };
+        //
+        //                 BootstrapClient::handle_bootstrap_state_block(&payload).await?;
+        //             } else {
+        //                 warn!("Expected payload not received")
+        //             }
+        //         }
+        //     }
+        // } else {
+        loop {
+            let (new_state, keep_processing) = match self.recv_state {
+                RecvState::Header => {
+                    if let Some(header) = self.recv::<Header>(None)? {
+                        header.validate(&self.network)?;
+                        (RecvState::Payload(header), true)
                     } else {
-                        warn!("Expected payload not received")
-                    }
-                }
-            }
-        } else {
-            loop {
-                let (new_state, keep_processing) = match self.recv_state {
-                    RecvState::Header => {
-                        if let Some(header) = self.recv::<Header>(None)? {
-                            header.validate(&self.network)?;
-                            (RecvState::Payload(header), true)
-                        } else {
-                            (RecvState::Header, false)
-                        }
-                    }
-                    RecvState::Payload(header) => {
-                        trace!(
-                            "Attempt to handle message of type: {:?}",
-                            header.message_type()
-                        );
-                        match header.message_type() {
-                            MessageType::Keepalive => handle!(self, handle_keepalive, header),
-                            MessageType::Publish => handle!(self, handle_publish, header),
-                            MessageType::ConfirmReq => handle!(self, handle_confirm_req, header),
-                            MessageType::ConfirmAck => handle!(self, handle_confirm_ack, header),
-                            MessageType::FrontierReq => handle!(self, handle_frontier_req, header),
-                            MessageType::Handshake => handle!(self, handle_handshake, header),
-                            MessageType::TelemetryReq => {
-                                handle!(self, handle_telemetry_req, header)
-                            }
-                            MessageType::TelemetryAck => {
-                                handle!(self, handle_telemetry_ack, header)
-                            }
-                            MessageType::BulkPull => handle!(self, handle_bulk_pull, header),
-                            // MessageType::BulkPush => {}
-                            // MessageType::BulkPullAccount => {}
-                            _ => return Err(anyhow!("Unhandled message: {:?}", header)),
-                        };
                         (RecvState::Header, false)
                     }
-                };
-                self.recv_state = new_state;
-                if !keep_processing {
-                    break;
                 }
+                RecvState::Payload(header) => {
+                    trace!(
+                        "Attempt to handle message of type: {:?}",
+                        header.message_type()
+                    );
+                    let incoming_buffer = &mut self.incoming_buffer;
+                    match header.message_type() {
+                        MessageType::Keepalive => {
+                            handle!(self, handle_keepalive, header, incoming_buffer)
+                        }
+                        MessageType::Publish => {
+                            handle!(self, handle_publish, header, incoming_buffer)
+                        }
+                        MessageType::ConfirmReq => {
+                            handle!(self, handle_confirm_req, header, incoming_buffer)
+                        }
+                        MessageType::ConfirmAck => {
+                            handle!(self, handle_confirm_ack, header, incoming_buffer)
+                        }
+                        MessageType::FrontierReq => {
+                            handle!(self, handle_frontier_req, header, incoming_buffer)
+                        }
+                        MessageType::Handshake => {
+                            handle!(self, handle_handshake, header, incoming_buffer)
+                        }
+                        MessageType::TelemetryReq => {
+                            handle!(self, handle_telemetry_req, header, incoming_buffer)
+                        }
+                        MessageType::TelemetryAck => {
+                            handle!(self, handle_telemetry_ack, header, incoming_buffer)
+                        }
+                        MessageType::BulkPull => {
+                            let bootstrap_server = &mut self.bootstrap_server;
+                            handle!(bootstrap_server, handle_bulk_pull, header, incoming_buffer)
+                        }
+                        // MessageType::BulkPush => {}
+                        // MessageType::BulkPullAccount => {}
+                        _ => return Err(anyhow!("Unhandled message: {:?}", header)),
+                    };
+                    (RecvState::Header, false)
+                }
+            };
+            self.recv_state = new_state;
+            if !keep_processing {
+                break;
             }
         }
 
@@ -272,8 +264,7 @@ impl Peer {
             return Ok(None);
         }
 
-        let buffer = self.incoming_buffer[0..bytes].to_owned();
-        self.incoming_buffer = Vec::from(&self.incoming_buffer[bytes..]);
+        let buffer = self.incoming_buffer.drain(..bytes).collect::<Vec<u8>>();
         trace!("HEX: {}", to_hex(&buffer));
         let result = T::deserialize(header, &buffer)?;
         Ok(Some(result))
@@ -346,15 +337,18 @@ impl Peer {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
+    use std::net::{Ipv4Addr, SocketAddrV4};
+    use std::str::FromStr;
+    use std::sync::Arc;
+
+    use tokio::sync::Mutex;
+
     use crate::blocks::{Block, BlockHash, OpenBlock, Previous, SendBlock};
     use crate::network::DEFAULT_PORT;
     use crate::node::state::MemoryState;
     use crate::Address;
-    use std::net::{Ipv4Addr, SocketAddrV4};
-    use std::str::FromStr;
-    use std::sync::Arc;
-    use tokio::sync::Mutex;
+
+    use super::*;
 
     async fn empty_lattice(network: Network) -> Peer {
         let state = Arc::new(Mutex::new(MemoryState::new(network)));

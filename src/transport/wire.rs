@@ -1,6 +1,6 @@
 use std::fmt::Debug;
 
-use crate::node::header::Header;
+use crate::transport::header::Header;
 
 pub trait Wire: Debug {
     fn serialize(&self) -> Vec<u8>;
@@ -10,8 +10,23 @@ pub trait Wire: Debug {
     where
         Self: Sized;
 
+    fn deserialize_payload(header: &Header, data: &[u8]) -> anyhow::Result<Self>
+    where
+        Self: Sized,
+    {
+        Self::deserialize(Some(header), data)
+    }
+
     /// The expected size of the incoming data.
     fn len(header: Option<&Header>) -> anyhow::Result<usize>
     where
         Self: Sized;
+
+    /// The expected size of the incoming data.
+    fn len_payload(header: &Header) -> anyhow::Result<usize>
+    where
+        Self: Sized,
+    {
+        Self::len(Some(header))
+    }
 }
