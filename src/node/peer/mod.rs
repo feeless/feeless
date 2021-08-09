@@ -13,7 +13,10 @@ use crate::network::Network;
 use crate::node::state::ArcState;
 use crate::transport::header::{Extensions, Header, MessageType};
 use crate::transport::wire::Wire;
+use crate::transport::RecvResult;
+use crate::transport::RecvResult::Received;
 use crate::{Public, Raw};
+use std::collections::VecDeque;
 
 mod blocks;
 mod genesis;
@@ -73,7 +76,7 @@ pub struct Peer {
     bootstrap_server: BootstrapServer,
 
     /// Internal buffer for incoming data.
-    incoming_buffer: Vec<u8>,
+    incoming_buffer: VecDeque<u8>,
 
     /// Incoming data from the connected peer.
     peer_rx: mpsc::Receiver<Packet>,
@@ -102,7 +105,7 @@ impl Peer {
             peer_addr,
             recv_state: RecvState::Header,
             bootstrap_server: BootstrapServer::new(),
-            incoming_buffer: Vec::with_capacity(10_000),
+            incoming_buffer: VecDeque::with_capacity(10_000),
             peer_rx: incoming_rx,
             peer_tx: outgoing_tx,
             last_annotation: None,
@@ -231,8 +234,12 @@ impl Peer {
                             handle!(self, handle_telemetry_ack, header, incoming_buffer)
                         }
                         MessageType::BulkPull => {
-                            let bootstrap_server = &mut self.bootstrap_server;
-                            handle!(bootstrap_server, handle_bulk_pull, header, incoming_buffer)
+                            handle!(
+                                &mut self.bootstrap_server,
+                                handle_bulk_pull,
+                                header,
+                                incoming_buffer
+                            )
                         }
                         // MessageType::BulkPush => {}
                         // MessageType::BulkPullAccount => {}
@@ -270,16 +277,15 @@ impl Peer {
         Ok(Some(result))
     }
 
-    fn recv_immediate(&mut self, size: usize) -> anyhow::Result<Vec<u8>> {
-        debug_assert!(self.incoming_buffer.len() >= size);
+    fn recv_immediate(&mut self, bytes: usize) -> anyhow::Result<Vec<u8>> {
+        debug_assert!(self.incoming_buffer.len() >= bytes);
 
         // This is super inefficient. Need to use something like
         // https://crates.io/crates/slice-deque
         // Might not work in wasm later.
 
-        let buf = self.incoming_buffer[0..size].to_owned();
-        self.incoming_buffer = Vec::from(&self.incoming_buffer[size..]);
-        Ok(buf)
+        let buffer = self.incoming_buffer.drain(..bytes).collect::<Vec<u8>>();
+        Ok(buffer)
     }
 
     #[instrument(skip(self, message))]

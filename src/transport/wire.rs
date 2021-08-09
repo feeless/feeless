@@ -22,6 +22,13 @@ pub trait Wire: Debug {
     where
         Self: Sized;
 
+    fn len_given_header(header: &Header) -> anyhow::Result<usize>
+    where
+        Self: Sized,
+    {
+        Self::len(Some(header))
+    }
+
     /// The expected size of the incoming data.
     fn len_payload(header: &Header) -> anyhow::Result<usize>
     where
