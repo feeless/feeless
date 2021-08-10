@@ -2,7 +2,6 @@ use std::collections::VecDeque;
 
 use crate::bootstrap::messages::bulk_pull::BulkPull;
 use crate::bootstrap::server::ParserState::ReceivingPayload;
-use crate::handle;
 use crate::node::{Packet, Wire};
 use crate::transport::header::{Header, MessageType};
 use crate::transport::RecvResult::NotEnoughBytes;
@@ -11,7 +10,7 @@ use crate::transport::{recv, recv_header, recv_payload, RecvResult};
 use crate::Network;
 use anyhow::anyhow;
 use anyhow::Context;
-use std::fmt::Debug;
+use std::fmt::{Debug, Formatter};
 use std::future::Future;
 use tracing::{instrument, trace, warn};
 
@@ -35,16 +34,43 @@ iterativo dato che dovrebbe avere solo pochi stati (ma questo si puo' fare anche
 o creato qualche test, in modo da vedere se funziona).
  */
 
-macro_rules! handle2 {
-    ($self: ident, $fun: ident, $mut_buffer: expr, $header: ident) => {{
-        match crate::transport::recv_payload(&$header, &mut $mut_buffer)? {
-            Received(message) => {
-                $self.$fun(&$header, message).await?;
-                Ok(ParserState::ReceivingHeader)
-            }
-            NotEnoughBytes => Ok(ParserState::ReceivingPayload($header)),
-        }
-    };};
+// macro_rules! handle2 {
+//     ($self: ident, $fun: ident, $mut_buffer: expr, $header: ident) => {{
+//         match crate::transport::recv_payload(&$header, &mut $mut_buffer)? {
+//             Received(message) => {
+//                 $self.$fun(&$header, message).await?;
+//                 Ok(ParserState::ReceivingHeader)
+//             }
+//             NotEnoughBytes => Ok(ParserState::ReceivingPayload($header)),
+//         }
+//     };};
+// }
+struct FrontierReq {}
+
+impl Debug for FrontierReq {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        todo!()
+    }
+}
+
+impl Wire for FrontierReq {
+    fn serialize(&self) -> Vec<u8> {
+        todo!()
+    }
+
+    fn deserialize(header: Option<&Header>, data: &[u8]) -> anyhow::Result<Self>
+    where
+        Self: Sized,
+    {
+        todo!()
+    }
+
+    fn len(header: Option<&Header>) -> anyhow::Result<usize>
+    where
+        Self: Sized,
+    {
+        todo!()
+    }
 }
 
 impl BootstrapServer {
@@ -57,31 +83,31 @@ impl BootstrapServer {
 
     pub async fn handle_bulk_pull(
         &mut self,
-        _header: &Header,
+        _header: Header,
         _bulk_pull: BulkPull,
     ) -> anyhow::Result<()> {
         Ok(())
     }
 
-    pub async fn handle_frontier_req<'r, 's>(
-        &'r mut self,
-        _header: &'s Header,
-        _bulk_pull: BulkPull,
-    ) -> anyhow::Result<()> {
-        Ok(())
-    }
-
-    async fn handle_m<Fut>(
+    pub async fn handle_frontier_req(
         &mut self,
-        fun: for<'r, 's> fn(&'r mut BootstrapServer, &'s Header, BulkPull) -> Fut,
+        _header: Header,
+        _frontier_req: FrontierReq,
+    ) -> anyhow::Result<()> {
+        Ok(())
+    }
+
+    async fn handle<'r, T: Wire + Debug, Fut>(
+        &'r mut self,
+        fun: fn(&'r mut BootstrapServer, Header, T) -> Fut,
         header: Header,
     ) -> anyhow::Result<ParserState>
     where
-        Fut: Future<Output = anyhow::Result<()>>,
+        Fut: Future<Output = anyhow::Result<()>> + 'r,
     {
         match recv_payload(&header, &mut self.incoming_buffer)? {
             Received(message) => {
-                fun(self, &header, message).await?;
+                fun(self, header, message).await?;
                 Ok(ParserState::ReceivingHeader)
             }
             NotEnoughBytes => Ok(ParserState::ReceivingPayload(header)),
@@ -95,9 +121,9 @@ impl BootstrapServer {
             // MessageType::Publish => {}
             // MessageType::ConfirmReq => {}
             // MessageType::ConfirmAck => {}
-            MessageType::BulkPull => handle2!(self, handle_bulk_pull, self.incoming_buffer, header),
+            MessageType::BulkPull => self.handle(Self::handle_bulk_pull, header).await,
             // MessageType::BulkPush => {}
-            MessageType::FrontierReq => self.handle_m(Self::handle_frontier_req, header).await,
+            MessageType::FrontierReq => self.handle(Self::handle_frontier_req, header).await,
             // MessageType::Handshake => {}
             // MessageType::BulkPullAccount => {}
             // MessageType::TelemetryReq => {}
@@ -223,25 +249,25 @@ impl BootstrapServer {
         // }
     }
 
-    async fn parse_message_whole<T: Wire + Debug>(
-        &mut self,
-        header: Header,
-    ) -> anyhow::Result<ParserState> {
-        let message_type = header.message_type();
-        let incoming_buffer = &mut self.incoming_buffer;
-        match message_type {
-            // MessageType::Keepalive => {}
-            // MessageType::Publish => {}
-            // MessageType::ConfirmReq => {}
-            // MessageType::ConfirmAck => {}
-            MessageType::BulkPull => Ok(handle!(self, handle_bulk_pull, header, incoming_buffer)),
-            // MessageType::BulkPush => {}
-            // MessageType::FrontierReq => {}
-            // MessageType::Handshake => {}
-            // MessageType::BulkPullAccount => {}
-            // MessageType::TelemetryReq => {}
-            // MessageType::TelemetryAck => {}
-            _ => Err(anyhow!("Unhandled message: {:?}", header)),
-        }
-    }
+    // async fn parse_message_whole<T: Wire + Debug>(
+    //     &mut self,
+    //     header: Header,
+    // ) -> anyhow::Result<ParserState> {
+    //     let message_type = header.message_type();
+    //     let incoming_buffer = &mut self.incoming_buffer;
+    //     match message_type {
+    //         // MessageType::Keepalive => {}
+    //         // MessageType::Publish => {}
+    //         // MessageType::ConfirmReq => {}
+    //         // MessageType::ConfirmAck => {}
+    //         MessageType::BulkPull => Ok(handle!(self, handle_bulk_pull, header, incoming_buffer)),
+    //         // MessageType::BulkPush => {}
+    //         // MessageType::FrontierReq => {}
+    //         // MessageType::Handshake => {}
+    //         // MessageType::BulkPullAccount => {}
+    //         // MessageType::TelemetryReq => {}
+    //         // MessageType::TelemetryAck => {}
+    //         _ => Err(anyhow!("Unhandled message: {:?}", header)),
+    //     }
+    // }
 }

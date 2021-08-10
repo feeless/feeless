@@ -9,36 +9,36 @@ use tracing::{instrument, trace};
 pub mod header;
 pub mod wire;
 
-pub enum RecvResult<T: Wire + Debug> {
+pub enum RecvResult<T> {
     Received(T),
     NotEnoughBytes,
 }
 
-#[macro_export]
-macro_rules! handle {
-    ($self: expr, $fun:ident, $header:ident, $mut_incoming_buffer: ident) => {{
-        let sh = Some(&$header);
-        let received = crate::transport::recv(sh, $mut_incoming_buffer)
-            .with_context(|| format!("Receiving payload for {:?}", $header))?;
-
-        match received {
-            Received(payload) => {
-                // TODO: reinstate
-                // match &self.last_annotation {
-                //     Some(a) => info!("{} {:?}", a, &payload),
-                //     None => debug!("{:?}", &payload),
-                // };
-
-                $self
-                    .$fun(&$header, payload)
-                    .await
-                    .with_context(|| format!("Handling payload for {:?}", $header))?;
-                ParserState::ReceivingHeader
-            }
-            RecvResult::NotEnoughBytes => ParserState::ReceivingPayload($header),
-        }
-    };};
-}
+// #[macro_export]
+// macro_rules! handle {
+//     ($self: expr, $fun:ident, $header:ident, $mut_incoming_buffer: ident) => {{
+//         let sh = Some(&$header);
+//         let received = crate::transport::recv(sh, $mut_incoming_buffer)
+//             .with_context(|| format!("Receiving payload for {:?}", $header))?;
+//
+//         match received {
+//             Received(payload) => {
+//                 // TODO: reinstate
+//                 // match &self.last_annotation {
+//                 //     Some(a) => info!("{} {:?}", a, &payload),
+//                 //     None => debug!("{:?}", &payload),
+//                 // };
+//
+//                 $self
+//                     .$fun(&$header, payload)
+//                     .await
+//                     .with_context(|| format!("Handling payload for {:?}", $header))?;
+//                 ParserState::ReceivingHeader
+//             }
+//             RecvResult::NotEnoughBytes => ParserState::ReceivingPayload($header),
+//         }
+//     };};
+// }
 
 /// Receive from the incoming buffer for type `T`. Will return None if there aren't enough
 /// bytes available.
