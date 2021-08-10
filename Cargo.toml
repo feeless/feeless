@@ -17,10 +17,12 @@ name = "cli"
 [features]
 default = ["full"]
 full = ["pcap", "node", "rpc_client", "rpc_server"]
-node = ["rpc_server", "sled"]
+node = ["rpc_server", "sled", "transport"]
 rpc_client = ["reqwest", "colored_json", "serde_with"]
 rpc_server = ["rpc_client", "warp", "node"]
 deny_warnings = []
+bootstrap = ["transport"]
+transport = []
 
 # pcap needs node for all the messages. This could be moved outside of node in the future.
 pcap = ["node", "pcarp", "etherparse"]

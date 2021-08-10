@@ -1,30 +1,31 @@
-mod command;
-mod cookie;
-mod header;
-mod messages;
-mod peer;
-mod peer_info;
-mod state;
-mod timestamp;
-mod wire;
-
-use crate::rpc::server::RPCServer;
-use crate::Network;
-pub use crate::Version;
-use anyhow::Context;
-pub use command::{NodeCommand, NodeCommandReceiver, NodeCommandSender};
-pub use header::Header;
-pub use peer::{Packet, Peer};
-pub use state::{ArcState, MemoryState, SledDiskState};
 use std::net::SocketAddr;
 use std::str::FromStr;
 use std::sync::Arc;
+
+use anyhow::Context;
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use tokio::net::TcpStream;
 use tokio::sync::Mutex;
 use tokio::task::JoinHandle;
 use tracing::{debug, error, info, instrument};
-pub use wire::Wire;
+
+pub use command::{NodeCommand, NodeCommandReceiver, NodeCommandSender};
+pub use peer::{Packet, Peer};
+pub use state::{ArcState, MemoryState, SledDiskState};
+
+use crate::rpc::server::RPCServer;
+pub use crate::transport::header::Header;
+pub use crate::transport::wire::Wire;
+use crate::Network;
+pub use crate::Version;
+
+mod command;
+mod cookie;
+mod messages;
+mod peer;
+mod peer_info;
+mod state;
+mod timestamp;
 
 pub struct Node {
     network: Network,

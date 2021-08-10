@@ -1,6 +1,6 @@
 use crate::bytes::Bytes;
-use crate::node::header::Header;
-use crate::node::wire::Wire;
+use crate::transport::header::Header;
+use crate::transport::wire::Wire;
 use crate::Public;
 use std::convert::TryFrom;
 

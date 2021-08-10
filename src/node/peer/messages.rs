@@ -1,7 +1,11 @@
-use super::Peer;
+use std::convert::TryFrom;
+
+use anyhow::anyhow;
+use anyhow::Context;
+use tracing::{debug, info, instrument, trace, warn};
+
 use crate::blocks::{Block, BlockHash, BlockHolder, BlockType, Link, Previous, StateBlock};
 use crate::node::cookie::Cookie;
-use crate::node::header::{Extensions, Header, MessageType};
 use crate::node::messages::confirm_ack::ConfirmAck;
 use crate::node::messages::confirm_req::ConfirmReq;
 use crate::node::messages::frontier_req::FrontierReq;
@@ -11,11 +15,10 @@ use crate::node::messages::keepalive::Keepalive;
 use crate::node::messages::publish::Publish;
 use crate::node::messages::telemetry_ack::TelemetryAck;
 use crate::node::messages::telemetry_req::TelemetryReq;
+use crate::transport::header::{Extensions, Header, MessageType};
 use crate::{Difficulty, Public, Seed, Signature};
-use anyhow::anyhow;
-use anyhow::Context;
-use std::convert::TryFrom;
-use tracing::{debug, info, instrument, trace, warn};
+
+use super::Peer;
 
 impl Peer {
     #[instrument(skip(self))]
@@ -189,7 +192,11 @@ impl Peer {
         _frontier_req: FrontierReq,
     ) -> anyhow::Result<()> {
         // The rest of this connection will be a bunch of frontiers without any headers.
-        self.frontier_stream = true;
+        // if matches!(self.bootstrap_state, BootstrapState::BulkPull) {
+        //     panic!("Invalid bootstrap state transition BulkPull => FrontierStream");
+        // }
+        // self.bootstrap_state = FrontierStream;
+        // TODO: will be handled by the bootstrap server
 
         Ok(())
     }
@@ -368,16 +375,19 @@ impl Peer {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
+    use std::net::SocketAddr;
+    use std::str::FromStr;
+    use std::sync::Arc;
+
+    use tokio::sync::Mutex;
+
     use crate::blocks::{Link, Previous, StateBlock};
     use crate::network::Network;
     use crate::node::state::State;
     use crate::node::MemoryState;
     use crate::{Raw, Work};
-    use std::net::SocketAddr;
-    use std::str::FromStr;
-    use std::sync::Arc;
-    use tokio::sync::Mutex;
+
+    use super::*;
 
     fn root_block() -> (StateBlock, Block) {
         let source = Link::Source(
