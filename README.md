@@ -1,3 +1,19 @@
+.
+
+.
+
+.
+
+# This project is archived
+
+Please look at [RsNano](https://github.com/rsnano-node/rsnano-node) instead!
+
+.
+
+.
+
+.
+
 # ⋰·⋰ Feeless
 
 [![Crates.io](https://img.shields.io/crates/v/feeless?style=flat-square)](https://crates.io/crates/feeless)
