@@ -1,6 +1,6 @@
 use crate::hexify;
-use crate::node::header::Header;
-use crate::node::wire::Wire;
+use crate::transport::header::Header;
+use crate::transport::wire::Wire;
 use anyhow::anyhow;
 use rand::RngCore;
 use std::convert::TryFrom;

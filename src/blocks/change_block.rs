@@ -9,3 +9,7 @@ pub struct ChangeBlock {
     pub work: Option<Work>,
     pub signature: Option<Signature>,
 }
+
+impl ChangeBlock {
+    pub const LEN: usize = 32 + 32 + 64 + 8;
+}

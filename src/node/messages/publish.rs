@@ -1,6 +1,6 @@
 use crate::blocks::BlockHolder;
-use crate::node::header::Header;
-use crate::node::wire::Wire;
+use crate::transport::header::Header;
+use crate::transport::wire::Wire;
 
 #[derive(Debug)]
 pub struct Publish(pub(crate) BlockHolder);

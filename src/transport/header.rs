@@ -1,7 +1,7 @@
 use crate::blocks::BlockType;
 use crate::encoding::expect_len;
 use crate::network::Network;
-use crate::node::wire::Wire;
+use crate::node::Wire;
 use crate::version::Version;
 use anyhow::{anyhow, Context};
 use bitvec::prelude::*;
@@ -89,6 +89,14 @@ impl Header {
 
     pub fn ext(&self) -> Extensions {
         self.ext
+    }
+}
+
+impl TryFrom<Vec<u8>> for Header {
+    type Error = anyhow::Error;
+
+    fn try_from(value: Vec<u8>) -> Result<Self, Self::Error> {
+        Self::deserialize(None, &value)
     }
 }
 
@@ -206,6 +214,7 @@ impl Extensions {
 
     // Bit offsets and lengths
     const QUERY: usize = 0;
+    const EXTENDED_PARAMETERS_PRESENT: usize = 0;
     const RESPONSE: usize = 1;
     const ITEM_COUNT: usize = 12;
     const ITEM_COUNT_BITS: usize = 4;
@@ -223,6 +232,10 @@ impl Extensions {
 
     pub fn is_query(&self) -> bool {
         self.bits()[Self::QUERY]
+    }
+
+    pub fn has_extended_parameters(&self) -> bool {
+        self.bits()[Self::EXTENDED_PARAMETERS_PRESENT]
     }
 
     pub fn response(&mut self) -> &mut Self {
@@ -285,7 +298,7 @@ impl TryFrom<&[u8]> for Extensions {
 mod tests {
     use std::fmt::Debug;
 
-    use crate::node::state::MemoryState;
+    use crate::node::MemoryState;
 
     use super::*;
 

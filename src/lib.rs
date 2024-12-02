@@ -50,6 +50,7 @@ mod pcap;
 pub mod cli;
 
 pub mod blocks;
+mod bootstrap;
 mod bytes;
 mod encoding;
 mod errors;
@@ -58,6 +59,7 @@ mod network;
 mod paths;
 mod pow;
 pub mod rpc;
+mod transport; // TODO: does this want `macro_use`?
 pub mod units;
 pub mod vanity;
 mod version;
